@@ -38916,6 +38916,96 @@ export type Database = {
           },
         ]
       }
+      communication_dry_run_execution: {
+        Row: {
+          audit_metadata: Json
+          blockers: Json
+          certification_id: string | null
+          channel: string
+          completed_at: string | null
+          created_at: string
+          delivery_attempt_id: string | null
+          dispatcher_revalidation_decision_id: string | null
+          event_code: string
+          execution_no: string
+          failure_stage: string | null
+          id: string
+          idempotency_key: string
+          message_id: string | null
+          module_code: string
+          original_decision_id: string | null
+          preview_approval_id: string | null
+          preview_snapshot_id: string
+          recipient_set_hash: string
+          request_id: string | null
+          requested_by: string
+          scope_hash: string
+          started_at: string
+          state: string
+          trace_id: string | null
+          updated_at: string
+          warnings: Json
+        }
+        Insert: {
+          audit_metadata?: Json
+          blockers?: Json
+          certification_id?: string | null
+          channel: string
+          completed_at?: string | null
+          created_at?: string
+          delivery_attempt_id?: string | null
+          dispatcher_revalidation_decision_id?: string | null
+          event_code: string
+          execution_no: string
+          failure_stage?: string | null
+          id?: string
+          idempotency_key: string
+          message_id?: string | null
+          module_code: string
+          original_decision_id?: string | null
+          preview_approval_id?: string | null
+          preview_snapshot_id: string
+          recipient_set_hash: string
+          request_id?: string | null
+          requested_by: string
+          scope_hash: string
+          started_at?: string
+          state?: string
+          trace_id?: string | null
+          updated_at?: string
+          warnings?: Json
+        }
+        Update: {
+          audit_metadata?: Json
+          blockers?: Json
+          certification_id?: string | null
+          channel?: string
+          completed_at?: string | null
+          created_at?: string
+          delivery_attempt_id?: string | null
+          dispatcher_revalidation_decision_id?: string | null
+          event_code?: string
+          execution_no?: string
+          failure_stage?: string | null
+          id?: string
+          idempotency_key?: string
+          message_id?: string | null
+          module_code?: string
+          original_decision_id?: string | null
+          preview_approval_id?: string | null
+          preview_snapshot_id?: string
+          recipient_set_hash?: string
+          request_id?: string | null
+          requested_by?: string
+          scope_hash?: string
+          started_at?: string
+          state?: string
+          trace_id?: string | null
+          updated_at?: string
+          warnings?: Json
+        }
+        Relationships: []
+      }
       communication_event_log: {
         Row: {
           actor_user_id: string | null
@@ -93142,6 +93232,7 @@ export type Database = {
         }
         Returns: Json
       }
+      begin_comm_hub_dry_run: { Args: { p_payload: Json }; Returns: Json }
       bn_actor_has_capability: {
         Args: { p_capability: string; p_user_id: string }
         Returns: boolean
@@ -94064,6 +94155,17 @@ export type Database = {
           scope: string
         }[]
       }
+      comm_hub_dry_run_scope_hash: {
+        Args: {
+          p_actor: string
+          p_channel: string
+          p_event: string
+          p_module: string
+          p_recipient_hash: string
+          p_snapshot: string
+        }
+        Returns: string
+      }
       comm_hub_normalize_recipient_set: {
         Args: { p_bcc: Json; p_cc: Json; p_to: Json }
         Returns: Json
@@ -94907,6 +95009,7 @@ export type Database = {
         Args: { p_payload: Json }
         Returns: Json
       }
+      finalize_comm_hub_dry_run: { Args: { p_payload: Json }; Returns: Json }
       find_eligible_approver: {
         Args: {
           _exclude_users?: string[]
@@ -96132,6 +96235,10 @@ export type Database = {
           p_requested_to_user?: string
           p_requested_to_workbasket?: string
         }
+        Returns: Json
+      }
+      mark_comm_hub_dry_run_dispatching: {
+        Args: { p_execution_id: string; p_requested_by: string }
         Returns: Json
       }
       move_to_dlq: {
