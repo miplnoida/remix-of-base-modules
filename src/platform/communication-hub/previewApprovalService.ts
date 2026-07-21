@@ -81,18 +81,31 @@ async function rpc<T>(name: string, payload: unknown): Promise<T> {
   return data as T;
 }
 
-function normalizeSnapshot(raw: any): PreviewSnapshot {
+function normalizeSnapshot(raw: unknown): PreviewSnapshot {
   if (!raw || typeof raw !== "object") {
-    throw new Error("prepare_comm_hub_preview returned no snapshot");
+    throw new Error("preview_snapshot_invalid_response");
   }
-  // Backend row exposes `id`; the client contract uses `snapshot_id`.
-  // Normalize once here so every downstream call (approve, dry run,
-  // controlled live) receives a stable identifier.
-  const snapshot_id = raw.snapshot_id ?? raw.id ?? null;
-  if (!snapshot_id) {
-    throw new Error("prepare_comm_hub_preview returned a snapshot without id");
+  const value = raw as Record<string, unknown>;
+  const id =
+    typeof value.id === "string" && value.id.trim()
+      ? (value.id as string)
+      : null;
+  const snapshotId =
+    typeof value.snapshot_id === "string" && (value.snapshot_id as string).trim()
+      ? (value.snapshot_id as string)
+      : null;
+  if (id && snapshotId && id !== snapshotId) {
+    throw new Error("snapshot_identity_mismatch");
   }
-  return { ...raw, snapshot_id } as PreviewSnapshot;
+  const resolvedSnapshotId = snapshotId ?? id;
+  if (!resolvedSnapshotId) {
+    throw new Error("preview_snapshot_id_missing");
+  }
+  return {
+    ...value,
+    id: id ?? resolvedSnapshotId,
+    snapshot_id: resolvedSnapshotId,
+  } as unknown as PreviewSnapshot;
 }
 
 export async function preparePreview(input: PreparePreviewInput): Promise<PreviewSnapshot> {
