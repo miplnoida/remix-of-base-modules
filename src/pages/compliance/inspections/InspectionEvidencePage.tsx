@@ -7,7 +7,7 @@
  * upload pipeline is introduced.
  */
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -15,11 +15,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
-import { FolderOpen, AlertCircle, ExternalLink } from 'lucide-react';
+import { FolderOpen, AlertCircle, ExternalLink, MoreHorizontal, Plus, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
+import { toast } from 'sonner';
+import { EvidenceUploadDialog } from './EvidenceUploadDialog';
+import { EvidenceEditDialog, type EditableEvidence } from './EvidenceEditDialog';
 
 const PERMISSION = 'manage_compliance';
 
@@ -43,9 +51,21 @@ export default function InspectionEvidencePage() {
   );
 }
 
+function tryExtractStoragePath(fileUrl: string | null): string | null {
+  if (!fileUrl) return null;
+  const marker = '/storage/v1/object/public/documents/';
+  const idx = fileUrl.indexOf(marker);
+  if (idx === -1) return null;
+  return decodeURIComponent(fileUrl.slice(idx + marker.length));
+}
+
 function Inner() {
+  const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [type, setType] = useState<string>('ALL');
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<EditableEvidence | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 
   const q = useQuery({
     queryKey: ['ce-evidence-list', type],
@@ -64,6 +84,24 @@ function Inner() {
     },
   });
 
+  const del = useMutation({
+    mutationFn: async (row: any) => {
+      const path = tryExtractStoragePath(row.file_url);
+      if (path) {
+        // Best-effort storage cleanup — don't block DB delete if storage fails.
+        await supabase.storage.from('documents').remove([path]).catch(() => {});
+      }
+      const { error } = await supabase.from('ce_inspection_evidence').delete().eq('id', row.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Evidence deleted');
+      qc.invalidateQueries({ queryKey: ['ce-evidence-list'] });
+      setDeleteTarget(null);
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Failed to delete evidence'),
+  });
+
   const rows = useMemo(() => {
     const all = (q.data ?? []) as any[];
     if (!search.trim()) return all;
@@ -79,13 +117,18 @@ function Inner() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <FolderOpen className="h-6 w-6" /> Inspection Evidence
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Documents, photos, payroll records, and signed visit sheets captured during inspections.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold flex items-center gap-2">
+            <FolderOpen className="h-6 w-6" /> Inspection Evidence
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Documents, photos, payroll records, and signed visit sheets captured during inspections.
+          </p>
+        </div>
+        <Button onClick={() => setUploadOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" /> Attach Evidence
+        </Button>
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -129,7 +172,7 @@ function Inner() {
                   <TableHead>Inspection</TableHead>
                   <TableHead>Employer</TableHead>
                   <TableHead>By</TableHead>
-                  <TableHead className="text-right">Open</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -153,13 +196,42 @@ function Inner() {
                     </TableCell>
                     <TableCell className="text-xs">{r.captured_by ?? '—'}</TableCell>
                     <TableCell className="text-right">
-                      {r.file_url ? (
-                        <Button asChild size="sm" variant="ghost">
-                          <a href={r.file_url} target="_blank" rel="noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      ) : '—'}
+                      <div className="flex items-center justify-end gap-1">
+                        {r.file_url && (
+                          <Button asChild size="sm" variant="ghost" title="Open file">
+                            <a href={r.file_url} target="_blank" rel="noreferrer">
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => setEditTarget({
+                                id: r.id,
+                                inspection_id: r.inspection_id,
+                                evidence_type: r.evidence_type,
+                                description: r.description,
+                                finding_id: r.finding_id,
+                              })}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeleteTarget(r)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -168,6 +240,35 @@ function Inner() {
           )}
         </CardContent>
       </Card>
+
+      <EvidenceUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+      <EvidenceEditDialog
+        open={!!editTarget}
+        onOpenChange={(o) => { if (!o) setEditTarget(null); }}
+        evidence={editTarget}
+      />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this evidence?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the evidence record
+              {deleteTarget?.file_name ? ` "${deleteTarget.file_name}"` : ''} and its uploaded file.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={del.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); if (deleteTarget) del.mutate(deleteTarget); }}
+              disabled={del.isPending}
+            >
+              {del.isPending ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

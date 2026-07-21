@@ -1,38 +1,85 @@
-# CH-SIMPLE-P3 · Part A — Runtime Certification (STOP FOR REVIEW)
+# Compliance Classic — Evidence Management (Add / List / Edit)
 
-## Status: complete, three known gaps recorded
+## Current state (verified)
 
-Runtime harness `public.run_ch_p3_recipient_policy_runtime_tests()`
-executes 24 assertions against the *live* singleton row inside a
-self-rolling-back subtransaction (SECURITY DEFINER).
+- **List page exists but is read-only:** `src/pages/compliance/inspections/InspectionEvidencePage.tsx` (route `/compliance/inspections/evidence`, wired in `Routes.tsx`, `AppRoutes.tsx`, and the sidebar under Inspections → Evidence). It only queries `ce_inspection_evidence`, with no Attach / Edit / Delete controls.
+- **Backend write path already exists:** `src/services/fieldAuditService.ts` has `uploadEvidence`, `updateEvidenceDescription`, and `deleteEvidence` targeting `ce_inspection_evidence` and the `documents` storage bucket.
+- **Inspector mobile flow** (`src/pages/inspector/EvidenceDialog.tsx`) is a stub that only toasts — no real upload.
+- **Inspection workspaces** (`EmployerVisitWorkspace`, `AuditVisitWorkspace`) do not surface an evidence panel for desktop staff.
 
-Vitest wrapper: `src/platform/communication-hub/__tests__/CommHubP3RuntimeCertification.test.ts`
-— 7 tests, all green. When `PGHOST` is unset the runtime portion is
-marked pending (never silent-green).
+So the gap the user reports is real: nowhere in Compliance Classic can a user add, edit, or delete an evidence record after a company visit.
 
-## Known gaps surfaced by Part A (to fix in P3 Part B/C)
+## Scope
 
-| ID | Where | Symptom | Owner |
-|---|---|---|---|
-| P3-A-GAP-01 | `evaluate_comm_hub_recipient_policy` RPC | Payload's `max_total_recipients` is ignored when it is stricter than the DB policy. Extra recipients pass unchallenged. | P3 Part B — fold into canonical send-decision evaluator. |
-| P3-A-GAP-A2-01 | `supabase/functions/comm-hub-trace-simulate/index.ts` | Diagnostic surface reads raw recipient-policy columns instead of calling the canonical evaluator for parity. Read-only, does not gate delivery. | P3 Part D — migrate diagnostic to evaluator output. |
-| P3-A-GAP-A3-01 | `supabase/functions/comm-hub-admin-test-notice/index.ts` | Still treats `COMMUNICATION_HUB_EMAIL_LIVE_ALLOWLIST` env as an authoriser (`reasons.push("env allowlist is empty…")`). | P3 Part E — migrate onto canonical send-decision. |
+Presentation/UI only (per module rule: business logic already exists in `fieldAuditService`). No new tables, no new RPCs.
 
-All three are pre-P3 legacy paths. Dispatch itself (`comm-hub-dispatch`)
-already treats the env allowlist as diagnostic-only per CH-SIMPLE-P2 B6.
+## What to build
 
-## Certified this turn
+### 1. Extend the Inspection Evidence register (`InspectionEvidencePage.tsx`)
 
-- A1 · Address A → allowed, swap DB to address B → A becomes blocked, B allowed (no deploy).
-- A1 · EMERGENCY_STOP suppresses release regardless of policy.
-- A1 · DISABLED, SINGLE_CONFIGURED_RECIPIENT, APPROVED_NAMED_RECIPIENTS, APPROVED_DOMAINS all enforced against live row.
-- A1 · Per-bucket limits (to/cc/bcc), duplicates de-duplicated, address normalisation (case, whitespace, plus-addressing).
-- A2 · Every send-path file that touches the recipient-policy table calls `evaluate_comm_hub_recipient_policy` (diagnostic exemption tracked as GAP-A2-01).
-- A3 · No send-path file uses the env allowlist as a recipient authoriser (except tracked GAP-A3-01).
+- Add an **"Attach Evidence"** button (top-right of the page header), permission-gated by `manage_compliance`.
+- Add per-row action menu: **Edit description/type**, **Delete** (soft-remove via existing service; confirm dialog).
+- Include an Inspection filter (autocomplete on `ce_inspections.inspection_number` / `employer_name`) so uploads can be attached to a specific inspection without opening it.
 
-## Do not proceed to Part B until
+### 2. New `EvidenceUploadDialog` (compliance)
 
-- Review confirms whether GAP-01 (payload `max_total_recipients`) should
-  fold into the canonical send-decision evaluator or be enforced inside
-  the recipient-policy RPC itself.
-- Review approves the diagnostic exemption in A2 for `comm-hub-trace-simulate`.
+Location: `src/pages/compliance/inspections/EvidenceUploadDialog.tsx`.
+
+Inputs:
+- Inspection (required, searchable select of open inspections; pre-filled when opened from a workspace).
+- Finding (optional, filtered by inspection).
+- Evidence type: `DOCUMENT | PHOTO | PAYROLL | SIGNED_SHEET | NOTE | OTHER`.
+- File (single, ≤ 25 MB; accepts image/*, pdf, doc/xls). "NOTE" allows description-only, no file.
+- Description (optional textarea).
+- Optional GPS lat/lng (auto-filled from browser `geolocation` if user grants access; editable).
+
+Flow:
+1. Upload file to `documents` bucket under `compliance/evidence/{inspection_id}/{uuid}-{filename}` using existing pattern from `fieldAuditService.uploadEvidence`.
+2. Insert row into `ce_inspection_evidence` (captured_at = now, captured_by = current user).
+3. Invalidate `['ce-evidence-list']` query.
+
+### 3. New `EvidenceEditDialog`
+
+Location: `src/pages/compliance/inspections/EvidenceEditDialog.tsx`.
+
+Editable fields: `evidence_type`, `description`, `finding_id` (rebind to another finding within same inspection). File itself is immutable (delete + re-upload to replace).
+
+### 4. Wire evidence into inspection detail workspaces
+
+- `EmployerVisitWorkspace.tsx` and `AuditVisitWorkspace.tsx`: add an **Evidence** tab/section listing rows for that inspection with the same Attach/Edit/Delete controls (reuses the dialogs from steps 2–3 with `inspectionId` pre-filled).
+
+### 5. Permissions
+
+Reuse existing `manage_compliance` legacy permission on all controls (matches the current list page and menu item). No new permission key needed; per project rule this is a UI addition to an already-registered capability.
+
+## Technical notes
+
+- All Supabase writes go through `fieldAuditService` (already handles storage upload, row insert, and error surfacing). Extend it only if a missing helper is discovered (e.g., a rebind-finding helper) — otherwise call existing functions.
+- Use `useMutation` + `queryClient.invalidateQueries(['ce-evidence-list'])` for cache refresh.
+- Show file size / type icons in the list; keep the "Open" external-link action.
+- Respect feature flag `compliance.inspection.evidence` — controls hide when off (already gated at page level).
+- No changes to `Routes.tsx`, `AppRoutes.tsx`, sidebar, migrations, or permissions registry.
+
+## Out of scope
+
+- Mobile inspector `EvidenceDialog` stub (separate track).
+- Bulk upload / ZIP import.
+- New audit-log tables (existing triggers on `ce_inspection_evidence` already log changes).
+
+## Files to add / edit
+
+```text
+edit  src/pages/compliance/inspections/InspectionEvidencePage.tsx
+add   src/pages/compliance/inspections/EvidenceUploadDialog.tsx
+add   src/pages/compliance/inspections/EvidenceEditDialog.tsx
+edit  src/pages/compliance/employers/EmployerVisitWorkspace.tsx   (add Evidence section)
+edit  src/pages/compliance/audit-planning/AuditVisitWorkspace.tsx (add Evidence section)
+edit  src/services/fieldAuditService.ts                           (only if a helper is missing)
+```
+
+## Acceptance
+
+1. From `/compliance/inspections/evidence`, a `manage_compliance` user can Attach evidence to any inspection, and the new row appears in the list without reload.
+2. Same user can Edit type/description/finding-binding and Delete an evidence row (with confirm), and the storage object is removed.
+3. From an Employer Visit or Audit Visit workspace, the Evidence section shows all evidence for that inspection and supports the same three actions.
+4. Feature flag `compliance.inspection.evidence = false` still hides the register page and all new controls.
