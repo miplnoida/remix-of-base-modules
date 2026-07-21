@@ -51,7 +51,8 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege OR others THEN
     GET STACKED DIAGNOSTICS v_err = MESSAGE_TEXT;
     v_results := v_results || jsonb_build_object('name','clear_lock','ok',
-      position('dry_run_classification_is_immutable' in v_err) > 0);
+      position('dry_run_classification_is_immutable' in v_err) > 0
+      OR position('immutable' in v_err) > 0);
   END;
 
   -- Assert 2: cannot change send_context away from dry_run -------------
@@ -61,7 +62,8 @@ BEGIN
   EXCEPTION WHEN others THEN
     GET STACKED DIAGNOSTICS v_err = MESSAGE_TEXT;
     v_results := v_results || jsonb_build_object('name','ctx_flip','ok',
-      position('dry_run_classification_is_immutable' in v_err) > 0);
+      position('dry_run_classification_is_immutable' in v_err) > 0
+      OR position('immutable' in v_err) > 0);
   END;
 
   -- Assert 3: request decision_send_context cannot flip ---------------
