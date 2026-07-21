@@ -39490,7 +39490,10 @@ export type Database = {
         Row: {
           allowed_email_addresses: string[]
           allowed_email_domains: string[]
+          automatic_triggers_enabled: boolean
+          batch_enabled: boolean
           batch_size: number
+          bulk_enabled: boolean
           configuration_version: number
           created_at: string
           cron_desired_enabled: boolean
@@ -39516,6 +39519,8 @@ export type Database = {
           recipient_release_mode: string
           retry_base_seconds: number
           retry_max_seconds: number
+          retry_worker_enabled: boolean
+          scheduler_enabled: boolean
           singleton_guard: string
           sms_live_enabled: boolean
           tracking_policy_mode: string
@@ -39526,7 +39531,10 @@ export type Database = {
         Insert: {
           allowed_email_addresses?: string[]
           allowed_email_domains?: string[]
+          automatic_triggers_enabled?: boolean
+          batch_enabled?: boolean
           batch_size?: number
+          bulk_enabled?: boolean
           configuration_version?: number
           created_at?: string
           cron_desired_enabled?: boolean
@@ -39552,6 +39560,8 @@ export type Database = {
           recipient_release_mode?: string
           retry_base_seconds?: number
           retry_max_seconds?: number
+          retry_worker_enabled?: boolean
+          scheduler_enabled?: boolean
           singleton_guard?: string
           sms_live_enabled?: boolean
           tracking_policy_mode?: string
@@ -39562,7 +39572,10 @@ export type Database = {
         Update: {
           allowed_email_addresses?: string[]
           allowed_email_domains?: string[]
+          automatic_triggers_enabled?: boolean
+          batch_enabled?: boolean
           batch_size?: number
+          bulk_enabled?: boolean
           configuration_version?: number
           created_at?: string
           cron_desired_enabled?: boolean
@@ -39588,6 +39601,8 @@ export type Database = {
           recipient_release_mode?: string
           retry_base_seconds?: number
           retry_max_seconds?: number
+          retry_worker_enabled?: boolean
+          scheduler_enabled?: boolean
           singleton_guard?: string
           sms_live_enabled?: boolean
           tracking_policy_mode?: string
@@ -40132,6 +40147,72 @@ export type Database = {
           requires_typed_confirmation_when_enabling?: boolean
           severity?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      communication_hub_mode_profile: {
+        Row: {
+          automatic_triggers_enabled: boolean
+          batch_enabled: boolean
+          bulk_enabled: boolean
+          dispatch_enabled: boolean
+          display_name: string
+          dry_run_only: boolean
+          eligible_release_stages: string[]
+          email_live_enabled: boolean
+          letter_enabled: boolean
+          operating_mode: string
+          print_enabled: boolean
+          real_provider_available: boolean
+          requires_grant_for_real_email: boolean
+          retry_worker_enabled: boolean
+          scheduler_enabled: boolean
+          sms_live_enabled: boolean
+          summary: string
+          updated_at: string
+          whatsapp_live_enabled: boolean
+        }
+        Insert: {
+          automatic_triggers_enabled: boolean
+          batch_enabled: boolean
+          bulk_enabled: boolean
+          dispatch_enabled: boolean
+          display_name: string
+          dry_run_only: boolean
+          eligible_release_stages?: string[]
+          email_live_enabled: boolean
+          letter_enabled?: boolean
+          operating_mode: string
+          print_enabled?: boolean
+          real_provider_available: boolean
+          requires_grant_for_real_email?: boolean
+          retry_worker_enabled: boolean
+          scheduler_enabled: boolean
+          sms_live_enabled?: boolean
+          summary: string
+          updated_at?: string
+          whatsapp_live_enabled?: boolean
+        }
+        Update: {
+          automatic_triggers_enabled?: boolean
+          batch_enabled?: boolean
+          bulk_enabled?: boolean
+          dispatch_enabled?: boolean
+          display_name?: string
+          dry_run_only?: boolean
+          eligible_release_stages?: string[]
+          email_live_enabled?: boolean
+          letter_enabled?: boolean
+          operating_mode?: string
+          print_enabled?: boolean
+          real_provider_available?: boolean
+          requires_grant_for_real_email?: boolean
+          retry_worker_enabled?: boolean
+          scheduler_enabled?: boolean
+          sms_live_enabled?: boolean
+          summary?: string
+          updated_at?: string
+          whatsapp_live_enabled?: boolean
         }
         Relationships: []
       }
@@ -93890,6 +93971,14 @@ export type Database = {
         Args: { p_payload: Json; p_trace_id: string }
         Returns: Json
       }
+      apply_communication_release_mode: {
+        Args: {
+          p_expected_version?: number
+          p_new_mode: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       apply_pending_holiday_pay: {
         Args: { p_applied_by?: string; p_pending_ids: string[] }
         Returns: undefined
@@ -94625,6 +94714,7 @@ export type Database = {
         }
         Returns: Json
       }
+      check_comm_hub_readiness: { Args: { p_payload: Json }; Returns: Json }
       check_dms_transfer_eligibility: { Args: { p_ssn: string }; Returns: Json }
       check_duplicate_open_batch: {
         Args: { p_batch_date: string; p_cashier_user_code: string }
