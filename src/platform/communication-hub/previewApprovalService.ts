@@ -105,7 +105,7 @@ function normalizeSnapshot(raw: unknown): PreviewSnapshot {
     ...value,
     id: id ?? resolvedSnapshotId,
     snapshot_id: resolvedSnapshotId,
-  } as PreviewSnapshot;
+  } as unknown as PreviewSnapshot;
 }
 
 export async function preparePreview(input: PreparePreviewInput): Promise<PreviewSnapshot> {
