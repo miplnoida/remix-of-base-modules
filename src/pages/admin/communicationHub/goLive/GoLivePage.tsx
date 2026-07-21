@@ -84,8 +84,16 @@ interface GoLiveSession {
   previewApprovalId: string | null;
   dryRunExecutionId: string | null;
   dryRunCertificationId: string | null;
+  // Controlled-live evidence — Step 6 requires the full set, not just the ID.
   controlledLiveExecutionId: string | null;
   controlledLiveCertificationId: string | null;
+  controlledLivePassed: boolean;
+  controlledLiveStatus: string | null;
+  controlledLiveDeliveryAttemptId: string | null;
+  controlledLiveDispatcherRevalidationDecisionId: string | null;
+  controlledLiveProviderCallAttempted: boolean;
+  controlledLiveCleanupSucceeded: boolean | null;
+  controlledLiveFinalOperatingMode: string | null;
 }
 
 const EMPTY_SESSION: GoLiveSession = {
@@ -98,6 +106,13 @@ const EMPTY_SESSION: GoLiveSession = {
   dryRunCertificationId: null,
   controlledLiveExecutionId: null,
   controlledLiveCertificationId: null,
+  controlledLivePassed: false,
+  controlledLiveStatus: null,
+  controlledLiveDeliveryAttemptId: null,
+  controlledLiveDispatcherRevalidationDecisionId: null,
+  controlledLiveProviderCallAttempted: false,
+  controlledLiveCleanupSucceeded: null,
+  controlledLiveFinalOperatingMode: null,
 };
 
 /** Map server-side fix hints to concrete admin routes (kept explicit; no
@@ -336,7 +351,21 @@ export default function GoLivePage() {
   const previewApproved =
     !!session.previewApprovalId && !!session.previewSnapshotId;
   const dryRunCertified = !!session.dryRunCertificationId;
-  const controlledLiveDone = !!session.controlledLiveExecutionId;
+  // Step 6 unlock — requires the FULL controlled-live evidence contract, not
+  // merely the presence of an execution ID. A BLOCKED / FAILED / *_FAILED /
+  // PROVIDER_REJECTED execution must not be treated as a completed test.
+  const CONTROLLED_LIVE_POSITIVE_STATUSES = ["PROVIDER_ACCEPTED", "DELIVERY_PENDING", "DELIVERED"];
+  const controlledLiveDone =
+    session.controlledLivePassed === true &&
+    !!session.controlledLiveStatus &&
+    CONTROLLED_LIVE_POSITIVE_STATUSES.includes(session.controlledLiveStatus) &&
+    !!session.controlledLiveExecutionId &&
+    !!session.controlledLiveDeliveryAttemptId &&
+    !!session.controlledLiveDispatcherRevalidationDecisionId &&
+    session.controlledLiveProviderCallAttempted === true &&
+    session.controlledLiveCleanupSucceeded === true &&
+    !!session.controlledLiveFinalOperatingMode &&
+    !!session.controlledLiveCertificationId;
 
   const recipientBlocked =
     !!recipientResolution && recipientResolution.resolved === false;
@@ -657,14 +686,27 @@ export default function GoLivePage() {
                 : null
             }
             onFinal={(env, _v) =>
-              setSession((s) => ({
-                ...s,
-                dryRunExecutionId: (env as any).execution_id ?? null,
-                dryRunCertificationId:
-                  env.status === "DRY_RUN_PASSED" ? env.dry_run_certification_id ?? null : null,
-                controlledLiveExecutionId: null,
-                controlledLiveCertificationId: null,
-              }))
+              setSession((s) => {
+                const passed =
+                  env.status === "DRY_RUN_PASSED" &&
+                  env.passed === true &&
+                  env.provider_call_attempted === false &&
+                  !!env.dry_run_certification_id;
+                return {
+                  ...s,
+                  dryRunExecutionId: env.dry_run_execution_id ?? null,
+                  dryRunCertificationId: passed ? env.dry_run_certification_id ?? null : null,
+                  controlledLiveExecutionId: null,
+                  controlledLiveCertificationId: null,
+                  controlledLivePassed: false,
+                  controlledLiveStatus: null,
+                  controlledLiveDeliveryAttemptId: null,
+                  controlledLiveDispatcherRevalidationDecisionId: null,
+                  controlledLiveProviderCallAttempted: false,
+                  controlledLiveCleanupSucceeded: null,
+                  controlledLiveFinalOperatingMode: null,
+                };
+              })
             }
           />
         )}
@@ -705,8 +747,16 @@ export default function GoLivePage() {
             onCompleted={(r) =>
               setSession((s) => ({
                 ...s,
-                controlledLiveExecutionId: (r as any).execution_id ?? null,
-                controlledLiveCertificationId: (r as any).certification_id ?? null,
+                controlledLiveExecutionId: r.executionId ?? null,
+                controlledLiveCertificationId: r.certificationId ?? null,
+                controlledLivePassed: r.passed === true,
+                controlledLiveStatus: r.status ?? null,
+                controlledLiveDeliveryAttemptId: r.deliveryAttemptId ?? null,
+                controlledLiveDispatcherRevalidationDecisionId:
+                  r.dispatcherRevalidationDecisionId ?? null,
+                controlledLiveProviderCallAttempted: r.providerCallAttempted === true,
+                controlledLiveCleanupSucceeded: r.cleanupSucceeded,
+                controlledLiveFinalOperatingMode: r.finalOperatingMode ?? null,
               }))
             }
           />

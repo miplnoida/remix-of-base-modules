@@ -85,6 +85,7 @@ interface Envelope {
   certification_replayed: boolean | null;
   real_email_authorised: boolean;
   provider_mode: string;
+  retry_safe: boolean;
 }
 
 const EMPTY_ENVELOPE = (started: string): Envelope => ({
@@ -123,6 +124,7 @@ const EMPTY_ENVELOPE = (started: string): Envelope => ({
   certification_replayed: null,
   real_email_authorised: false,
   provider_mode: "unknown",
+  retry_safe: false,
 });
 
 function errorMessage(error: unknown): string {
@@ -142,18 +144,61 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const authHeader = req.headers.get("Authorization") ?? "";
+  const authFailEnvelope = (code: string, message: string) => {
+    const startedAt = new Date().toISOString();
+    const env = EMPTY_ENVELOPE(startedAt);
+    env.status = "BLOCKED";
+    env.passed = false;
+    env.message = message;
+    env.failure_stage = "auth";
+    env.provider_call_attempted = false;
+    env.retry_safe = true;
+    env.provider_mode = Deno.env.get("COMM_HUB_PROVIDER_MODE") ?? "inactive";
+    env.blockers = [{ code, stage: "auth", message }];
+    env.completed_at = new Date().toISOString();
+    return json(env, 401);
+  };
+  if (!authHeader) {
+    return authFailEnvelope("authentication_header_missing",
+      "Your login session was not included with the request.");
+  }
   if (!authHeader.startsWith("Bearer ")) {
-    return json({ error: "unauthorized" }, 401);
+    return authFailEnvelope("authentication_header_missing",
+      "Authorization header is not a Bearer token.");
+  }
+  const bearer = authHeader.slice("Bearer ".length).trim();
+  if (!bearer) {
+    return authFailEnvelope("authentication_header_missing",
+      "Bearer token is empty.");
   }
 
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: userData, error: claimsErr } = await userClient.auth.getUser(
-    authHeader.replace("Bearer ", ""),
-  );
-  if (claimsErr || !userData?.user?.id) return json({ error: "unauthorized" }, 401);
+  let userData: { user: { id: string } | null } | null = null;
+  let claimsErr: { message?: string } | null = null;
+  try {
+    const res = await userClient.auth.getUser(bearer);
+    userData = res.data as any;
+    claimsErr = res.error as any;
+  } catch (e) {
+    return authFailEnvelope("authentication_service_unavailable",
+      `Authentication service error: ${errorMessage(e)}`);
+  }
+  if (claimsErr) {
+    const msg = (claimsErr.message ?? "").toLowerCase();
+    if (msg.includes("expired")) {
+      return authFailEnvelope("authentication_token_expired",
+        "Your login session has expired. Please sign in again.");
+    }
+    return authFailEnvelope("authentication_token_invalid",
+      claimsErr.message ?? "Login session could not be verified.");
+  }
+  if (!userData?.user?.id) {
+    return authFailEnvelope("authentication_user_missing",
+      "Authenticated user could not be resolved.");
+  }
   const operatorId = userData.user.id;
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {

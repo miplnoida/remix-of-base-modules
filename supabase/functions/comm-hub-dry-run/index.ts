@@ -77,6 +77,7 @@ interface StableEnvelope {
   provider_call_attempted: boolean;
   provider_message_id: string | null;
   final_operating_mode: string | null;
+  retry_safe: boolean;
 }
 
 function json(status: number, body: unknown) {
@@ -113,6 +114,7 @@ function stable(partial: Partial<StableEnvelope>, httpStatus = 200): Response {
     provider_call_attempted: partial.provider_call_attempted ?? false,
     provider_message_id: partial.provider_message_id ?? null,
     final_operating_mode: partial.final_operating_mode ?? null,
+    retry_safe: partial.retry_safe ?? false,
   };
   return json(httpStatus, env);
 }
@@ -334,16 +336,57 @@ serve(async (req) => {
   }
 
   // 1. Authenticate JWT and derive operator identity server-side.
+  //    Failures return a full stable envelope with a precise blocker code,
+  //    failure_stage = "auth", provider_call_attempted = false, retry_safe = true.
   const authHeader = req.headers.get("Authorization") ?? "";
+  const authFail = (code: string, message: string) =>
+    stable({
+      status: "BLOCKED",
+      message,
+      blockers: [{ code, stage: "auth", severity: "critical", message }],
+      failure_stage: "auth",
+      provider_call_attempted: false,
+      retry_safe: true,
+    }, 401);
+  if (!authHeader) {
+    return authFail("authentication_header_missing",
+      "Your login session was not included with the request.");
+  }
   if (!authHeader.startsWith("Bearer ")) {
-    return stable({ status: "BLOCKED", blockers: [{ code: "not_authenticated", stage: "auth", severity: "critical" }] }, 401);
+    return authFail("authentication_header_missing",
+      "Authorization header is not a Bearer token.");
+  }
+  const bearer = authHeader.slice("Bearer ".length).trim();
+  if (!bearer) {
+    return authFail("authentication_header_missing",
+      "Bearer token is empty.");
   }
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
+    auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: userData, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !userData?.user) {
-    return stable({ status: "BLOCKED", blockers: [{ code: "not_authenticated", stage: "auth", severity: "critical" }] }, 401);
+  let userData: { user: { id: string } | null } | null = null;
+  let userErr: { message?: string; status?: number } | null = null;
+  try {
+    const res = await userClient.auth.getUser(bearer);
+    userData = res.data as any;
+    userErr = res.error as any;
+  } catch (e) {
+    return authFail("authentication_service_unavailable",
+      `Authentication service error: ${(e as Error)?.message ?? "unknown"}`);
+  }
+  if (userErr) {
+    const msg = (userErr.message ?? "").toLowerCase();
+    if (msg.includes("expired")) {
+      return authFail("authentication_token_expired",
+        "Your login session has expired. Please sign in again.");
+    }
+    return authFail("authentication_token_invalid",
+      userErr.message ?? "Login session could not be verified.");
+  }
+  if (!userData?.user?.id) {
+    return authFail("authentication_user_missing",
+      "Authenticated user could not be resolved.");
   }
   const operatorId = userData.user.id;
 
