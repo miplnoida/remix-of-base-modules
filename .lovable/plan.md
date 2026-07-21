@@ -1,85 +1,149 @@
-# Compliance Classic — Evidence Management (Add / List / Edit)
+# CH-SIMPLE-P3E-B — Targeted Controlled-Live Dispatch and Provider Evidence
 
-## Current state (verified)
+Build the real controlled-live email path end-to-end, but certify it with a deterministic provider stub. The first real email is deferred to P3E-C.
 
-- **List page exists but is read-only:** `src/pages/compliance/inspections/InspectionEvidencePage.tsx` (route `/compliance/inspections/evidence`, wired in `Routes.tsx`, `AppRoutes.tsx`, and the sidebar under Inspections → Evidence). It only queries `ce_inspection_evidence`, with no Attach / Edit / Delete controls.
-- **Backend write path already exists:** `src/services/fieldAuditService.ts` has `uploadEvidence`, `updateEvidenceDescription`, and `deleteEvidence` targeting `ce_inspection_evidence` and the `documents` storage bucket.
-- **Inspector mobile flow** (`src/pages/inspector/EvidenceDialog.tsx`) is a stub that only toasts — no real upload.
-- **Inspection workspaces** (`EmployerVisitWorkspace`, `AuditVisitWorkspace`) do not surface an evidence panel for desktop staff.
+## Scope guardrails
 
-So the gap the user reports is real: nowhere in Compliance Classic can a user add, edit, or delete an evidence record after a company visit.
+- P3E-A remains accepted; only hardening its RLS.
+- No real email sent.
+- No unified Go Live UI, no Manual/Automated Production, no cron/bulk, no external recipients.
+- Reuse existing evaluator, preview approval, dry-run certification, `send_communication_v1`, dispatcher, guarded transport, trace/event logs. No parallel sender.
 
-## Scope
+## Deliverables
 
-Presentation/UI only (per module rule: business logic already exists in `fieldAuditService`). No new tables, no new RPCs.
+### 1. Database migration — P3E-B foundations
 
-## What to build
+**RLS hardening (P3E-A tables)**
+- `communication_controlled_live_execution`: SELECT restricted to `initiated_by = auth.uid()` OR admin (`has_permission(auth.uid(),'communication_hub','admin')` / `is_admin`). Service role bypass. No INSERT/UPDATE/DELETE to `authenticated`.
+- `communication_controlled_live_grant`: SELECT restricted to service_role + admin RPC only. No direct authenticated SELECT. Frontend reads grant status via execution result.
+- Admin evidence RPC: `get_comm_hub_controlled_live_grant(p_grant_id uuid)` — SECURITY DEFINER, admin-only, audited.
 
-### 1. Extend the Inspection Evidence register (`InspectionEvidencePage.tsx`)
+**Execution/attempt columns (new)**
+- `communication_controlled_live_execution`: `prior_operating_mode`, `final_operating_mode`, `restored_operating_mode`, `cleanup_state`, `cleanup_succeeded`, `failure_stage`, `provider_call_attempted`, `provider_invocation_key`, `provider_invocation_started_at`, `provider_call_completed_at`, `provider_name`, `provider_status`, `provider_message_id`, `provider_response_safe`, `delivery_attempt_id`, `request_id`, `message_id`, `dispatcher_revalidation_decision_id`, `warnings jsonb`, `blockers jsonb`, `completed_at`.
+- `communication_delivery_attempt`: add `controlled_live_execution_id`, `grant_id`, `provider_invocation_key`, `provider_call_attempted`, `provider_call_completed_at`, `provider_status`, `provider_message_id`, `provider_response_safe`, `original_decision_id`, `revalidation_decision_id`, `preview_approval_id`, `dry_run_certification_id`, `attempt_type`, `recipient_set_hash`, `subject_hash`, `body_hash`, `result`.
 
-- Add an **"Attach Evidence"** button (top-right of the page header), permission-gated by `manage_compliance`.
-- Add per-row action menu: **Edit description/type**, **Delete** (soft-remove via existing service; confirm dialog).
-- Include an Inspection filter (autocomplete on `ce_inspections.inspection_number` / `employer_name`) so uploads can be attached to a specific inspection without opening it.
+**Grant lifecycle**
+- Statuses enforced: `ISSUED → RESERVED → CONSUMED` OR `ISSUED → RESERVED → REVOKED` OR `ISSUED → EXPIRED`.
+- Immutability trigger: no transition from CONSUMED/REVOKED/EXPIRED back to ISSUED/RESERVED.
+- Uniqueness: only one non-terminal grant per execution.
 
-### 2. New `EvidenceUploadDialog` (compliance)
+**Advisory-lock single-active guard**
+- `bn_advisory_key('comm_hub_controlled_live')` acquired for the duration of a temporary DRY_RUN→CONTROLLED_LIVE transition.
 
-Location: `src/pages/compliance/inspections/EvidenceUploadDialog.tsx`.
+**Orchestrator RPCs (SECURITY DEFINER)**
+- `reserve_comm_hub_controlled_live_grant(p_grant_id, p_execution_id, p_recipient_set_hash, p_subject_hash, p_body_hash)` — atomic ISSUED→RESERVED with binding checks.
+- `consume_comm_hub_controlled_live_grant(p_grant_id, p_execution_id, p_provider_invocation_key)` — RESERVED→CONSUMED, only allowed once provider invocation attempted.
+- `revoke_comm_hub_controlled_live_grant(p_grant_id, p_execution_id, p_reason)` — pre-provider revocation.
+- `record_comm_hub_controlled_live_provider_attempt(p_execution_id, p_invocation_key)` — sets `provider_call_attempted=true`, `provider_invocation_started_at=now()`. Idempotent.
+- `record_comm_hub_controlled_live_provider_outcome(p_execution_id, p_status, p_provider_message_id, p_response_safe, p_warnings)` — final outcome capture.
+- `finalize_comm_hub_controlled_live(p_execution_id, p_state, p_final_operating_mode, p_cleanup_succeeded, p_warnings)` — end state.
+- `restore_comm_hub_operating_mode_after_controlled_live(p_execution_id)` — restores prior mode; on failure engages EMERGENCY_STOP.
+- Canonical evaluator extended: `controlled_live` context requires a matching RESERVED-or-CONSUMED grant bound to exact execution + recipient set hash + subject hash + body hash.
 
-Inputs:
-- Inspection (required, searchable select of open inspections; pre-filled when opened from a workspace).
-- Finding (optional, filtered by inspection).
-- Evidence type: `DOCUMENT | PHOTO | PAYROLL | SIGNED_SHEET | NOTE | OTHER`.
-- File (single, ≤ 25 MB; accepts image/*, pdf, doc/xls). "NOTE" allows description-only, no file.
-- Description (optional textarea).
-- Optional GPS lat/lng (auto-filled from browser `geolocation` if user grants access; editable).
+**Runtime tests**
+- `run_ch_p3e_b_runtime_tests()` — RLS, mode transitions, grant lifecycle, targeted dispatch preconditions, emergency stop boundaries, idempotency.
 
-Flow:
-1. Upload file to `documents` bucket under `compliance/evidence/{inspection_id}/{uuid}-{filename}` using existing pattern from `fieldAuditService.uploadEvidence`.
-2. Insert row into `ce_inspection_evidence` (captured_at = now, captured_by = current user).
-3. Invalidate `['ce-evidence-list']` query.
+### 2. Edge Function — `comm-hub-controlled-live-test`
 
-### 3. New `EvidenceEditDialog`
+Single browser-facing entry point. Steps:
+1. Authenticate user via Supabase JWT; resolve operator id.
+2. Preflight: reject if EMERGENCY_STOP, AUTOMATED_PRODUCTION, kill switch, or another controlled-live execution owns the advisory lock.
+3. Call `begin_comm_hub_controlled_live` (idempotent via `idempotency_key`). Receive execution + grant.
+4. If prior mode = DRY_RUN: acquire advisory lock, set `prior_operating_mode` on execution, `set_communication_operating_mode('CONTROLLED_LIVE', reason=execution_no)`. Cron/bulk untouched (already off in this mode by construction).
+5. Reserve grant with exact recipient/subject/body hashes.
+6. Create request + one recipient + one message via `send_communication_v1({ send_context: 'controlled_live', ... })`. Persist execution_id, grant_id, preview_approval_id, dry_run_certification_id, original_decision_id, configuration_version, recipient_policy_version, provider_invocation_key.
+7. Call dispatcher: `comm-hub-dispatch { operation: 'targeted_controlled_live', message_id, execution_id, grant_id }`.
+8. On dispatcher return: capture outcome, update execution state, consume/revoke grant appropriately.
+9. Cleanup: `restore_comm_hub_operating_mode_after_controlled_live`. On failure engage EMERGENCY_STOP.
+10. Return the stable P3E-B response shape (status, provider evidence, ids, timings, cleanup).
 
-Location: `src/pages/compliance/inspections/EvidenceEditDialog.tsx`.
+Idempotency: replay with same `idempotency_key + operator + scope_hash` returns the same execution/attempt/provider evidence, no second provider call.
 
-Editable fields: `evidence_type`, `description`, `finding_id` (rebind to another finding within same inspection). File itself is immutable (delete + re-upload to replace).
+### 3. Extend `comm-hub-dispatch` — `targeted_controlled_live` operation
 
-### 4. Wire evidence into inspection detail workspaces
+- Load message → request → execution → grant.
+- Enforce: `send_context='controlled_live'`, exactly one To, no CC/BCC, canonical revalidation, preview + dry-run revalidation, EMERGENCY_STOP + kill switch off, sender/provider ready.
+- Reserve (or verify already-reserved) grant.
+- Create exactly one `communication_delivery_attempt` bound to execution.
+- Call `record_comm_hub_controlled_live_provider_attempt` immediately before provider transport.
+- Invoke `sendEmailViaGuardedTransport()` with the provider stub in test mode (env `COMM_HUB_PROVIDER_MODE=stub`).
+- Classify outcome: PROVIDER_ACCEPTED / PROVIDER_REJECTED / DELIVERY_PENDING (+ `provider_outcome_unconfirmed` warning on timeout). DELIVERED only via webhook.
+- On any provider invocation, consume grant permanently.
+- Do not process the queue. Do not fall back to batch. No retry after ambiguous outcome.
 
-- `EmployerVisitWorkspace.tsx` and `AuditVisitWorkspace.tsx`: add an **Evidence** tab/section listing rows for that inspection with the same Attach/Edit/Delete controls (reuses the dialogs from steps 2–3 with `inspectionId` pre-filled).
+### 4. Provider stub
 
-### 5. Permissions
+- `supabase/functions/_shared/providerStub.ts` — deterministic stub keyed by `recipient` local-part convention set only for test fixtures (e.g. `accepted+*`, `rejected+*`, `timeout+*`, `delivered+*`). No hardcoded production addresses.
+- Env-guarded: stub only active when `COMM_HUB_PROVIDER_MODE=stub`. Production defaults reject.
+- Records: exactly-once invocation guard (in-memory + provider_invocation_key durability check).
 
-Reuse existing `manage_compliance` legacy permission on all controls (matches the current list page and menu item). No new permission key needed; per project rule this is a UI addition to an already-registered capability.
+### 5. Client service
 
-## Technical notes
+- `controlledLiveTestService.ts` — thin wrapper calling the edge function and reading own execution row afterwards. No grant table reads.
+- Update `controlledLiveService.ts` to remove direct grant table SELECT (uses execution row instead).
 
-- All Supabase writes go through `fieldAuditService` (already handles storage upload, row insert, and error surfacing). Extend it only if a missing helper is discovered (e.g., a rebind-finding helper) — otherwise call existing functions.
-- Use `useMutation` + `queryClient.invalidateQueries(['ce-evidence-list'])` for cache refresh.
-- Show file size / type icons in the list; keep the "Open" external-link action.
-- Respect feature flag `compliance.inspection.evidence` — controls hide when off (already gated at page level).
-- No changes to `Routes.tsx`, `AppRoutes.tsx`, sidebar, migrations, or permissions registry.
+### 6. Tests
 
-## Out of scope
+- `CommHubP3EBRlsHardening.test.ts` — assertions on `pg_policies` + row-level probes.
+- `CommHubP3EBGrantLifecycle.test.ts` — reserve/consume/revoke, concurrency (via SQL harness).
+- `CommHubP3EBOrchestrator.test.ts` — harness against `comm-hub-controlled-live-test` with stub provider (skipIf no PGHOST + no edge deploy; asserts stable response shape and idempotency at the service layer with mocked supabase functions client).
+- `CommHubP3EBProviderStub.test.ts` — accepted/rejected/timeout/duplicate-call.
+- `CommHubP3EBRuntime.test.ts` — wraps `run_ch_p3e_b_runtime_tests()` (skipIf no PGHOST, matches P3E-A pattern).
+- Governance scan: `scripts/comm-hub/scan_controlled_live_governance.ts` — grep for direct provider calls, missing grants, hardcoded recipients, `ENQUEUED` treated as success.
 
-- Mobile inspector `EvidenceDialog` stub (separate track).
-- Bulk upload / ZIP import.
-- New audit-log tables (existing triggers on `ce_inspection_evidence` already log changes).
+### 7. Documentation
 
-## Files to add / edit
+- Append P3E-B section to `COMMUNICATION_HUB_MASTER_IMPLEMENTATION_REPORT.md` covering RLS model, orchestrator sequence, mode transition, grant lifecycle, idempotency, provider outcome classification, cleanup/fail-safe, gap register, environmental limitations.
+- Add `docs/communication-hub/COMMUNICATION_HUB_CONTROLLED_LIVE_ORCHESTRATION.md` with sequence diagram (ASCII), state transitions, response schema.
 
-```text
-edit  src/pages/compliance/inspections/InspectionEvidencePage.tsx
-add   src/pages/compliance/inspections/EvidenceUploadDialog.tsx
-add   src/pages/compliance/inspections/EvidenceEditDialog.tsx
-edit  src/pages/compliance/employers/EmployerVisitWorkspace.tsx   (add Evidence section)
-edit  src/pages/compliance/audit-planning/AuditVisitWorkspace.tsx (add Evidence section)
-edit  src/services/fieldAuditService.ts                           (only if a helper is missing)
-```
+## Technical details
 
-## Acceptance
+**Provider invocation key**: `sha256(execution_id || ':' || message_id || ':' || delivery_attempt_id)` truncated to 32 chars, stored on both execution and delivery attempt.
 
-1. From `/compliance/inspections/evidence`, a `manage_compliance` user can Attach evidence to any inspection, and the new row appears in the list without reload.
-2. Same user can Edit type/description/finding-binding and Delete an evidence row (with confirm), and the storage object is removed.
-3. From an Employer Visit or Audit Visit workspace, the Evidence section shows all evidence for that inspection and supports the same three actions.
-4. Feature flag `compliance.inspection.evidence = false` still hides the register page and all new controls.
+**Scope hash for idempotency**: `sha256(operator_id || module_code || event_code || recipient || preview_approval_id || dry_run_certification_id)`.
+
+**Emergency Stop boundaries**: checked in orchestrator preflight, after grant reservation, in dispatcher pre-provider check, and post-provider outcome finalisation.
+
+**Advisory lock key**: `pg_try_advisory_xact_lock(hashtext('comm_hub_controlled_live_singleton'))` during mode transition; execution acquires a per-execution durable single-active row lock too.
+
+**RLS admin definition**: reuse existing `is_admin(auth.uid()) OR has_role(auth.uid(),'Admin') OR has_permission(auth.uid(),'communication_hub','admin')`.
+
+**Non-goals**: unified Go Live page, Manual/Automated Production flow, cron scheduling, bulk pipeline, real SendGrid/Postmark call, permanent env allowlist.
+
+## Files (new/modified, high-level)
+
+Migrations:
+- `supabase/migrations/<ts>_ch_p3e_b_rls_and_orchestration.sql`
+
+Edge Functions:
+- `supabase/functions/comm-hub-controlled-live-test/index.ts` (new)
+- `supabase/functions/comm-hub-dispatch/index.ts` (extend with `targeted_controlled_live`)
+- `supabase/functions/_shared/providerStub.ts` (new)
+- `supabase/functions/_shared/guardedTransport.ts` (extend to route through stub in stub mode)
+
+Client:
+- `src/platform/communication-hub/controlledLiveTestService.ts` (new)
+- `src/platform/communication-hub/controlledLiveService.ts` (remove grant table read)
+
+Tests:
+- `src/platform/communication-hub/__tests__/CommHubP3EBRlsHardening.test.ts`
+- `src/platform/communication-hub/__tests__/CommHubP3EBGrantLifecycle.test.ts`
+- `src/platform/communication-hub/__tests__/CommHubP3EBOrchestrator.test.ts`
+- `src/platform/communication-hub/__tests__/CommHubP3EBProviderStub.test.ts`
+- `src/platform/communication-hub/__tests__/CommHubP3EBRuntime.test.ts`
+
+Governance:
+- `scripts/comm-hub/scan_controlled_live_governance.ts`
+
+Docs:
+- `docs/communication-hub/COMMUNICATION_HUB_MASTER_IMPLEMENTATION_REPORT.md` (append P3E-B)
+- `docs/communication-hub/COMMUNICATION_HUB_CONTROLLED_LIVE_ORCHESTRATION.md` (new)
+
+## Completion signals
+
+- Migration applied; `run_ch_p3e_b_runtime_tests()` returns `ok=true`.
+- All existing Communication Hub suites still pass.
+- Provider stub receives exactly one call for accepted/rejected/timeout scenarios; replay produces zero additional calls.
+- Governance scan reports zero violations.
+- Typecheck + build clean.
+- P3E-B status recorded as `P3E_B_CERTIFIED_WITH_PROVIDER_STUB` in the master report; real-email certification deferred to P3E-C.
