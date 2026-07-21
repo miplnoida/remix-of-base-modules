@@ -6,13 +6,10 @@
  * (JWT-authenticated). The service preserves the full server envelope
  * verbatim — it does NOT collapse structured errors into a toast.
  *
- * Forbidden call sites (enforced by governance scans):
- *   - begin_comm_hub_dry_run
- *   - mark_comm_hub_dry_run_dispatching
- *   - finalize_comm_hub_dry_run
- *   - fail_comm_hub_dry_run
- *   - comm-hub-dispatch (operation: "targeted_dry_run")
- *   - direct writes to communication_dry_run_certification
+ * Forbidden call sites (enforced by governance scans): the internal
+ * begin / mark-dispatching / finalize / fail lifecycle RPCs, the targeted
+ * dispatcher operation, and any direct write to the certification table.
+ * The service must only call the public edge function.
  */
 import { supabase } from "@/integrations/supabase/client";
 
