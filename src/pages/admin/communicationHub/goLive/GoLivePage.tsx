@@ -526,9 +526,9 @@ export default function GoLivePage() {
               eventCode={session.eventCode}
               channel={session.channel}
               resolution={recipientResolution}
-              templateName={decision?.trace_context?.template_name ?? null}
-              templateVersion={decision?.trace_context?.template_version_id ?? null}
-              senderMasked={decision?.trace_context?.sender_display ?? null}
+              templateName={null}
+              templateVersion={null}
+              senderMasked={null}
               testDataSource="server default test context"
             />
           </div>
