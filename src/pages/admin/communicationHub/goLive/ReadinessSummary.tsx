@@ -90,7 +90,7 @@ function isAnchor(href: string): boolean {
   return href.startsWith("#");
 }
 
-export function ReadinessSummary({ decision, loading, onRecheck }: Props) {
+export function ReadinessSummary({ decision, loading, onRecheck, recipientContext }: Props) {
   const [showPassed, setShowPassed] = useState(false);
   const [showTech, setShowTech] = useState(false);
 
