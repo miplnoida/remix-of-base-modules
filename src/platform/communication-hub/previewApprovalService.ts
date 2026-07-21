@@ -81,8 +81,22 @@ async function rpc<T>(name: string, payload: unknown): Promise<T> {
   return data as T;
 }
 
+function normalizeSnapshot(raw: any): PreviewSnapshot {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("prepare_comm_hub_preview returned no snapshot");
+  }
+  // Backend row exposes `id`; the client contract uses `snapshot_id`.
+  // Normalize once here so every downstream call (approve, dry run,
+  // controlled live) receives a stable identifier.
+  const snapshot_id = raw.snapshot_id ?? raw.id ?? null;
+  if (!snapshot_id) {
+    throw new Error("prepare_comm_hub_preview returned a snapshot without id");
+  }
+  return { ...raw, snapshot_id } as PreviewSnapshot;
+}
+
 export async function preparePreview(input: PreparePreviewInput): Promise<PreviewSnapshot> {
-  return rpc<PreviewSnapshot>("prepare_comm_hub_preview", {
+  const raw = await rpc<any>("prepare_comm_hub_preview", {
     module_code: input.moduleCode,
     event_code: input.eventCode,
     channel: input.channel ?? "email",
@@ -93,6 +107,7 @@ export async function preparePreview(input: PreparePreviewInput): Promise<Previe
     sender_profile_id: input.senderProfileId ?? null,
     context_data: input.contextData ?? {},
   });
+  return normalizeSnapshot(raw);
 }
 
 export async function approvePreview(input: {
@@ -152,7 +167,8 @@ export async function fetchPreviewSnapshot(snapshotId: string): Promise<PreviewS
     .eq("id", snapshotId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data as PreviewSnapshot | null;
+  if (!data) return null;
+  return normalizeSnapshot(data);
 }
 
 export async function reservePreviewApproval(approvalId: string): Promise<{
