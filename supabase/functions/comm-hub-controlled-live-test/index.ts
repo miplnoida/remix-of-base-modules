@@ -278,6 +278,16 @@ Deno.serve(async (req) => {
     .eq("id", executionId)
     .is("prior_operating_mode", null);
 
+  // Backfill execution_no from the row when the RPC did not include it.
+  if (env.execution_no == null) {
+    const { data: execRow } = await admin
+      .from("communication_controlled_live_execution")
+      .select("execution_no")
+      .eq("id", executionId)
+      .maybeSingle();
+    env.execution_no = (execRow as any)?.execution_no ?? null;
+  }
+
   // 4. Temporarily transition operating mode.
   let transitioned = false;
   if (priorMode === "DRY_RUN") {
