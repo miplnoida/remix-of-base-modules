@@ -38650,6 +38650,197 @@ export type Database = {
           },
         ]
       }
+      communication_controlled_live_execution: {
+        Row: {
+          audit_metadata: Json
+          blockers: Json
+          channel: string
+          completed_at: string | null
+          configuration_version: number | null
+          controlled_live_grant_id: string | null
+          delivery_attempt_id: string | null
+          dispatcher_revalidation_decision_id: string | null
+          dry_run_certification_id: string
+          event_code: string
+          execution_no: number
+          failure_stage: string | null
+          id: string
+          idempotency_key: string
+          message_id: string | null
+          module_code: string
+          original_decision_id: string | null
+          preview_approval_id: string
+          preview_snapshot_id: string | null
+          provider_acceptance_status: string | null
+          provider_message_id: string | null
+          reason: string
+          recipient: string
+          recipient_policy_version: number | null
+          recipient_set_hash: string
+          request_id: string | null
+          requested_by: string
+          scope_hash: string
+          started_at: string
+          state: Database["public"]["Enums"]["communication_controlled_live_state"]
+          trace_id: string | null
+          updated_at: string
+          warnings: Json
+        }
+        Insert: {
+          audit_metadata?: Json
+          blockers?: Json
+          channel?: string
+          completed_at?: string | null
+          configuration_version?: number | null
+          controlled_live_grant_id?: string | null
+          delivery_attempt_id?: string | null
+          dispatcher_revalidation_decision_id?: string | null
+          dry_run_certification_id: string
+          event_code: string
+          execution_no?: number
+          failure_stage?: string | null
+          id?: string
+          idempotency_key: string
+          message_id?: string | null
+          module_code: string
+          original_decision_id?: string | null
+          preview_approval_id: string
+          preview_snapshot_id?: string | null
+          provider_acceptance_status?: string | null
+          provider_message_id?: string | null
+          reason: string
+          recipient: string
+          recipient_policy_version?: number | null
+          recipient_set_hash: string
+          request_id?: string | null
+          requested_by: string
+          scope_hash: string
+          started_at?: string
+          state?: Database["public"]["Enums"]["communication_controlled_live_state"]
+          trace_id?: string | null
+          updated_at?: string
+          warnings?: Json
+        }
+        Update: {
+          audit_metadata?: Json
+          blockers?: Json
+          channel?: string
+          completed_at?: string | null
+          configuration_version?: number | null
+          controlled_live_grant_id?: string | null
+          delivery_attempt_id?: string | null
+          dispatcher_revalidation_decision_id?: string | null
+          dry_run_certification_id?: string
+          event_code?: string
+          execution_no?: number
+          failure_stage?: string | null
+          id?: string
+          idempotency_key?: string
+          message_id?: string | null
+          module_code?: string
+          original_decision_id?: string | null
+          preview_approval_id?: string
+          preview_snapshot_id?: string | null
+          provider_acceptance_status?: string | null
+          provider_message_id?: string | null
+          reason?: string
+          recipient?: string
+          recipient_policy_version?: number | null
+          recipient_set_hash?: string
+          request_id?: string | null
+          requested_by?: string
+          scope_hash?: string
+          started_at?: string
+          state?: Database["public"]["Enums"]["communication_controlled_live_state"]
+          trace_id?: string | null
+          updated_at?: string
+          warnings?: Json
+        }
+        Relationships: []
+      }
+      communication_controlled_live_grant: {
+        Row: {
+          audit_metadata: Json
+          channel: string
+          configuration_version: number | null
+          consumed_at: string | null
+          created_at: string
+          dry_run_certification_id: string
+          event_code: string
+          execution_id: string
+          expires_at: string
+          id: string
+          issued_at: string
+          issued_by: string
+          module_code: string
+          preview_approval_id: string
+          recipient_policy_version: number | null
+          recipient_set_hash: string
+          reserved_at: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          scope_hash: string
+          status: Database["public"]["Enums"]["communication_controlled_live_grant_status"]
+          updated_at: string
+        }
+        Insert: {
+          audit_metadata?: Json
+          channel?: string
+          configuration_version?: number | null
+          consumed_at?: string | null
+          created_at?: string
+          dry_run_certification_id: string
+          event_code: string
+          execution_id: string
+          expires_at: string
+          id?: string
+          issued_at?: string
+          issued_by: string
+          module_code: string
+          preview_approval_id: string
+          recipient_policy_version?: number | null
+          recipient_set_hash: string
+          reserved_at?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          scope_hash: string
+          status?: Database["public"]["Enums"]["communication_controlled_live_grant_status"]
+          updated_at?: string
+        }
+        Update: {
+          audit_metadata?: Json
+          channel?: string
+          configuration_version?: number | null
+          consumed_at?: string | null
+          created_at?: string
+          dry_run_certification_id?: string
+          event_code?: string
+          execution_id?: string
+          expires_at?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string
+          module_code?: string
+          preview_approval_id?: string
+          recipient_policy_version?: number | null
+          recipient_set_hash?: string
+          reserved_at?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          scope_hash?: string
+          status?: Database["public"]["Enums"]["communication_controlled_live_grant_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_controlled_live_grant_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "communication_controlled_live_execution"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communication_delivery_attempt: {
         Row: {
           attempt_no: number
@@ -93232,6 +93423,10 @@ export type Database = {
         }
         Returns: Json
       }
+      begin_comm_hub_controlled_live: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       begin_comm_hub_dry_run: { Args: { p_payload: Json }; Returns: Json }
       bn_actor_has_capability: {
         Args: { p_capability: string; p_user_id: string }
@@ -94154,6 +94349,18 @@ export type Database = {
           ref_name: string
           scope: string
         }[]
+      }
+      comm_hub_controlled_live_scope_hash: {
+        Args: {
+          p_channel: string
+          p_dryrun_cert: string
+          p_event: string
+          p_module: string
+          p_operator: string
+          p_preview_approval: string
+          p_recipient_hash: string
+        }
+        Returns: string
       }
       comm_hub_dry_run_scope_hash: {
         Args: {
@@ -96702,6 +96909,7 @@ export type Database = {
       run_ch_p3_recipient_policy_runtime_tests: { Args: never; Returns: Json }
       run_ch_p3b_r_runtime_tests: { Args: never; Returns: Json }
       run_ch_p3d_b2c_runtime_tests: { Args: never; Returns: Json }
+      run_ch_p3e_a_runtime_tests: { Args: never; Returns: Json }
       save_batch_card_transactions: {
         Args: {
           p_batch_number: string
@@ -97043,6 +97251,10 @@ export type Database = {
         Args: { p_month: number; p_week_index: number; p_year: number }
         Returns: Json
       }
+      validate_comm_hub_controlled_live_grant: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       validate_comm_hub_dry_run_certification: {
         Args: { p_payload: Json }
         Returns: Json
@@ -97369,6 +97581,22 @@ export type Database = {
         | "other"
       comm_asset_scope: "global" | "organization" | "department" | "location"
       comm_asset_source: "upload" | "external_url"
+      communication_controlled_live_grant_status:
+        | "ISSUED"
+        | "RESERVED"
+        | "CONSUMED"
+        | "EXPIRED"
+        | "REVOKED"
+      communication_controlled_live_state:
+        | "STARTED"
+        | "AUTHORISED"
+        | "REQUEST_CREATED"
+        | "DISPATCHING"
+        | "PROVIDER_ACCEPTED"
+        | "DELIVERY_PENDING"
+        | "DELIVERED"
+        | "BLOCKED"
+        | "FAILED"
       communication_operating_mode:
         | "DRY_RUN"
         | "CONTROLLED_LIVE"
@@ -97934,6 +98162,24 @@ export const Constants = {
       ],
       comm_asset_scope: ["global", "organization", "department", "location"],
       comm_asset_source: ["upload", "external_url"],
+      communication_controlled_live_grant_status: [
+        "ISSUED",
+        "RESERVED",
+        "CONSUMED",
+        "EXPIRED",
+        "REVOKED",
+      ],
+      communication_controlled_live_state: [
+        "STARTED",
+        "AUTHORISED",
+        "REQUEST_CREATED",
+        "DISPATCHING",
+        "PROVIDER_ACCEPTED",
+        "DELIVERY_PENDING",
+        "DELIVERED",
+        "BLOCKED",
+        "FAILED",
+      ],
       communication_operating_mode: [
         "DRY_RUN",
         "CONTROLLED_LIVE",
