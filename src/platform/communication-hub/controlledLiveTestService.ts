@@ -62,6 +62,7 @@ export interface ControlledLiveTestResult {
   certificationStatus: string | null;
   certificationReplayed: boolean | null;
   realEmailAuthorised: boolean;
+  providerMode: string;
 }
 
 export { CONTROLLED_LIVE_CONFIRMATION_PHRASE };
@@ -113,5 +114,6 @@ export async function runControlledLiveTest(
     certificationStatus: r.certification_status ?? null,
     certificationReplayed: r.certification_replayed ?? null,
     realEmailAuthorised: !!r.real_email_authorised,
+    providerMode: r.provider_mode ?? (r.real_email_authorised ? "real" : "unknown"),
   };
 }
