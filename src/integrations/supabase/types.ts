@@ -95005,6 +95005,17 @@ export type Database = {
         Returns: number
       }
       execute_comm_hub_dry_run: { Args: { p_payload: Json }; Returns: Json }
+      fail_comm_hub_dry_run: {
+        Args: {
+          p_blockers?: Json
+          p_execution_id: string
+          p_failure_stage: string
+          p_state: string
+          p_technical_summary?: string
+          p_warnings?: Json
+        }
+        Returns: Json
+      }
       fetch_comm_hub_dry_run_certification: {
         Args: { p_payload: Json }
         Returns: Json
