@@ -526,6 +526,7 @@ export default function GoLivePage() {
       <Separator />
 
       {/* STEP 5 — CONTROLLED LIVE */}
+      <span id="go-live-step-controlled-live" aria-hidden />
       <CommunicationHubSectionCard
         title={<StepHeader index={5} title="Controlled Live Test" status={stepStatus.s5} /> as any}
         description="Runs exactly one controlled-live send against the provider — stub by default. Real-email delivery is only permitted when the server-side gate is enabled by platform administrators."
