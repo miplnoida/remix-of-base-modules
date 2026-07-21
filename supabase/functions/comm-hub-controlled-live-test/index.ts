@@ -318,20 +318,71 @@ Deno.serve(async (req) => {
     }
   };
 
+  // Server-only grant metadata read. The operator-facing RPC
+  // `admin_get_comm_hub_controlled_live_grant` requires an authenticated
+  // Admin (auth.uid()), which is unavailable on the service-role client.
+  // The grant table is already off-limits to `authenticated`, so a direct
+  // service-role SELECT is the correct server-only path.
+  const readGrantMeta = async () => {
+    return await admin
+      .from("communication_controlled_live_grant")
+      .select(
+        "id, execution_id, status, recipient_set_hash, scope_hash, preview_approval_id, dry_run_certification_id, expires_at",
+      )
+      .eq("id", grantId)
+      .eq("execution_id", executionId)
+      .maybeSingle();
+  };
+
+  let preRequestFailureCode: string | null = null;
+
   try {
-    // 5. Compute recipient/subject/body hashes for grant binding & idempotency.
-    // We ask the dispatcher to do the authoritative hashing later, but the
-    // grant must be reserved with the same recipient hash the begin RPC
-    // captured, which is derived from the recipient. begin_comm_hub_controlled_live
-    // has already written recipient_set_hash on the grant, so we mirror that.
-    const { data: grantMeta } = await admin.rpc(
-      "admin_get_comm_hub_controlled_live_grant",
-      { p_grant_id: grantId },
-    );
-    const recipientSetHash = (grantMeta as any)?.recipient_set_hash ?? null;
-    if (!recipientSetHash) {
-      throw new Error("grant_missing_recipient_set_hash");
+    // 5. Read + validate grant metadata via service-role (never via
+    // operator-authenticated RPC from this context).
+    const { data: grantMeta, error: grantMetaError } = await readGrantMeta();
+    if (grantMetaError) {
+      env.status = "BLOCKED";
+      env.failure_stage = "grant_validation";
+      env.blockers.push({
+        code: "controlled_live_grant_read_failed",
+        stage: "grant_validation",
+        message: String(grantMetaError.message ?? grantMetaError).slice(0, 300),
+      });
+      preRequestFailureCode = "controlled_live_grant_read_failed";
+      throw new Error("grant_read_failed");
     }
+    if (!grantMeta) {
+      env.status = "BLOCKED";
+      env.failure_stage = "grant_validation";
+      env.blockers.push({
+        code: "controlled_live_grant_not_found",
+        stage: "grant_validation",
+      });
+      preRequestFailureCode = "controlled_live_grant_not_found";
+      throw new Error("grant_not_found");
+    }
+    const gm: any = grantMeta;
+    const now = Date.now();
+    const grantChecks: Array<{ cond: boolean; code: string }> = [
+      { cond: gm.execution_id !== executionId, code: "controlled_live_grant_execution_mismatch" },
+      { cond: gm.status !== "ISSUED" && gm.status !== "RESERVED", code: "controlled_live_grant_terminal" },
+      { cond: !gm.recipient_set_hash, code: "controlled_live_grant_recipient_hash_missing" },
+      { cond: gm.preview_approval_id !== body.previewApprovalId, code: "controlled_live_grant_preview_mismatch" },
+      { cond: gm.dry_run_certification_id !== body.dryRunCertificationId, code: "controlled_live_grant_dry_run_mismatch" },
+      { cond: !gm.expires_at || new Date(gm.expires_at).getTime() <= now, code: "controlled_live_grant_expired" },
+    ];
+    const failedCheck = grantChecks.find((c) => c.cond);
+    if (failedCheck) {
+      env.status = "BLOCKED";
+      env.failure_stage = "grant_validation";
+      env.blockers.push({ code: failedCheck.code, stage: "grant_validation" });
+      preRequestFailureCode = failedCheck.code;
+      env.grant_status = gm.status ?? null;
+      throw new Error(failedCheck.code);
+    }
+    env.grant_status = gm.status;
+    const recipientSetHash = gm.recipient_set_hash as string;
+    void recipientSetHash;
 
     // 6. Send communication via canonical spine (creates request+recipient+message).
     const sendPayload: any = {
@@ -359,6 +410,7 @@ Deno.serve(async (req) => {
       env.failure_stage = "request_creation";
       env.blockers.push({ code: "send_communication_error", stage: "request_creation",
         message: String(sendErr.message ?? sendErr).slice(0, 300) });
+      preRequestFailureCode = "send_communication_error";
       throw new Error("enqueue_failed");
     }
     const send: any = sendRaw ?? {};
@@ -371,12 +423,14 @@ Deno.serve(async (req) => {
       env.status = "BLOCKED";
       env.failure_stage = "canonical_send_decision";
       env.blockers.push(...send.blockers);
+      preRequestFailureCode = "canonical_send_decision";
       throw new Error("send_blocked");
     }
     if (!env.message_id) {
       env.status = "ENQUEUE_FAILED";
       env.failure_stage = "request_creation";
       env.blockers.push({ code: "message_id_missing", stage: "request_creation" });
+      preRequestFailureCode = "message_id_missing";
       throw new Error("no_message");
     }
 
@@ -423,111 +477,36 @@ Deno.serve(async (req) => {
       : ds === "BLOCKED" ? "dispatch blocked by canonical revalidation"
       : "dispatch failed";
     env.failure_stage = env.passed ? null : (dispatchBody?.failure_stage ?? "dispatcher");
-  } catch (_e) {
-    // env.status/blockers already set by the throwing branch.
-    if (env.status === "BLOCKED" && env.failure_stage === "canonical_send_decision") {
-      // pre-provider block — revoke grant.
-      await admin.rpc("revoke_comm_hub_controlled_live_grant", {
-        p_grant_id: grantId, p_execution_id: executionId,
-        p_reason: "pre_provider_block_" + (env.failure_stage ?? "unknown"),
+  } catch (error) {
+    // Never allow a BLOCKED envelope with an empty blocker list or null stage.
+    if (env.status !== "BLOCKED"
+        && env.status !== "ENQUEUE_FAILED"
+        && env.status !== "DISPATCH_FAILED"
+        && env.status !== "PROVIDER_REJECTED") {
+      env.status = "BLOCKED";
+    }
+    env.failure_stage = env.failure_stage ?? "grant_validation";
+    if (env.blockers.length === 0) {
+      env.blockers.push({
+        code: "controlled_live_orchestration_exception",
+        stage: env.failure_stage,
+        message: String((error as any)?.message ?? error).slice(0, 300),
       });
     }
-  } finally {
-    // 8. Cleanup: restore prior operating mode.
-    const { succeeded, finalMode } = await cleanup();
-    env.cleanup_succeeded = succeeded;
-    env.final_operating_mode = finalMode;
-    env.completed_at = new Date().toISOString();
+    env.message = env.message
+      || "Controlled Live could not proceed before request creation.";
 
-    // 9. Finalize execution record.
-    let finalStateForRecord: string;
-    if (env.passed) {
-      finalStateForRecord = env.status === "DELIVERED" ? "DELIVERED"
-        : env.status === "DELIVERY_PENDING" ? "DELIVERY_PENDING"
-        : "PROVIDER_ACCEPTED";
-    } else if (env.status === "BLOCKED") {
-      finalStateForRecord = "BLOCKED";
-    } else {
-      finalStateForRecord = "FAILED";
-    }
-    await admin.rpc("finalize_comm_hub_controlled_live", {
-      p_execution_id: executionId,
-      p_state: finalStateForRecord,
-      p_final_operating_mode: finalMode,
-      p_cleanup_succeeded: succeeded,
-      p_cleanup_state: succeeded ? "restored" : "restore_failed",
-      p_cleanup_error: null,
-      p_warnings: env.warnings.length ? env.warnings : [],
-      p_failure_stage: env.failure_stage,
-    });
-  }
-
-  // 10. Refresh grant status via admin RPC (safe: same edge fn).
-  try {
-    const { data: g } = await admin.rpc("admin_get_comm_hub_controlled_live_grant", {
-      p_grant_id: grantId,
-    });
-    env.grant_status = (g as any)?.status ?? null;
-  } catch (_) {
-    env.grant_status = null;
-  }
-
-  // 11. Record controlled-live certification (P3E-C step 5).
-  // Only when the provider actually delivered/accepted the message. The
-  // certification is idempotent — replays return the same certification id.
-  if (
-    env.status === "PROVIDER_ACCEPTED" ||
-    env.status === "DELIVERY_PENDING" ||
-    env.status === "DELIVERED"
-  ) {
-    try {
-      const { data: grantMeta } = await admin.rpc(
-        "admin_get_comm_hub_controlled_live_grant",
-        { p_grant_id: env.grant_id },
-      );
-      const recipientSetHash = (grantMeta as any)?.recipient_set_hash ?? null;
-      if (recipientSetHash) {
-        const providerOutcome =
-          env.status === "DELIVERED" ? "DELIVERED"
-          : env.status === "DELIVERY_PENDING" ? "DELIVERY_PENDING"
-          : "PROVIDER_ACCEPTED";
-        const { data: certRaw } = await admin.rpc(
-          "record_controlled_live_certification",
-          {
-            p_payload: {
-              execution_id: env.controlled_live_execution_id,
-              module_code: body.moduleCode,
-              event_code: body.eventCode,
-              channel: body.channel ?? "email",
-              recipient_set_hash: recipientSetHash,
-              preview_snapshot_id: env.preview_snapshot_id,
-              preview_approval_id: env.preview_approval_id,
-              dry_run_certification_id: env.dry_run_certification_id,
-              request_id: env.request_id,
-              message_id: env.message_id,
-              delivery_attempt_id: env.delivery_attempt_id,
-              trace_id: env.trace_id,
-              provider_name: env.provider_name,
-              provider_message_id: env.provider_message_id,
-              provider_outcome: providerOutcome,
-              provider_status: env.provider_status,
-              operating_mode_prior: env.prior_operating_mode,
-              operating_mode_final: env.final_operating_mode,
-              cleanup_succeeded: env.cleanup_succeeded,
-              certified_by: operatorId,
-            },
-          },
-        );
-        const cert: any = certRaw ?? {};
-        env.certification_id = cert.certification_id ?? null;
-        env.certification_status = cert.status ?? null;
-        env.certification_replayed = cert.replayed ?? null;
-      }
-    } catch (e) {
-      env.warnings.push({
-        code: "certification_record_failed",
-        message: String((e as any)?.message ?? e).slice(0, 300),
-      });
+    // Revoke the grant when the failure occurred BEFORE the request was
+    // created. Never revoke after a request/message row exists — the grant
+    // lifecycle transitions via consume in the dispatcher.
+    if (!env.request_id && preRequestFailureCode) {
+      try {
+        await admin.rpc("revoke_comm_hub_controlled_live_grant", {
+          p_grant_id: grantId,
+          p_execution_id: executionId,
+          p_reason: ("pre_request_" + preRequestFailureCode).slice(0, 120),
+        });
+      } catch (_) { /* best-effort */ }
     }
   }
 
