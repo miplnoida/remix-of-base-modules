@@ -7,6 +7,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { CONTROLLED_LIVE_CONFIRMATION_PHRASE } from "./controlledLiveService";
+import { getFreshAuthenticatedSession, CommHubAuthError } from "./authSession";
 import { z } from "zod";
 
 export interface RunControlledLiveTestInput {
@@ -91,6 +92,14 @@ export async function runControlledLiveTest(
 ): Promise<ControlledLiveTestResult> {
   if (input.confirmation !== CONTROLLED_LIVE_CONFIRMATION_PHRASE) {
     throw new Error("confirmation phrase does not match");
+  }
+  // Ensure a fresh JWT is attached; otherwise the edge function receives an
+  // anonymous request and fails with `controlled_live_unauthenticated`.
+  try {
+    await getFreshAuthenticatedSession();
+  } catch (err) {
+    if (err instanceof CommHubAuthError) throw err;
+    throw new CommHubAuthError("authentication_required", (err as Error)?.message);
   }
   const { data, error } = await supabase.functions.invoke(
     "comm-hub-controlled-live-test",
