@@ -301,8 +301,14 @@ function executeGrep(needle: string, root: string): string[] {
   // deno-lint-ignore no-var-requires
   const { execSync } = require("node:child_process") as typeof import("node:child_process");
   try {
+    // Governance intent: no *production frontend code* calls these internal
+    // orchestration functions. Exclude generated Supabase types (schema
+    // catalogue, not a call site) and test/spec files (self-references).
     const out = execSync(
-      `rg -n --fixed-strings ${JSON.stringify(needle)} ${JSON.stringify(root)} || true`,
+      `rg -n --fixed-strings ${JSON.stringify(needle)} ${JSON.stringify(root)} ` +
+      `-g "!src/integrations/supabase/types.ts" ` +
+      `-g "!**/__tests__/**" -g "!**/*.test.ts" -g "!**/*.spec.ts" ` +
+      `|| true`,
       { encoding: "utf8" },
     );
     return out.split("\n").filter((l) => l.trim().length > 0);
