@@ -7,6 +7,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { CONTROLLED_LIVE_CONFIRMATION_PHRASE } from "./controlledLiveService";
+import { getFreshAuthenticatedSession, CommHubAuthError } from "./authSession";
 import { z } from "zod";
 
 export interface RunControlledLiveTestInput {
