@@ -92,6 +92,52 @@ export default function PreviewApprovalPanel({
     return !(snapTo.length === 1 && snapTo[0] === normalize(effRecipient));
   }, [locked, snapshot, effRecipient]);
 
+  // CH-SIMPLE-P3F-UX.6H — Single authoritative approval gate.
+  // Content is "complete" only when the server-rendered subject/body contain
+  // no unresolved `{{...}}` placeholders. This is a defense-in-depth check on
+  // top of the server's `unresolved_variables` list.
+  const rawPlaceholderPattern = /\{\{\s*[\w.$-]+\s*\}\}/;
+  const contentIsComplete = useMemo(() => {
+    if (!snapshot) return false;
+    const subj = snapshot.rendered_subject ?? "";
+    const html = snapshot.rendered_body_html ?? "";
+    const text = snapshot.rendered_body_text ?? "";
+    return !rawPlaceholderPattern.test(subj)
+      && !rawPlaceholderPattern.test(html)
+      && !rawPlaceholderPattern.test(text);
+  }, [snapshot]);
+  const unresolvedRequiredVariables = snapshot?.unresolved_variables ?? [];
+  const approvalInProgress = busy === "approve";
+  const snapshotIsPrepared = snapshot?.status === "PREPARED";
+  const canApprovePreview =
+    !!snapshot &&
+    snapshotIsPrepared &&
+    unresolvedRequiredVariables.length === 0 &&
+    contentIsComplete &&
+    !approvalInProgress &&
+    !(locked && recipientDivergesFromSnapshot) &&
+    reason.trim().length > 0;
+
+  const approvalBlockers = useMemo(() => {
+    if (!snapshot) return [] as string[];
+    const list: string[] = [];
+    if (!snapshotIsPrepared) list.push(`Snapshot status is ${snapshot.status}; refresh the preview.`);
+    if (unresolvedRequiredVariables.length > 0) {
+      list.push(
+        `Preview has ${unresolvedRequiredVariables.length} unresolved required variable${unresolvedRequiredVariables.length === 1 ? "" : "s"}: ${unresolvedRequiredVariables.join(", ")}.`
+      );
+    }
+    if (!contentIsComplete && unresolvedRequiredVariables.length === 0) {
+      list.push("Rendered content still contains raw {{…}} placeholders. Preview cannot be approved.");
+    }
+    if (locked && recipientDivergesFromSnapshot) {
+      list.push("Recipient context changed since this snapshot was prepared. Refresh the preview.");
+    }
+    if (reason.trim().length === 0) list.push("Approval reason is required.");
+    return list;
+  }, [snapshot, snapshotIsPrepared, unresolvedRequiredVariables, contentIsComplete, locked, recipientDivergesFromSnapshot, reason]);
+
+
   async function handlePrepare() {
     setDivergenceError(null);
     if (locked) {
@@ -124,16 +170,17 @@ export default function PreviewApprovalPanel({
 
   async function handleApprove() {
     if (!snapshot) return;
-    if (!reason.trim()) {
-      toast.error("Approval reason is required");
+    if (!canApprovePreview) {
+      const msg = approvalBlockers[0] ?? "Preview cannot be approved in its current state.";
+      toast.error(msg);
+      if (locked && recipientDivergesFromSnapshot) {
+        setDivergenceError(
+          "Recipient context changed since this snapshot was prepared. Re-run readiness and prepare a fresh preview.",
+        );
+      }
       return;
     }
-    if (locked && recipientDivergesFromSnapshot) {
-      setDivergenceError(
-        "Recipient context changed since this snapshot was prepared. Re-run readiness and prepare a fresh preview.",
-      );
-      return;
-    }
+
     setBusy("approve");
     try {
       const rec = await approvePreview({
@@ -251,16 +298,14 @@ export default function PreviewApprovalPanel({
         </Button>
         <Button
           onClick={handleApprove}
-          disabled={
-            !snapshot ||
-            busy !== null ||
-            (snapshot?.unresolved_variables?.length ?? 0) > 0 ||
-            (locked && recipientDivergesFromSnapshot)
-          }
+          disabled={!canApprovePreview}
           variant="default"
+          data-testid="preview-approve"
+          title={approvalBlockers[0] ?? "Approve this preview snapshot"}
         >
-          {busy === "approve" ? "Approving…" : "Approve Preview"}
+          {approvalInProgress ? "Approving…" : "Approve Preview"}
         </Button>
+
         <Button
           onClick={handleRevoke}
           disabled={!approval || approval.status !== "ACTIVE" || busy !== null}
@@ -299,11 +344,38 @@ export default function PreviewApprovalPanel({
             )}
           </div>
           {(snapshot.unresolved_variables ?? []).length > 0 && (
-            <div className="text-sm text-destructive">
-              <strong>Unresolved variables:</strong>{" "}
-              {(snapshot.unresolved_variables ?? []).join(", ")}
+            <Alert variant="destructive" data-testid="preview-unresolved-alert">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Preview cannot be approved — unresolved variables</AlertTitle>
+              <AlertDescription>
+                The server rendered this snapshot but {snapshot.unresolved_variables.length}{" "}
+                required variable{snapshot.unresolved_variables.length === 1 ? "" : "s"} still
+                resolve to blanks or raw <code>{"{{…}}"}</code> tokens:{" "}
+                <span className="font-mono">{snapshot.unresolved_variables.join(", ")}</span>.
+                Approval is blocked until every required token resolves.
+              </AlertDescription>
+            </Alert>
+          )}
+          {snapshot.unresolved_variables?.length === 0 && !contentIsComplete && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Rendered content still contains raw placeholders</AlertTitle>
+              <AlertDescription>
+                The server reported no unresolved variables, but the rendered subject or body still
+                contains <code>{"{{…}}"}</code> tokens. Approval is blocked as a safety measure.
+              </AlertDescription>
+            </Alert>
+          )}
+          {snapshot && canApprovePreview === false && approvalBlockers.length > 0 &&
+            (snapshot.unresolved_variables?.length ?? 0) === 0 && contentIsComplete && (
+            <div className="text-xs text-muted-foreground border rounded p-2 bg-background">
+              <div className="font-semibold mb-1">Why Approve is disabled</div>
+              <ul className="list-disc pl-5 space-y-0.5">
+                {approvalBlockers.map((b) => <li key={b}>{b}</li>)}
+              </ul>
             </div>
           )}
+
           <div className="pt-2">
             <div className="text-xs font-semibold mb-1">Rendered Subject</div>
             <div className="text-sm p-2 bg-background border rounded">{snapshot.rendered_subject ?? "(no subject)"}</div>
