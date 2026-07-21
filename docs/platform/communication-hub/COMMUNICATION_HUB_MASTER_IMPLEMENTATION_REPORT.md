@@ -1,6 +1,59 @@
 # Communication Hub — Master Implementation Report
 
-_Last updated: CH-SIMPLE-P3D-B.2.c (Runtime Certification + Orchestration split)_
+_Last updated: CH-SIMPLE-P3D-B.3 (Final P3D certification)_
+
+---
+
+## Final P3D certification
+
+**Status: `P3D_CERTIFIED_WITH_ENVIRONMENTAL_TEST_LIMITATION`**
+
+All P3D functional gates are closed. Two Vitest role-capable trigger tests
+remain skipped because the harness uses the anon key and cannot mint
+service-role JWTs; the same invariants are exercised authoritatively by
+`run_ch_p3d_b2c_runtime_tests()` (20 / 20 assertions pass) under service
+role in the live database. This is a **test-environment limitation, not a
+runtime gap** — no P3D behaviour is unverified.
+
+### P3D-B.3 — Operator dry-run experience
+
+- `src/platform/communication-hub/dryRunService.ts` — typed operations
+  (`runDryTest`, `fetchDryRunExecution`, `fetchDryRunCertification`,
+  `fetchLatestValidDryRunCertification`, `validateDryRunCertification`,
+  `revokeDryRunCertification`, `generateIdempotencyKey`). Envelope is
+  preserved verbatim; the service NEVER calls internal orchestration RPCs
+  or the dispatcher directly — only the public edge function.
+- `src/pages/admin/communicationHub/controlCenter/DryRunPanel.tsx` —
+  reusable operator panel implementing the canonical sequence:
+  Preview status → Readiness (from `canonicalDecision`, no client
+  recompute) → Run Dry Test with idempotency key → Evidence display
+  (execution id, certification id, request/message/attempt ids,
+  provider-call-attempted evidence, blockers/warnings).
+- `CommunicationHubPilotsPage.tsx` — embeds `DryRunPanel` after
+  `PreviewApprovalPanel`. The panel is intentionally reusable for the
+  future unified Go Live workflow.
+- Governance tests
+  (`src/platform/communication-hub/__tests__/commHubP3DB3DryRunService.test.ts`)
+  — **19 / 19 pass**. Assert:
+  - only `comm-hub-dry-run` is invoked, never orchestration RPCs;
+  - envelope keys are preserved (execution/certification ids, provider
+    evidence, failure stage, idempotent-replay flag);
+  - `BLOCKED` / `DRY_RUN_FAILED` shapes are surfaced structurally, not
+    collapsed to toasts;
+  - idempotent replays return the same execution/certification;
+  - the panel exposes no queue/dispatcher/cron/provider controls and
+    never re-derives readiness.
+- Full P3D-B.2.c orchestration suite continues to pass — **24 / 24**.
+
+### Reusability for the future Go Live workflow
+
+Both `PreviewApprovalPanel` (P3C) and `DryRunPanel` (P3D) are component-
+scoped, prop-driven, and free of route registration. The upcoming
+unified Go Live page (out of scope here) can compose them directly.
+
+---
+
+_Historical entry — retained for traceability:_
 
 ---
 

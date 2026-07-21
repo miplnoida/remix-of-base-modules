@@ -15,6 +15,7 @@ import { ManualDispatchTestPanel } from "./controlCenter/ManualDispatchTestPanel
 import { fetchControlSettings, type CommHubControlSettings } from "./controlCenter/controlCenterService";
 import { toast } from "sonner";
 import PreviewApprovalPanel from "./controlCenter/PreviewApprovalPanel";
+import DryRunPanel from "./controlCenter/DryRunPanel";
 
 export default function CommunicationHubPilotsPage() {
   const [settings, setSettings] = useState<CommHubControlSettings | null>(null);
@@ -64,6 +65,20 @@ export default function CommunicationHubPilotsPage() {
         description="Server-rendered preview snapshot with an immutable approval record. Required before controlled-live and manual-live sends. Reusable panel — will be embedded in the future unified Go Live workflow."
       >
         <PreviewApprovalPanel />
+      </CommunicationHubSectionCard>
+
+      <CommunicationHubSectionCard
+        title="Dry Run (P3D)"
+        description="Run one locked simulation through targeted dispatch and verify no provider call occurred. Reusable panel — will be embedded in the future unified Go Live workflow."
+      >
+        <DryRunPanel
+          moduleCode="BENEFITS"
+          eventCode="AWARD_ISSUED"
+          channel="email"
+          recipients={[]}
+          previewApproved={false}
+          canonicalDecision={null}
+        />
       </CommunicationHubSectionCard>
 
       <CommunicationHubSectionCard

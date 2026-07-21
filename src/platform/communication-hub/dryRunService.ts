@@ -1,0 +1,255 @@
+/**
+ * CH-SIMPLE-P3D-B.3 — Typed dry-run frontend service.
+ *
+ * The frontend NEVER calls internal orchestration RPCs directly. Every
+ * dry-run execution goes through the `comm-hub-dry-run` edge function
+ * (JWT-authenticated). The service preserves the full server envelope
+ * verbatim — it does NOT collapse structured errors into a toast.
+ *
+ * Forbidden call sites (enforced by governance scans): the internal
+ * begin / mark-dispatching / finalize / fail lifecycle RPCs, the targeted
+ * dispatcher operation, and any direct write to the certification table.
+ * The service must only call the public edge function.
+ */
+import { supabase } from "@/integrations/supabase/client";
+
+export type DryRunFinalStatus = "DRY_RUN_PASSED" | "DRY_RUN_FAILED" | "BLOCKED";
+
+export interface DryRunBlocker {
+  code: string;
+  stage?: string | null;
+  severity?: string | null;
+  message?: string | null;
+}
+
+export interface DryRunEnvelope {
+  status: DryRunFinalStatus;
+  passed: boolean;
+  message: string;
+  idempotent_replay: boolean;
+  dry_run_execution_id: string | null;
+  execution_no: string | null;
+  dry_run_certification_id: string | null;
+  request_id: string | null;
+  request_number: string | null;
+  message_id: string | null;
+  delivery_attempt_id: string | null;
+  trace_id: string | null;
+  original_decision_id: string | null;
+  dispatcher_revalidation_decision_id: string | null;
+  preview_snapshot_id: string | null;
+  preview_approval_id: string | null;
+  blockers: DryRunBlocker[];
+  warnings: unknown[];
+  failure_stage: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  certification_expires_at: string | null;
+  provider_call_attempted: boolean;
+  provider_message_id: string | null;
+  final_operating_mode: string | null;
+}
+
+export interface RunDryTestInput {
+  moduleCode: string;
+  eventCode: string;
+  channel?: string;
+  recipients: string[];
+  previewSnapshotId?: string | null;
+  previewApprovalId?: string | null;
+  operatorReason?: string | null;
+  idempotencyKey: string;
+  contextData?: Record<string, unknown>;
+}
+
+/**
+ * Invoke the canonical dry-run edge function. The server is authoritative;
+ * this function only forwards inputs and returns the stable envelope.
+ */
+export async function runDryTest(input: RunDryTestInput): Promise<DryRunEnvelope> {
+  if (!input.idempotencyKey) {
+    throw new Error("idempotencyKey is required — never auto-generate on the fly");
+  }
+  const { data, error } = await (supabase as any).functions.invoke("comm-hub-dry-run", {
+    body: {
+      module_code: input.moduleCode,
+      event_code: input.eventCode,
+      channel: input.channel ?? "email",
+      recipients: input.recipients,
+      preview_snapshot_id: input.previewSnapshotId ?? null,
+      preview_approval_id: input.previewApprovalId ?? null,
+      operator_reason: input.operatorReason ?? null,
+      idempotency_key: input.idempotencyKey,
+      context_data: input.contextData ?? {},
+    },
+  });
+  if (error && !data) {
+    // Only network / auth failures reach here; server business failures return
+    // a structured BLOCKED / DRY_RUN_FAILED envelope in `data`.
+    throw new Error(error.message ?? "comm-hub-dry-run request failed");
+  }
+  return data as DryRunEnvelope;
+}
+
+export interface DryRunExecutionRow {
+  id: string;
+  execution_no: string | null;
+  state: string;
+  requested_by: string | null;
+  request_id: string | null;
+  message_id: string | null;
+  delivery_attempt_id: string | null;
+  trace_id: string | null;
+  preview_snapshot_id: string | null;
+  preview_approval_id: string | null;
+  certification_id: string | null;
+  blockers: unknown[];
+  warnings: unknown[];
+  failure_stage: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export async function fetchDryRunExecution(
+  executionId: string,
+): Promise<DryRunExecutionRow | null> {
+  const { data, error } = await (supabase as any)
+    .from("communication_dry_run_execution")
+    .select(
+      "id, execution_no, state, requested_by, request_id, message_id, " +
+        "delivery_attempt_id, trace_id, preview_snapshot_id, preview_approval_id, " +
+        "certification_id, blockers, warnings, failure_stage, started_at, completed_at",
+    )
+    .eq("id", executionId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as DryRunExecutionRow) ?? null;
+}
+
+export interface DryRunCertificationRow {
+  id: string;
+  module_code: string;
+  event_code: string;
+  channel: string;
+  status: string;
+  certified_at: string;
+  expires_at: string | null;
+  request_id: string | null;
+  message_id: string | null;
+  delivery_attempt_id: string | null;
+  found?: boolean;
+}
+
+async function certRpc(payload: Record<string, unknown>): Promise<any> {
+  const { data, error } = await (supabase as any).rpc(
+    "fetch_comm_hub_dry_run_certification",
+    { p_payload: payload },
+  );
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function fetchDryRunCertification(
+  certificationId: string,
+): Promise<DryRunCertificationRow | null> {
+  const row = await certRpc({ certification_id: certificationId });
+  if (!row || row.found === false) return null;
+  return row as DryRunCertificationRow;
+}
+
+export async function fetchLatestValidDryRunCertification(input: {
+  moduleCode: string;
+  eventCode: string;
+  channel?: string;
+}): Promise<DryRunCertificationRow | null> {
+  const row = await certRpc({
+    module_code: input.moduleCode,
+    event_code: input.eventCode,
+    channel: input.channel ?? "email",
+  });
+  if (!row || row.found === false) return null;
+  return row as DryRunCertificationRow;
+}
+
+export interface DryRunCertificationValidation {
+  valid: boolean;
+  status: "VALID" | "EXPIRED" | "REVOKED" | "SUPERSEDED" | "INVALIDATED" | "MISSING";
+  blockers: DryRunBlocker[];
+  warnings: DryRunBlocker[];
+  certification_id: string | null;
+  module_code: string | null;
+  event_code: string | null;
+  channel: string | null;
+  certified_at: string | null;
+  expires_at: string | null;
+  reason: string | null;
+}
+
+export async function validateDryRunCertification(input: {
+  certificationId: string;
+  moduleCode: string;
+  eventCode: string;
+  channel?: string;
+}): Promise<DryRunCertificationValidation> {
+  const { data, error } = await (supabase as any).rpc(
+    "validate_comm_hub_dry_run_certification",
+    {
+      p_payload: {
+        certification_id: input.certificationId,
+        module_code: input.moduleCode,
+        event_code: input.eventCode,
+        channel: input.channel ?? "email",
+      },
+    },
+  );
+  if (error) throw new Error(error.message);
+  const r: any = data ?? {};
+  const status: DryRunCertificationValidation["status"] =
+    r.status ?? (r.valid ? "VALID" : r.reason ? String(r.reason).toUpperCase() : "MISSING");
+  return {
+    valid: r.valid === true,
+    status,
+    blockers: (r.blockers ?? []) as DryRunBlocker[],
+    warnings: (r.warnings ?? []) as DryRunBlocker[],
+    certification_id: r.certification_id ?? input.certificationId,
+    module_code: r.module_code ?? input.moduleCode,
+    event_code: r.event_code ?? input.eventCode,
+    channel: r.channel ?? (input.channel ?? "email"),
+    certified_at: r.certified_at ?? null,
+    expires_at: r.expires_at ?? null,
+    reason: r.reason ?? null,
+  };
+}
+
+export async function revokeDryRunCertification(input: {
+  certificationId: string;
+  revocationReason: string;
+}): Promise<{ certification_id: string; status: "REVOKED" }> {
+  const { data, error } = await (supabase as any).rpc(
+    "revoke_comm_hub_dry_run_certification",
+    {
+      p_payload: {
+        certification_id: input.certificationId,
+        revocation_reason: input.revocationReason,
+      },
+    },
+  );
+  if (error) throw new Error(error.message);
+  return data as { certification_id: string; status: "REVOKED" };
+}
+
+/** UI-facing progress labels — display only; the server remains authoritative. */
+export const DRY_RUN_PROGRESS_STEPS = [
+  "Checking configuration",
+  "Creating simulation",
+  "Processing locked dry-run message",
+  "Verifying provider was not called",
+  "Recording evidence",
+  "Certification complete",
+] as const;
+
+export function generateIdempotencyKey(): string {
+  const g: any = globalThis as any;
+  if (g.crypto?.randomUUID) return `dry-${g.crypto.randomUUID()}`;
+  return `dry-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
