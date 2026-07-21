@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import CommunicationHubWorkspaceShell, {
   CommunicationHubSectionCard,
 } from "./components/CommunicationHubWorkspaceShell";
+import DeprecatedRouteBanner from "./components/DeprecatedRouteBanner";
 import { GenericEventPilotPanel } from "./controlCenter/GenericEventPilotPanel";
 import { OperatorRehearsalWizardPanel } from "./controlCenter/OperatorRehearsalWizardPanel";
 import { AdminTestNoticePanel } from "./controlCenter/AdminTestNoticePanel";
@@ -29,17 +30,17 @@ export default function CommunicationHubPilotsPage() {
 
   return (
     <CommunicationHubWorkspaceShell
-      title="Testing & Controlled Validation"
-      purpose="Dry-run tools to validate templates, mappings and dispatch without going live."
+      title="Pilots — Advanced Diagnostics"
+      purpose="Technical diagnostic workspace. Use Go Live for the normal preparation, testing, and certification process."
       risk="action-capable"
       quickLinks={[
-        { label: "Design & Templates", href: "/admin/communication-hub/design" },
+        { label: "Go Live", href: "/admin/communication-hub/go-live" },
         { label: "Delivery Monitor", href: "/admin/communication-hub/delivery-monitor" },
-        { label: "Dispatch Register", href: "/admin/communication-hub/dispatch-register" },
         { label: "Lifecycle Event Log", href: "/admin/communication-hub/lifecycle-log" },
-        { label: "Governance & Live Control", href: "/admin/communication-hub/governance" },
       ]}
     >
+      <DeprecatedRouteBanner legacyLabel="Pilots" variant="diagnostic" />
+
       <CommunicationHubSectionCard
         title="Event Validation Console"
         description="Send a dry-run for any mapped event. Recipient is locked to the internal allowlist."
