@@ -80,6 +80,10 @@ interface Envelope {
   prior_operating_mode: string | null;
   final_operating_mode: string | null;
   cleanup_succeeded: boolean | null;
+  certification_id: string | null;
+  certification_status: string | null;
+  certification_replayed: boolean | null;
+  real_email_authorised: boolean;
 }
 
 const EMPTY_ENVELOPE = (started: string): Envelope => ({
