@@ -32,7 +32,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, Circle, Lock, ShieldAlert, ExternalLink } from "lucide-react";
-import PreviewApprovalPanel from "../controlCenter/PreviewApprovalPanel";
+import PreviewApprovalPanel, {
+  type PreviewLockedContext,
+  type PreviewRecipientSource,
+} from "../controlCenter/PreviewApprovalPanel";
+import EventTestContextSummary from "./EventTestContextSummary";
 import DryRunPanel from "../controlCenter/DryRunPanel";
 import ControlledLivePanel from "../controlCenter/ControlledLivePanel";
 import ReadinessSummary from "./ReadinessSummary";
