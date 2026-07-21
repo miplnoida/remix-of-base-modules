@@ -92,6 +92,52 @@ export default function PreviewApprovalPanel({
     return !(snapTo.length === 1 && snapTo[0] === normalize(effRecipient));
   }, [locked, snapshot, effRecipient]);
 
+  // CH-SIMPLE-P3F-UX.6H — Single authoritative approval gate.
+  // Content is "complete" only when the server-rendered subject/body contain
+  // no unresolved `{{...}}` placeholders. This is a defense-in-depth check on
+  // top of the server's `unresolved_variables` list.
+  const rawPlaceholderPattern = /\{\{\s*[\w.$-]+\s*\}\}/;
+  const contentIsComplete = useMemo(() => {
+    if (!snapshot) return false;
+    const subj = snapshot.rendered_subject ?? "";
+    const html = snapshot.rendered_body_html ?? "";
+    const text = snapshot.rendered_body_text ?? "";
+    return !rawPlaceholderPattern.test(subj)
+      && !rawPlaceholderPattern.test(html)
+      && !rawPlaceholderPattern.test(text);
+  }, [snapshot]);
+  const unresolvedRequiredVariables = snapshot?.unresolved_variables ?? [];
+  const approvalInProgress = busy === "approve";
+  const snapshotIsPrepared = snapshot?.status === "PREPARED";
+  const canApprovePreview =
+    !!snapshot &&
+    snapshotIsPrepared &&
+    unresolvedRequiredVariables.length === 0 &&
+    contentIsComplete &&
+    !approvalInProgress &&
+    !(locked && recipientDivergesFromSnapshot) &&
+    reason.trim().length > 0;
+
+  const approvalBlockers = useMemo(() => {
+    if (!snapshot) return [] as string[];
+    const list: string[] = [];
+    if (!snapshotIsPrepared) list.push(`Snapshot status is ${snapshot.status}; refresh the preview.`);
+    if (unresolvedRequiredVariables.length > 0) {
+      list.push(
+        `Preview has ${unresolvedRequiredVariables.length} unresolved required variable${unresolvedRequiredVariables.length === 1 ? "" : "s"}: ${unresolvedRequiredVariables.join(", ")}.`
+      );
+    }
+    if (!contentIsComplete && unresolvedRequiredVariables.length === 0) {
+      list.push("Rendered content still contains raw {{…}} placeholders. Preview cannot be approved.");
+    }
+    if (locked && recipientDivergesFromSnapshot) {
+      list.push("Recipient context changed since this snapshot was prepared. Refresh the preview.");
+    }
+    if (reason.trim().length === 0) list.push("Approval reason is required.");
+    return list;
+  }, [snapshot, snapshotIsPrepared, unresolvedRequiredVariables, contentIsComplete, locked, recipientDivergesFromSnapshot, reason]);
+
+
   async function handlePrepare() {
     setDivergenceError(null);
     if (locked) {
