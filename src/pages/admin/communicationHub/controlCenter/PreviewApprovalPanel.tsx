@@ -1,56 +1,116 @@
 /**
  * CH-SIMPLE-P3C — Server-Verifiable Preview & Approval reusable panel.
  *
+ * CH-SIMPLE-P3F-UX.6B — When `lockedContext` is supplied, the panel does not
+ * accept any editable module/event/channel/recipient inputs. It uses the
+ * exact resolved recipient produced by canonical readiness and rejects any
+ * attempt to prepare a preview when the recipient is missing or diverges
+ * from the currently-resolved Go Live recipient.
+ *
  * Reads the server-rendered snapshot; the browser is never authoritative.
- * Designed for embedding in the future unified Go Live workflow — this
- * panel is intentionally NOT registered as a top-level navigation item.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import {
   preparePreview, approvePreview, revokePreviewApproval,
   type PreviewSnapshot, type PreviewApprovalRecord,
 } from "@/platform/communication-hub/previewApprovalService";
+import { maskEmail } from "../utils/mask";
+
+export type PreviewRecipientSource =
+  | "single_configured_recipient"
+  | "approved_named_recipient"
+  | "operator_selected_approved_recipient";
+
+const RECIPIENT_SOURCE_LABEL: Record<PreviewRecipientSource, string> = {
+  single_configured_recipient: "Single Configured Recipient",
+  approved_named_recipient: "Approved Named Recipient",
+  operator_selected_approved_recipient: "Operator Selected Approved Recipient",
+};
+
+export interface PreviewLockedContext {
+  moduleCode: string;
+  eventCode: string;
+  channel: string;
+  resolvedRecipient: string;
+  recipientSource: PreviewRecipientSource;
+  templateVersionId?: string | null;
+  testDataSource?: string | null;
+}
 
 interface Props {
   defaultModuleCode?: string;
   defaultEventCode?: string;
   defaultChannel?: string;
-  /** CH-SIMPLE-P3F: optional callback so parent wizards (Go Live) can lift
-   *  the server-issued approval id into their step-lock state. */
+  /** CH-SIMPLE-P3F-UX.6B: when supplied, panel is locked to this context.
+   *  A missing or diverging recipient blocks preview generation. */
+  lockedContext?: PreviewLockedContext | null;
   onApproved?: (approval: PreviewApprovalRecord, snapshot: PreviewSnapshot) => void;
-  /** CH-SIMPLE-P3F: notified when approval is revoked, so downstream steps relock. */
   onRevoked?: (approval: PreviewApprovalRecord) => void;
+}
+
+function normalize(v: string | null | undefined): string {
+  return String(v ?? "").trim().toLowerCase();
 }
 
 export default function PreviewApprovalPanel({
   defaultModuleCode = "BENEFITS",
   defaultEventCode = "AWARD_ISSUED",
   defaultChannel = "email",
+  lockedContext = null,
   onApproved,
   onRevoked,
 }: Props) {
-  const [moduleCode, setModuleCode] = useState(defaultModuleCode);
-  const [eventCode, setEventCode] = useState(defaultEventCode);
-  const [channel, setChannel] = useState(defaultChannel);
-  const [toRecipients, setToRecipients] = useState("");
+  const locked = !!lockedContext;
+  const [moduleCode, setModuleCode] = useState(lockedContext?.moduleCode ?? defaultModuleCode);
+  const [eventCode, setEventCode] = useState(lockedContext?.eventCode ?? defaultEventCode);
+  const [channel, setChannel] = useState(lockedContext?.channel ?? defaultChannel);
+  const [freeToRecipients, setFreeToRecipients] = useState("");
   const [reason, setReason] = useState("");
   const [snapshot, setSnapshot] = useState<PreviewSnapshot | null>(null);
   const [approval, setApproval] = useState<PreviewApprovalRecord | null>(null);
   const [busy, setBusy] = useState<null | "prepare" | "approve" | "revoke">(null);
+  const [divergenceError, setDivergenceError] = useState<string | null>(null);
+
+  // When operating under a locked context, always mirror the parent state.
+  const effModule = lockedContext?.moduleCode ?? moduleCode;
+  const effEvent = lockedContext?.eventCode ?? eventCode;
+  const effChannel = lockedContext?.channel ?? channel;
+  const effRecipient = lockedContext?.resolvedRecipient ?? null;
+
+  const recipientMissing = locked && !effRecipient;
+  const recipientDivergesFromSnapshot = useMemo(() => {
+    if (!locked || !snapshot || !effRecipient) return false;
+    const snapTo = (snapshot.to_recipients ?? []).map(normalize);
+    return !(snapTo.length === 1 && snapTo[0] === normalize(effRecipient));
+  }, [locked, snapshot, effRecipient]);
 
   async function handlePrepare() {
+    setDivergenceError(null);
+    if (locked) {
+      if (!effRecipient) {
+        setDivergenceError("Cannot prepare a preview — no resolved test recipient.");
+        return;
+      }
+    }
     setBusy("prepare");
     try {
+      const to = locked
+        ? [effRecipient!]
+        : freeToRecipients.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean);
       const snap = await preparePreview({
-        moduleCode, eventCode, channel,
+        moduleCode: effModule,
+        eventCode: effEvent,
+        channel: effChannel,
         sendContext: "preview",
-        toRecipients: toRecipients.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean),
+        toRecipients: to,
       });
       setSnapshot(snap);
       setApproval(null);
@@ -66,6 +126,12 @@ export default function PreviewApprovalPanel({
     if (!snapshot) return;
     if (!reason.trim()) {
       toast.error("Approval reason is required");
+      return;
+    }
+    if (locked && recipientDivergesFromSnapshot) {
+      setDivergenceError(
+        "Recipient context changed since this snapshot was prepared. Re-run readiness and prepare a fresh preview.",
+      );
       return;
     }
     setBusy("approve");
@@ -106,24 +172,67 @@ export default function PreviewApprovalPanel({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <Label>Module Code</Label>
-          <Input value={moduleCode} onChange={(e) => setModuleCode(e.target.value)} />
+      {locked ? (
+        <div className="rounded-md border bg-muted/30 p-3 space-y-1 text-sm">
+          <div className="text-xs font-semibold uppercase text-muted-foreground">
+            Locked context (from Go Live)
+          </div>
+          <div><strong>Module:</strong> <code className="font-mono">{effModule}</code></div>
+          <div><strong>Event:</strong> <code className="font-mono">{effEvent}</code></div>
+          <div><strong>Channel:</strong> <code>{effChannel}</code></div>
+          <div>
+            <strong>Test recipient:</strong>{" "}
+            {effRecipient ? maskEmail(effRecipient) : <span className="text-destructive">not resolved</span>}
+            {lockedContext?.recipientSource && (
+              <Badge variant="outline" className="ml-2 text-[10px]">
+                {RECIPIENT_SOURCE_LABEL[lockedContext.recipientSource]}
+              </Badge>
+            )}
+          </div>
+          {lockedContext?.testDataSource && (
+            <div><strong>Test-data source:</strong> {lockedContext.testDataSource}</div>
+          )}
         </div>
-        <div>
-          <Label>Event Code</Label>
-          <Input value={eventCode} onChange={(e) => setEventCode(e.target.value)} />
-        </div>
-        <div>
-          <Label>Channel</Label>
-          <Input value={channel} onChange={(e) => setChannel(e.target.value)} />
-        </div>
-      </div>
-      <div>
-        <Label>To Recipients (comma separated)</Label>
-        <Input value={toRecipients} onChange={(e) => setToRecipients(e.target.value)} />
-      </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label>Module Code</Label>
+              <Input value={moduleCode} onChange={(e) => setModuleCode(e.target.value)} />
+            </div>
+            <div>
+              <Label>Event Code</Label>
+              <Input value={eventCode} onChange={(e) => setEventCode(e.target.value)} />
+            </div>
+            <div>
+              <Label>Channel</Label>
+              <Input value={channel} onChange={(e) => setChannel(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <Label>To Recipients (comma separated)</Label>
+            <Input value={freeToRecipients} onChange={(e) => setFreeToRecipients(e.target.value)} />
+          </div>
+        </>
+      )}
+
+      {recipientMissing && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Recipient context changed</AlertTitle>
+          <AlertDescription>
+            The approved test recipient is not resolved. Re-check readiness before generating a preview.
+          </AlertDescription>
+        </Alert>
+      )}
+      {divergenceError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Recipient context changed</AlertTitle>
+          <AlertDescription>{divergenceError}</AlertDescription>
+        </Alert>
+      )}
+
       <div>
         <Label>Approval Reason / Confirmation Note</Label>
         <Textarea
@@ -133,12 +242,21 @@ export default function PreviewApprovalPanel({
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={handlePrepare} disabled={busy !== null}>
+        <Button
+          onClick={handlePrepare}
+          disabled={busy !== null || recipientMissing}
+          data-testid="preview-prepare"
+        >
           {busy === "prepare" ? "Preparing…" : "Refresh Preview"}
         </Button>
         <Button
           onClick={handleApprove}
-          disabled={!snapshot || busy !== null || (snapshot?.unresolved_variables?.length ?? 0) > 0}
+          disabled={
+            !snapshot ||
+            busy !== null ||
+            (snapshot?.unresolved_variables?.length ?? 0) > 0 ||
+            (locked && recipientDivergesFromSnapshot)
+          }
           variant="default"
         >
           {busy === "approve" ? "Approving…" : "Approve Preview"}
@@ -154,20 +272,31 @@ export default function PreviewApprovalPanel({
 
       {snapshot && (
         <div className="border rounded-md p-3 space-y-2 bg-muted/30">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary">Snapshot</Badge>
             <span className="text-xs font-mono">{snapshot.snapshot_id}</span>
             <Badge>{snapshot.status}</Badge>
             <span className="text-xs text-muted-foreground">
-              expires {new Date(snapshot.expires_at).toLocaleTimeString()}
+              generated {new Date().toLocaleTimeString()} · expires {new Date(snapshot.expires_at).toLocaleTimeString()}
             </span>
           </div>
-          <div className="text-sm">
-            <div><strong>To:</strong> {(snapshot.to_recipients ?? []).join(", ") || "—"}</div>
+          <div className="text-sm space-y-0.5">
+            <div>
+              <strong>Recipient:</strong>{" "}
+              {(snapshot.to_recipients ?? []).map((r) => maskEmail(r)).join(", ") || "—"}
+              {locked && lockedContext?.recipientSource && (
+                <Badge variant="outline" className="ml-2 text-[10px]">
+                  {RECIPIENT_SOURCE_LABEL[lockedContext.recipientSource]}
+                </Badge>
+              )}
+            </div>
             <div><strong>Template Version:</strong> {snapshot.template_version_id ?? "—"}</div>
             <div><strong>Sender Profile:</strong> {snapshot.sender_profile_id ?? "—"}</div>
             <div><strong>Recipient Policy v:</strong> {snapshot.recipient_policy_version ?? "—"}</div>
             <div><strong>Content Hash:</strong> <code className="text-xs">{snapshot.content_hash}</code></div>
+            {locked && lockedContext?.testDataSource && (
+              <div><strong>Test-data source:</strong> {lockedContext.testDataSource}</div>
+            )}
           </div>
           {(snapshot.unresolved_variables ?? []).length > 0 && (
             <div className="text-sm text-destructive">
@@ -192,7 +321,7 @@ export default function PreviewApprovalPanel({
 
       {approval && (
         <div className="border rounded-md p-3 bg-muted/30">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary">Approval</Badge>
             <span className="text-xs font-mono">{approval.approval_id}</span>
             <Badge variant={approval.status === "ACTIVE" ? "default" : "destructive"}>
@@ -201,6 +330,11 @@ export default function PreviewApprovalPanel({
             <span className="text-xs text-muted-foreground">
               expires {new Date(approval.expires_at).toLocaleTimeString()}
             </span>
+            {locked && effRecipient && (
+              <span className="text-xs text-muted-foreground">
+                · bound to {maskEmail(effRecipient)}
+              </span>
+            )}
           </div>
         </div>
       )}
