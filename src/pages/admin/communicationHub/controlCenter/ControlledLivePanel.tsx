@@ -520,7 +520,7 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
             )}
           </Button>
           {phase === "final" && !ambiguous && (
-            <Button variant="outline" onClick={handleReset}>
+            <Button variant="outline" onClick={handleReset} disabled={resetBlocked}>
               New Run
             </Button>
           )}
