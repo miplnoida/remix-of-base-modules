@@ -25,6 +25,7 @@ const AUTH_MESSAGES: Record<string, string> = {
 export interface EnvelopeLike {
   status?: string;
   failure_stage?: string | null;
+  failureStage?: string | null;
   message?: string | null;
   blockers?: Array<{ code?: string; stage?: string; message?: string }>;
   retry_safe?: boolean;
