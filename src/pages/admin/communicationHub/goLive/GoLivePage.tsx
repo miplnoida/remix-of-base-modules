@@ -55,6 +55,11 @@ import {
   resolveEvent,
   resolveModule,
 } from "./moduleEventDirectoryService";
+import {
+  buildRecipientContext,
+  resolveTestRecipient,
+  type RecipientMatchContext,
+} from "./resolveTestRecipient";
 
 const SESSION_KEY = "commHub.goLive.v1";
 
@@ -168,17 +173,78 @@ export default function GoLivePage() {
 
   const eventChosen = !!session.moduleCode && !!session.eventCode;
 
+  const [recipientCtx, setRecipientCtx] = useState<RecipientMatchContext | null>(null);
+
   async function refreshDecision() {
     if (!eventChosen) return;
     setDecisionLoading(true);
     try {
+      // Reload authoritative recipient policy first — never trust cached state.
+      const policy = await fetchRecipientPolicy();
+      setRecipientPolicy(policy);
+      const resolved = resolveTestRecipient(policy);
+
+      if (!resolved.address) {
+        // No approved test recipient can be resolved from Recipient Policy.
+        // Do NOT call the canonical evaluator with an empty recipient — that
+        // would surface a misleading `recipient_policy_denied`. Synthesize a
+        // deterministic frontend envelope carrying the precise blocker
+        // `test_recipient_not_resolved`. Backend enforcement remains
+        // unchanged; the evaluator is called again once a recipient exists.
+        const synthetic: SendDecisionEnvelope = {
+          allowed: false,
+          status: "blocked",
+          decision_id: `frontend-preflight-${Date.now()}`,
+          decision_type: "canonical_send_decision",
+          send_context: "preview",
+          module_code: session.moduleCode,
+          event_code: session.eventCode,
+          channel: session.channel,
+          blockers: [
+            {
+              code: "test_recipient_not_resolved",
+              message:
+                "No approved test recipient is configured in Recipient Policy for the current mode.",
+              stage: "recipient_resolution",
+              severity: "high",
+              current_value: policy?.activeMode ?? null,
+              required_value: "approved_recipient",
+              fix_route: "/admin/communication-hub/recipient-policy",
+              fix_action: "configure_test_recipient",
+            },
+          ],
+          warnings: [],
+          gate_results: [],
+          fix_actions: [
+            { code: "configure_test_recipient", route: "/admin/communication-hub/recipient-policy" },
+          ],
+          configuration_version: policy?.configurationVersion ?? null,
+          recipient_policy_version: policy?.policyVersion ?? null,
+          send_policy_version: null,
+          review_policy_version: null,
+          evaluated_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 60_000).toISOString(),
+          trace_context: {
+            current_stage: "recipient_resolution",
+            blocked_stage: "recipient_resolution",
+            blocker_codes: ["test_recipient_not_resolved"],
+          },
+          source: "evaluate_comm_hub_send_decision",
+        };
+        setDecision(synthetic);
+        setRecipientCtx(buildRecipientContext(policy, null));
+        return;
+      }
+
       const env = await evaluateCanonicalSendDecision({
         moduleCode: session.moduleCode,
         eventCode: session.eventCode,
         channel: session.channel,
         sendContext: "preview",
+        toRecipients: [resolved.address],
       });
       setDecision(env);
+      setRecipientCtx(buildRecipientContext(policy, resolved.address));
     } catch (e: any) {
       toast.error(e?.message ?? "Readiness check failed");
     } finally {
