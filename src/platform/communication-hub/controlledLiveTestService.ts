@@ -105,8 +105,22 @@ export async function runControlledLiveTest(
     "comm-hub-controlled-live-test",
     { body: input },
   );
-  if (error) throw error;
-  const parsed = controlledLiveEnvelopeSchema.safeParse(data ?? {});
+  // On non-2xx, supabase-js wraps the body in FunctionsHttpError. The edge
+  // function always returns a structured envelope (including auth failures),
+  // so recover it instead of throwing a generic "unauthorized".
+  let envelope: unknown = data;
+  if (error && !envelope) {
+    const ctx: any = (error as any)?.context;
+    if (ctx && typeof ctx.json === "function") {
+      try {
+        envelope = await ctx.json();
+      } catch {
+        /* fall through */
+      }
+    }
+    if (!envelope) throw error;
+  }
+  const parsed = controlledLiveEnvelopeSchema.safeParse(envelope ?? {});
   if (!parsed.success) {
     throw new Error(`controlled_live_response_contract_invalid: ${parsed.error.issues[0]?.path.join(".") || "envelope"}`);
   }

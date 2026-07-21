@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ShieldCheck, AlertTriangle, XCircle, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { resolveAuthErrorMessage } from "@/platform/communication-hub/authErrorMessages";
 import BlockersList from "@/pages/admin/communicationHub/safety/BlockersList";
 import {
   runDryTest,
@@ -146,6 +147,12 @@ export function DryRunPanel(props: DryRunPanelProps) {
       setEnvelope(env);
       setPhase("final");
 
+      // Auth failures come back as a structured BLOCKED envelope with
+      // failure_stage === "auth". Surface them with a friendly, action-oriented
+      // message instead of the generic "please retry" toast.
+      const authMsg = resolveAuthErrorMessage(env);
+      if (authMsg) toast.error(authMsg);
+
       let v: DryRunCertificationValidation | null = null;
       if (env.status === "DRY_RUN_PASSED" && env.dry_run_certification_id) {
         try {
@@ -163,9 +170,10 @@ export function DryRunPanel(props: DryRunPanelProps) {
       onFinal?.(env, v);
     } catch (e: any) {
       clearInterval(timer);
-      // Network / auth failures only — server business failures come back as
-      // a structured envelope, never here.
-      toast.error(e?.message ?? "Dry-run request failed");
+      // Client-side auth (CommHubAuthError) or network failures land here;
+      // server business failures come back as an envelope above.
+      const authMsg = resolveAuthErrorMessage(e);
+      toast.error(authMsg ?? e?.message ?? "Dry-run request failed");
       setPhase("idle");
     }
   }
