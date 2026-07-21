@@ -519,6 +519,20 @@ export default function GoLivePage() {
             </div>
           )}
         </div>
+        {eventChosen && (
+          <div className="mt-4">
+            <EventTestContextSummary
+              moduleCode={session.moduleCode}
+              eventCode={session.eventCode}
+              channel={session.channel}
+              resolution={recipientResolution}
+              templateName={decision?.trace_context?.template_name ?? null}
+              templateVersion={decision?.trace_context?.template_version_id ?? null}
+              senderMasked={decision?.trace_context?.sender_display ?? null}
+              testDataSource="server default test context"
+            />
+          </div>
+        )}
       </CommunicationHubSectionCard>
 
       <Separator />
