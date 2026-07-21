@@ -39687,6 +39687,110 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_hub_event_payload_field: {
+        Row: {
+          canonical_path: string
+          created_at: string
+          data_type: string
+          description: string | null
+          example_value: string | null
+          id: string
+          is_protected: boolean
+          is_required: boolean
+          schema_id: string
+          updated_at: string
+        }
+        Insert: {
+          canonical_path: string
+          created_at?: string
+          data_type?: string
+          description?: string | null
+          example_value?: string | null
+          id?: string
+          is_protected?: boolean
+          is_required?: boolean
+          schema_id: string
+          updated_at?: string
+        }
+        Update: {
+          canonical_path?: string
+          created_at?: string
+          data_type?: string
+          description?: string | null
+          example_value?: string | null
+          id?: string
+          is_protected?: boolean
+          is_required?: boolean
+          schema_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_hub_event_payload_field_schema_id_fkey"
+            columns: ["schema_id"]
+            isOneToOne: false
+            referencedRelation: "communication_hub_event_payload_schema"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communication_hub_event_payload_schema: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discovered_at: string | null
+          enforced_at: string | null
+          enforced_by: string | null
+          event_code: string
+          id: string
+          json_schema: Json
+          module_code: string
+          notes: string | null
+          schema_version: number
+          status: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discovered_at?: string | null
+          enforced_at?: string | null
+          enforced_by?: string | null
+          event_code: string
+          id?: string
+          json_schema?: Json
+          module_code: string
+          notes?: string | null
+          schema_version?: number
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discovered_at?: string | null
+          enforced_at?: string | null
+          enforced_by?: string | null
+          event_code?: string
+          id?: string
+          json_schema?: Json
+          module_code?: string
+          notes?: string | null
+          schema_version?: number
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: []
+      }
       communication_hub_event_review_policy: {
         Row: {
           allow_operator_change_recipient: boolean
@@ -40525,6 +40629,89 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_hub_template_variable_contract: {
+        Row: {
+          canonical_path: string
+          contract_status: string
+          created_at: string
+          created_by: string | null
+          default_value: string | null
+          description: string | null
+          discovered_at: string | null
+          enforced_at: string | null
+          enforced_by: string | null
+          event_code: string
+          id: string
+          is_required: boolean
+          module_code: string
+          notes: string | null
+          source_type: string
+          template_code: string | null
+          template_id: string | null
+          template_version_id: string | null
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          variable_name: string
+        }
+        Insert: {
+          canonical_path: string
+          contract_status?: string
+          created_at?: string
+          created_by?: string | null
+          default_value?: string | null
+          description?: string | null
+          discovered_at?: string | null
+          enforced_at?: string | null
+          enforced_by?: string | null
+          event_code: string
+          id?: string
+          is_required?: boolean
+          module_code: string
+          notes?: string | null
+          source_type: string
+          template_code?: string | null
+          template_id?: string | null
+          template_version_id?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          variable_name: string
+        }
+        Update: {
+          canonical_path?: string
+          contract_status?: string
+          created_at?: string
+          created_by?: string | null
+          default_value?: string | null
+          description?: string | null
+          discovered_at?: string | null
+          enforced_at?: string | null
+          enforced_by?: string | null
+          event_code?: string
+          id?: string
+          is_required?: boolean
+          module_code?: string
+          notes?: string | null
+          source_type?: string
+          template_code?: string | null
+          template_id?: string | null
+          template_version_id?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          variable_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_hub_template_variable_contract_source_type_fkey"
+            columns: ["source_type"]
+            isOneToOne: false
+            referencedRelation: "communication_hub_variable_source_registry"
+            referencedColumns: ["source_type"]
+          },
+        ]
+      }
       communication_hub_trace: {
         Row: {
           blocked_stage: string | null
@@ -40716,6 +40903,36 @@ export type Database = {
           request_dry_run?: boolean | null
           request_id?: string | null
           trace_id?: string | null
+        }
+        Relationships: []
+      }
+      communication_hub_variable_source_registry: {
+        Row: {
+          created_at: string
+          description: string
+          is_protected: boolean
+          overridable_in_test: boolean
+          owner: string
+          source_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          is_protected?: boolean
+          overridable_in_test?: boolean
+          owner?: string
+          source_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          is_protected?: boolean
+          overridable_in_test?: boolean
+          owner?: string
+          source_type?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -97808,6 +98025,10 @@ export type Database = {
           p_allowed_email_domains: string[]
           p_mode: string
         }
+        Returns: Json
+      }
+      validate_comm_hub_template_contract: {
+        Args: { p_template_code?: string; p_template_version_id?: string }
         Returns: Json
       }
       validate_entity: {
