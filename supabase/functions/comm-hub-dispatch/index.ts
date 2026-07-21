@@ -1697,20 +1697,33 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
   let revalBlockers: any[] = [];
   let revalWarnings: any[] = [];
   try {
+    const { data: priorDecision, error: priorErr } = await admin
+      .from("communication_hub_send_decision_log")
+      .select("payload")
+      .eq("decision_id", originalDecisionId)
+      .maybeSingle();
+    if (priorErr || !priorDecision) {
+      throw new Error(priorErr?.message ?? "prior_decision_not_found");
+    }
     const { data: reval, error: rvErr } = await admin.rpc(
       "revalidate_comm_hub_send_decision",
-      { p_message_id: messageId },
+      { p_prior_decision_id: originalDecisionId, p_payload: (priorDecision as any).payload },
     );
     if (rvErr) throw new Error(rvErr.message);
     const r: any = reval ?? {};
-    revalDecisionId = r.decision_id ?? r.revalidation_decision_id ?? null;
-    revalBlockers = Array.isArray(r.blockers) ? r.blockers : [];
-    revalWarnings = Array.isArray(r.warnings) ? r.warnings : [];
-    const allowed = r.allowed === true || r.status === "allowed" || r.revalidation_result === "passed";
+    const fresh: any = r.fresh_decision ?? {};
+    revalDecisionId = r.fresh_decision_id ?? fresh.decision_id ?? null;
+    revalBlockers = Array.isArray(fresh.blockers) ? fresh.blockers : [];
+    revalWarnings = Array.isArray(fresh.warnings) ? fresh.warnings : [];
+    const allowed = r.fresh_allowed === true && r.stale !== true;
     if (!allowed) {
       return build("BLOCKED", {
         message_id: messageId, request_id: requestId,
-        blockers: revalBlockers.length ? revalBlockers : [{ code: "revalidation_denied", stage: "canonical_revalidation" }],
+        blockers: revalBlockers.length ? revalBlockers : [{
+          code: r.stale === true ? "send_decision_stale" : "revalidation_denied",
+          stage: "canonical_revalidation",
+          message: Array.isArray(r.staleness_reasons) ? r.staleness_reasons.join(", ") : undefined,
+        }],
         warnings: revalWarnings,
         failure_stage: "canonical_revalidation",
         original_decision_id: originalDecisionId,
