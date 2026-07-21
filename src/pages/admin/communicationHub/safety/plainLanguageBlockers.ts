@@ -295,10 +295,11 @@ export function explainBlocker(code: string | null | undefined): BlockerExplanat
   if (exact) return exact;
   return {
     code,
-    headline: `Technical blocker: ${code}`,
-    message: "This blocker is not yet mapped to a plain-language explanation.",
-    fixHint: "Open the Safety Switchboard to inspect current gate state, or share this code with the platform team.",
-    fixHref: "/admin/communication-hub/safety",
+    headline: "Readiness check could not be completed",
+    message:
+      "We could not complete this readiness check. Share the reference code with the Communication Hub administrator.",
+    fixHint: `Reference code: ${code}. The platform team can trace this in the Send Decision log.`,
+    fixHref: "/admin/communication-hub",
     severity: "medium",
   };
 }
