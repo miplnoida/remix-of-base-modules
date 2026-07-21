@@ -114,6 +114,7 @@ function stable(partial: Partial<StableEnvelope>, httpStatus = 200): Response {
     provider_call_attempted: partial.provider_call_attempted ?? false,
     provider_message_id: partial.provider_message_id ?? null,
     final_operating_mode: partial.final_operating_mode ?? null,
+    retry_safe: partial.retry_safe ?? false,
   };
   return json(httpStatus, env);
 }
