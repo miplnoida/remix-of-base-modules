@@ -1492,6 +1492,7 @@ interface TargetedDryRunBody {
   operation: "targeted_dry_run";
   messageId?: string;
   requestId?: string;
+  dryRunExecutionId?: string;
   dryRunCorrelationId?: string;
   originalDecisionId?: string;
 }
@@ -1572,7 +1573,7 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
   // 1. Load message.
   const { data: msg, error: mErr } = await admin
     .from("communication_message")
-    .select("id, request_id, recipient_id, channel, subject, body_text, body_html, status, send_context, dry_run_locked, origin, test_mode, attempt_count, original_decision_id")
+    .select("id, request_id, channel, subject, body_text, body_html, status, send_context, dry_run_locked, origin, test_mode, attempt_count, original_decision_id")
     .eq("id", messageId)
     .maybeSingle();
   if (mErr || !msg) {
@@ -1611,7 +1612,7 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
       failure_stage: "context_validation", original_decision_id: originalDecisionId,
     }, 409);
   }
-  if ((msg as any).origin !== "comm_hub" || (msg as any).channel !== "email") {
+  if ((msg as any).origin !== "comm-hub-dry-run" || (msg as any).channel !== "email") {
     return build("BLOCKED", {
       message_id: messageId, request_id: requestId,
       blockers: [{ code: "targeted_message_context_mismatch", stage: "context_validation" }],
@@ -1620,22 +1621,48 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
   }
 
   // 4. Load request; confirm dry-run classification at request level.
-  const { data: reqRow } = await admin
+  const { data: reqRow, error: reqErr } = await admin
     .from("communication_request")
-    .select("id, module_code, event_code, send_context, dry_run_locked")
+    .select("id, module_code, event_code, status, decision_send_context, context")
     .eq("id", requestId).maybeSingle();
-  if (!reqRow) {
+  if (reqErr || !reqRow) {
     return build("BLOCKED", {
       message_id: messageId, request_id: requestId,
-      blockers: [{ code: "targeted_message_request_mismatch", stage: "request_linkage" }],
+      blockers: [{ code: "targeted_message_request_mismatch", stage: "request_linkage", message: reqErr?.message }],
       failure_stage: "request_linkage", original_decision_id: originalDecisionId,
     }, 409);
   }
-  if ((reqRow as any).send_context && (reqRow as any).send_context !== "dry_run") {
+  if ((reqRow as any).decision_send_context !== "dry_run" || (reqRow as any).status !== "dry_run") {
     return build("BLOCKED", {
       message_id: messageId, request_id: requestId,
       blockers: [{ code: "targeted_message_context_mismatch", stage: "request_linkage" }],
       failure_stage: "request_linkage", original_decision_id: originalDecisionId,
+    }, 409);
+  }
+
+  // Bind the targeted call to its durable execution and preview snapshot.
+  const executionId = typeof body?.dryRunExecutionId === "string" && uuidRe.test(body.dryRunExecutionId)
+    ? body.dryRunExecutionId
+    : null;
+  if (!executionId) {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "targeted_execution_id_invalid", stage: "execution_linkage" }],
+      failure_stage: "execution_linkage", original_decision_id: originalDecisionId,
+    }, 400);
+  }
+  const { data: execution } = await admin
+    .from("communication_dry_run_execution")
+    .select("id, request_id, message_id, preview_snapshot_id, recipient_set_hash, original_decision_id")
+    .eq("id", executionId)
+    .maybeSingle();
+  if (!execution || (execution as any).request_id !== requestId
+      || (execution as any).message_id !== messageId
+      || (execution as any).original_decision_id !== originalDecisionId) {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "targeted_execution_context_mismatch", stage: "execution_linkage" }],
+      failure_stage: "execution_linkage", original_decision_id: originalDecisionId,
     }, 409);
   }
 
@@ -1670,20 +1697,33 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
   let revalBlockers: any[] = [];
   let revalWarnings: any[] = [];
   try {
+    const { data: priorDecision, error: priorErr } = await admin
+      .from("communication_hub_send_decision_log")
+      .select("payload")
+      .eq("decision_id", originalDecisionId)
+      .maybeSingle();
+    if (priorErr || !priorDecision) {
+      throw new Error(priorErr?.message ?? "prior_decision_not_found");
+    }
     const { data: reval, error: rvErr } = await admin.rpc(
       "revalidate_comm_hub_send_decision",
-      { p_message_id: messageId },
+      { p_prior_decision_id: originalDecisionId, p_payload: (priorDecision as any).payload },
     );
     if (rvErr) throw new Error(rvErr.message);
     const r: any = reval ?? {};
-    revalDecisionId = r.decision_id ?? r.revalidation_decision_id ?? null;
-    revalBlockers = Array.isArray(r.blockers) ? r.blockers : [];
-    revalWarnings = Array.isArray(r.warnings) ? r.warnings : [];
-    const allowed = r.allowed === true || r.status === "allowed" || r.revalidation_result === "passed";
+    const fresh: any = r.fresh_decision ?? {};
+    revalDecisionId = r.fresh_decision_id ?? fresh.decision_id ?? null;
+    revalBlockers = Array.isArray(fresh.blockers) ? fresh.blockers : [];
+    revalWarnings = Array.isArray(fresh.warnings) ? fresh.warnings : [];
+    const allowed = r.fresh_allowed === true && r.stale !== true;
     if (!allowed) {
       return build("BLOCKED", {
         message_id: messageId, request_id: requestId,
-        blockers: revalBlockers.length ? revalBlockers : [{ code: "revalidation_denied", stage: "canonical_revalidation" }],
+        blockers: revalBlockers.length ? revalBlockers : [{
+          code: r.stale === true ? "send_decision_stale" : "revalidation_denied",
+          stage: "canonical_revalidation",
+          message: Array.isArray(r.staleness_reasons) ? r.staleness_reasons.join(", ") : undefined,
+        }],
         warnings: revalWarnings,
         failure_stage: "canonical_revalidation",
         original_decision_id: originalDecisionId,
@@ -1699,15 +1739,59 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
     }, 500);
   }
 
-  // 7. Load recipient authoritative evidence for hash.
-  let toEmail: string | null = null;
-  if ((msg as any).recipient_id) {
-    const { data: rec } = await admin.from("communication_recipient")
-      .select("email").eq("id", (msg as any).recipient_id).maybeSingle();
-    toEmail = (rec as any)?.email ?? null;
+  // 7. Resolve recipients from the execution-bound approved preview and use
+  // the same canonical normalizer as preview preparation and BEGIN.
+  const { data: snapshot, error: snapshotErr } = await admin
+    .from("communication_preview_snapshot")
+    .select("to_recipients, cc_recipients, bcc_recipients")
+    .eq("id", (execution as any).preview_snapshot_id)
+    .maybeSingle();
+  if (snapshotErr || !snapshot) {
+    return build("DRY_RUN_FAILED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "recipient_evidence_load_failed", stage: "recipient_evidence", message: snapshotErr?.message }],
+      failure_stage: "recipient_evidence",
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: revalDecisionId,
+    }, 500);
   }
+  const toEmails = Array.isArray((snapshot as any).to_recipients) ? (snapshot as any).to_recipients : [];
+  const ccEmails = Array.isArray((snapshot as any).cc_recipients) ? (snapshot as any).cc_recipients : [];
+  const bccEmails = Array.isArray((snapshot as any).bcc_recipients) ? (snapshot as any).bcc_recipients : [];
+  if (toEmails.length === 0) {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "recipient_evidence_missing", stage: "recipient_evidence" }],
+      failure_stage: "recipient_evidence",
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: revalDecisionId,
+    });
+  }
+  const { data: normalizedRecipients, error: normalizeErr } = await admin.rpc(
+    "comm_hub_normalize_recipient_set",
+    { p_to: toEmails, p_cc: ccEmails, p_bcc: bccEmails },
+  );
+  const recipientSetHash = (normalizedRecipients as any)?.recipient_set_hash ?? null;
+  if (normalizeErr || !recipientSetHash) {
+    return build("DRY_RUN_FAILED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "recipient_hash_resolution_failed", stage: "recipient_evidence", message: normalizeErr?.message }],
+      failure_stage: "recipient_evidence",
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: revalDecisionId,
+    }, 500);
+  }
+  if (recipientSetHash !== (execution as any).recipient_set_hash) {
+    return build("BLOCKED", {
+      message_id: messageId, request_id: requestId,
+      blockers: [{ code: "recipient_hash_context_mismatch", stage: "recipient_evidence" }],
+      failure_stage: "recipient_evidence",
+      original_decision_id: originalDecisionId,
+      revalidation_decision_id: revalDecisionId,
+    }, 409);
+  }
+  const toEmail = toEmails[0];
 
-  const recipientSetHash = await sha256Hex(JSON.stringify([{ role: "to", email: (toEmail ?? "").toLowerCase() }]));
   const subjectHash = await sha256Hex((msg as any).subject ?? "");
   const bodyHash = await sha256Hex(`${(msg as any).body_text ?? ""}\u241E${(msg as any).body_html ?? ""}`);
 

@@ -211,6 +211,18 @@ async function callTargetedDispatch(payload: {
   }
 }
 
+function safeDispatcherDiagnosticBody(body: any): Record<string, unknown> | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const allowed = [
+    "status", "processed", "idempotent_replay", "request_id", "message_id",
+    "delivery_attempt_id", "trace_id", "original_decision_id",
+    "revalidation_decision_id", "provider_call_attempted", "provider_message_id",
+    "recipient_set_hash", "subject_hash", "body_hash", "blockers", "warnings",
+    "started_at", "completed_at", "result", "failure_stage", "error", "note",
+  ];
+  return Object.fromEntries(allowed.filter((key) => key in body).map((key) => [key, body[key]]));
+}
+
 function validateDispatcherResponse(body: any, expected: {
   messageId: string;
   requestId: string;
@@ -346,6 +358,48 @@ serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
   const operatingMode = await fetchOperatingMode(admin);
+
+  // Temporary, owner-scoped diagnostic replay. It uses the existing durable
+  // request/message only and cannot create another dry-run execution.
+  if (raw.operation === "diagnose_targeted_dispatch") {
+    const executionId = typeof raw.dryRunExecutionId === "string" ? raw.dryRunExecutionId : "";
+    const { data: execution } = await admin
+      .from("communication_dry_run_execution")
+      .select("id, requested_by, request_id, message_id, original_decision_id, idempotency_key")
+      .eq("id", executionId)
+      .maybeSingle();
+    if (!execution || (execution as any).requested_by !== operatorId) {
+      return json(403, { ok: false, error: "diagnostic_execution_not_authorized" });
+    }
+    const row: any = execution;
+    if (raw.messageId !== row.message_id || raw.requestId !== row.request_id
+        || raw.originalDecisionId !== row.original_decision_id) {
+      return json(409, { ok: false, error: "diagnostic_execution_context_mismatch" });
+    }
+    const dispatch = await callTargetedDispatch({
+      messageId: row.message_id,
+      requestId: row.request_id,
+      originalDecisionId: row.original_decision_id,
+      dryRunExecutionId: row.id,
+      idempotencyKey: row.idempotency_key,
+    });
+    const safeBody = safeDispatcherDiagnosticBody(dispatch.body);
+    console.info("COMM_HUB_SAFE_DISPATCH_DIAGNOSTIC", JSON.stringify({
+      execution_id: row.id,
+      http_status: dispatch.status,
+      http_ok: dispatch.ok,
+      response: safeBody,
+      transport_error: dispatch.errorMessage ?? null,
+    }));
+    return json(200, {
+      ok: true,
+      execution_id: row.id,
+      dispatcher_http_status: dispatch.status,
+      dispatcher_http_ok: dispatch.ok,
+      dispatcher_response: safeBody,
+      transport_error: dispatch.errorMessage ?? null,
+    });
+  }
 
   // 3. BEGIN.
   const { data: beginResult, error: beginErr } = await admin

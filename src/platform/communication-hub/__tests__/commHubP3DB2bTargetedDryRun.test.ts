@@ -77,6 +77,18 @@ describe("CH-SIMPLE-P3D-B.2.b targeted dry-run dispatcher", () => {
     expect(body).not.toMatch(/status:\s*['"]delivered['"]/);
   });
 
+  it("uses execution-bound preview recipients and canonical normalization", () => {
+    const body = extractHandler(DISPATCH, "processTargetedDryRun");
+    expect(body).toContain(`origin !== "comm-hub-dry-run"`);
+    expect(body).toContain(`.from("communication_dry_run_execution")`);
+    expect(body).toContain(`.from("communication_preview_snapshot")`);
+    expect(body).toContain(`"comm_hub_normalize_recipient_set"`);
+    expect(body).toContain("recipient_hash_context_mismatch");
+    expect(body).not.toContain("recipient_id");
+    expect(body).toContain("decision_send_context");
+    expect(body).not.toContain(`module_code, event_code, send_context, dry_run_locked`);
+  });
+
   it("processTargetedDryRun fails closed on non-dry-run / unlocked / mismatched messages", () => {
     const body = extractHandler(DISPATCH, "processTargetedDryRun");
     expect(body).toContain("targeted_message_not_dry_run");
