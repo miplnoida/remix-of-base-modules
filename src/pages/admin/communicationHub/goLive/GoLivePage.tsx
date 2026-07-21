@@ -23,15 +23,13 @@
  * verifies authoritative server state on load.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import CommunicationHubWorkspaceShell, {
   CommunicationHubSectionCard,
 } from "../components/CommunicationHubWorkspaceShell";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, Circle, Lock, ShieldAlert, ExternalLink } from "lucide-react";
 import PreviewApprovalPanel from "../controlCenter/PreviewApprovalPanel";
@@ -51,6 +49,12 @@ import {
   type RecipientPolicy,
 } from "@/platform/communication-hub/recipientPolicyService";
 import { toast } from "sonner";
+import ModuleEventSelectors from "./ModuleEventSelectors";
+import {
+  fetchModuleEventDirectory,
+  resolveEvent,
+  resolveModule,
+} from "./moduleEventDirectoryService";
 
 const SESSION_KEY = "commHub.goLive.v1";
 
@@ -138,9 +142,9 @@ function StepHeader({ index, title, status, hint }: StepHeaderProps) {
 }
 
 export default function GoLivePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [session, setSession] = useState<GoLiveSession>(() => loadSession());
-  const [moduleInput, setModuleInput] = useState(session.moduleCode);
-  const [eventInput, setEventInput] = useState(session.eventCode);
+  const [invalidUrlNotice, setInvalidUrlNotice] = useState<string | null>(null);
   const [decision, setDecision] = useState<SendDecisionEnvelope | null>(null);
   const [decisionLoading, setDecisionLoading] = useState(false);
   const [settings, setSettings] = useState<CommunicationGlobalSettings | null>(null);
@@ -207,30 +211,111 @@ export default function GoLivePage() {
     s6: !controlledLiveDone ? "locked" as const : "current" as const,
   }), [eventChosen, readinessOk, previewApproved, dryRunCertified, controlledLiveDone, decision]);
 
-  function handleSelectEvent() {
-    const m = moduleInput.trim().toUpperCase();
-    const e = eventInput.trim().toUpperCase();
-    if (!m || !e) {
-      toast.error("Module code and event code are required");
-      return;
-    }
-    // Selecting a new event invalidates every downstream authorisation.
+  /** Reset every downstream authorisation whenever the event context changes. */
+  function applyModuleEventSelection(
+    moduleCode: string,
+    eventCode: string,
+    channel: string,
+  ) {
     setSession({
       ...EMPTY_SESSION,
-      moduleCode: m,
-      eventCode: e,
+      moduleCode,
+      eventCode,
+      channel: (channel || "email").toLowerCase(),
+    });
+    setDecision(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (moduleCode) next.set("module", moduleCode); else next.delete("module");
+        if (eventCode) next.set("event", eventCode); else next.delete("event");
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  function handleModuleOnly(moduleCode: string) {
+    setSession({
+      ...EMPTY_SESSION,
+      moduleCode,
+      eventCode: "",
       channel: "email",
     });
     setDecision(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (moduleCode) next.set("module", moduleCode); else next.delete("module");
+        next.delete("event");
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function handleReset() {
     sessionStorage.removeItem(SESSION_KEY);
     setSession({ ...EMPTY_SESSION });
-    setModuleInput("");
-    setEventInput("");
     setDecision(null);
+    setInvalidUrlNotice(null);
+    setSearchParams(new URLSearchParams(), { replace: true });
   }
+
+  // Resolve URL parameters against master data on mount / when URL changes.
+  useEffect(() => {
+    const urlModule = searchParams.get("module");
+    const urlEvent = searchParams.get("event");
+    if (!urlModule && !urlEvent) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const events = await fetchModuleEventDirectory();
+        if (cancelled) return;
+        const resolvedModule = resolveModule(events, urlModule);
+        if (!resolvedModule) {
+          setInvalidUrlNotice(
+            `The module "${urlModule}" from the link is not available. Pick one below.`,
+          );
+          return;
+        }
+        if (!urlEvent) {
+          if (session.moduleCode !== resolvedModule.moduleCode) {
+            handleModuleOnly(resolvedModule.moduleCode);
+          }
+          setInvalidUrlNotice(null);
+          return;
+        }
+        const resolvedEvent = resolveEvent(events, resolvedModule.moduleCode, urlEvent);
+        if (!resolvedEvent) {
+          setInvalidUrlNotice(
+            `The event "${urlEvent}" is not registered for module "${resolvedModule.moduleCode}". Pick a valid event below.`,
+          );
+          if (session.moduleCode !== resolvedModule.moduleCode) {
+            handleModuleOnly(resolvedModule.moduleCode);
+          }
+          return;
+        }
+        setInvalidUrlNotice(null);
+        if (
+          session.moduleCode !== resolvedEvent.moduleCode ||
+          session.eventCode !== resolvedEvent.eventCode
+        ) {
+          applyModuleEventSelection(
+            resolvedEvent.moduleCode,
+            resolvedEvent.eventCode,
+            (resolvedEvent.channel || "email").toLowerCase(),
+          );
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          toast.error(err?.message ?? "Could not validate the linked module/event");
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const recipientSummary = useMemo(() => {
     if (!recipientPolicy) return "Loading…";
@@ -285,34 +370,26 @@ export default function GoLivePage() {
         title={<StepHeader index={1} title="Select Event" status={stepStatus.s1} /> as any}
         description="Choose the module and event you want to bring live. Selecting a new event resets every downstream approval."
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div>
-            <Label>Module code</Label>
-            <Input
-              value={moduleInput}
-              onChange={(e) => setModuleInput(e.target.value)}
-              placeholder="e.g. BENEFITS"
-            />
-          </div>
-          <div>
-            <Label>Event code</Label>
-            <Input
-              value={eventInput}
-              onChange={(e) => setEventInput(e.target.value)}
-              placeholder="e.g. AWARD_ISSUED"
-            />
-          </div>
-          <div className="flex items-end gap-2">
-            <Button onClick={handleSelectEvent}>Confirm Event</Button>
-            <Button variant="outline" onClick={handleReset}>Reset journey</Button>
-          </div>
+        <ModuleEventSelectors
+          moduleCode={session.moduleCode}
+          eventCode={session.eventCode}
+          invalidNotice={invalidUrlNotice}
+          onModuleChange={handleModuleOnly}
+          onSelect={({ moduleCode, eventCode, channel }) =>
+            applyModuleEventSelection(moduleCode, eventCode, channel)
+          }
+        />
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button variant="outline" size="sm" onClick={handleReset}>
+            Reset journey
+          </Button>
+          {eventChosen && (
+            <div className="text-sm">
+              Journey scoped to <code className="font-mono">{session.moduleCode}</code> ·{" "}
+              <code className="font-mono">{session.eventCode}</code> · channel <code>{session.channel}</code>.
+            </div>
+          )}
         </div>
-        {eventChosen && (
-          <div className="mt-3 text-sm">
-            Journey scoped to <code className="font-mono">{session.moduleCode}</code> ·{" "}
-            <code className="font-mono">{session.eventCode}</code> · channel <code>{session.channel}</code>.
-          </div>
-        )}
       </CommunicationHubSectionCard>
 
       <Separator />
