@@ -31,12 +31,13 @@ import {
 interface Props {
   onModeChanged?: (newMode: CommunicationOperatingMode) => void;
   /**
-   * Per-mode lock reason from server-side stage readiness. When `null`
-   * the mode is selectable. Any non-null value locks the card and shows
-   * the reason verbatim (business-language, no raw codes).
+   * Per-mode advisory text from server-side stage readiness. Rendered as
+   * an inline advisory inside the card. Never disables the card. Mode
+   * selection is a platform action; event certification is enforced
+   * separately by the send evaluator.
    */
   modeLockReason?: Partial<Record<CommunicationOperatingMode, string | null>>;
-  /** Currently-selected event scope, required for production modes. */
+  /** Optional audit-only scope. Not required for mode selection. */
   moduleCode?: string | null;
   eventCode?: string | null;
   channel?: string | null;
@@ -113,12 +114,17 @@ export default function ReleaseModeCards({
         await refresh();
       } else if (msg.includes("not_authorised")) {
         toast.error("You do not have permission to change the operating mode.");
+      } else if (msg.includes("unknown_operating_mode")) {
+        toast.error("The requested operating mode is not recognised.");
+      } else if (msg.includes("settings_singleton_missing")) {
+        toast.error("Communication Hub settings are missing. Contact platform admin.");
       } else if (msg.includes("mode_derived_field_direct_write")) {
         toast.error("This setting is managed by the operating mode.");
-      } else if (msg.includes("mode_requires_event_certification")) {
-        toast.error(
-          "This production mode requires a certified event. Complete the certification path in Go Live first.",
-        );
+      } else if (msg.includes("authentication_required")) {
+        toast.error("Your session has expired. Please sign in again.");
+      } else if (/type|enum|invalid input/i.test(msg)) {
+        toast.error("Operating mode could not be changed. No mode settings were changed.");
+        console.error("[ReleaseModeCards] mode transition raw error:", msg);
       } else {
         toast.error(msg || "Failed to apply mode");
       }
@@ -160,18 +166,12 @@ export default function ReleaseModeCards({
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {MODE_CARDS.map((c) => {
           const isCurrent = currentMode === c.mode;
-          const lockReason = modeLockReason?.[c.mode] ?? null;
-          const isLocked = !isCurrent && !!lockReason;
+          const advisory = modeLockReason?.[c.mode] ?? null;
+          const hasAdvisory = !isCurrent && !!advisory;
           return (
             <Card
               key={c.mode}
-              className={
-                isCurrent
-                  ? "border-primary"
-                  : isLocked
-                    ? "border-muted-foreground/30 opacity-80"
-                    : ""
-              }
+              className={isCurrent ? "border-primary" : ""}
             >
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-base">
@@ -180,36 +180,34 @@ export default function ReleaseModeCards({
                     <Badge variant="secondary" className="text-[10px]">
                       <CheckCircle2 className="mr-1 h-3 w-3" />Active
                     </Badge>
-                  ) : isLocked ? (
-                    <Badge variant="outline" className="text-[10px]">
-                      <ShieldAlert className="mr-1 h-3 w-3" />Locked
-                    </Badge>
-                  ) : null}
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">Available</Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm font-medium">{c.headline}</p>
                 <p className="text-xs text-muted-foreground">{c.detail}</p>
-                {isLocked && (
+                {hasAdvisory && (
                   <div className="rounded-md border border-dashed bg-muted/40 p-2 text-[11px]">
-                    <span className="font-medium">Locked: </span>{lockReason}
+                    <span className="font-medium">Advisory: </span>{advisory}
+                    <div className="mt-1 text-muted-foreground">
+                      The mode can be selected. Individual events must still be certified before they can send.
+                    </div>
                   </div>
                 )}
                 <Button
                   size="sm"
                   variant={c.danger ? "destructive" : (isCurrent ? "outline" : "default")}
-                  disabled={isCurrent || loading || isLocked}
+                  disabled={isCurrent || loading || applying}
                   onClick={() => openMode(c.mode)}
                   className="w-full"
-                  title={isLocked ? lockReason ?? undefined : undefined}
                 >
                   {isCurrent
                     ? "Active"
-                    : isLocked
-                      ? "Locked — certification required"
-                      : c.mode === "EMERGENCY_STOP"
-                        ? "Engage Emergency Stop"
-                        : `Switch to ${c.label}`}
+                    : c.mode === "EMERGENCY_STOP"
+                      ? "Engage Emergency Stop"
+                      : `Switch to ${c.label}`}
                 </Button>
               </CardContent>
             </Card>
