@@ -805,7 +805,7 @@ export default function GoLivePage() {
                 ? stageReadiness.stageLockReason.ONE_REAL_EMAIL ?? undefined
                 : "Locked. Requires a passing Controlled Stub certification and platform-approved real-provider gate."
             }
-          />
+          /> as any
         }
         description="Reserved single real send with a one-use server grant. Enabled only when platform administrators explicitly unlock the real-provider gate."
       >
@@ -831,7 +831,7 @@ export default function GoLivePage() {
             title="Activate Manual Production"
             status={stageReadiness.stageLockReason.MANUAL_PRODUCTION ? "locked" : "attention"}
             hint={stageReadiness.stageLockReason.MANUAL_PRODUCTION ?? "Ready to activate from the mode cards above."}
-          />
+          /> as any
         }
         description="Certified events send by explicit operator action only. Activated via the Manual Production mode card once the event is certified."
       >
@@ -855,7 +855,7 @@ export default function GoLivePage() {
             title="Activate Automated Production"
             status={stageReadiness.stageLockReason.AUTOMATED_PRODUCTION ? "locked" : "attention"}
             hint={stageReadiness.stageLockReason.AUTOMATED_PRODUCTION ?? "Ready to activate from the mode cards above."}
-          />
+          /> as any
         }
         description="Certified events run automatically under policy. Activated via the Automated Production mode card once the event is certified for cron."
       >
