@@ -74,6 +74,7 @@ import {
   type EventTestContext,
 } from "./eventTestContextService";
 import ReleaseModeCards from "./ReleaseModeCards";
+import { useStageReadiness } from "@/platform/communication-hub/useStageReadiness";
 
 const SESSION_KEY = "commHub.goLive.v1";
 
