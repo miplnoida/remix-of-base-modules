@@ -19,8 +19,8 @@ describe("BusinessEventEnvelope", () => {
   });
   it("rejects reserved platform fields", () => {
     const r = validateBusinessEventEnvelope({ ...base, templateId: "x" });
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors.some((e) => e.code === "reserved_platform_field")).toBe(true);
+    if (r.ok) throw new Error("expected failure");
+    expect(r.errors.some((e) => e.code === "reserved_platform_field")).toBe(true);
   });
   it("rejects missing idempotencyKey", () => {
     const { idempotencyKey: _drop, ...rest } = base;
