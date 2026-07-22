@@ -94696,6 +94696,21 @@ export type Database = {
         Args: { p_reason?: string; p_ssn: string }
         Returns: Json
       }
+      certify_all_comm_hub_template_versions: {
+        Args: never
+        Returns: {
+          blocker_count: number
+          is_certified: boolean
+          result: Json
+          template_code: string
+          template_version_id: string
+          warning_count: number
+        }[]
+      }
+      certify_comm_hub_template_version: {
+        Args: { p_template_version_id: string }
+        Returns: Json
+      }
       change_ip_status: {
         Args: {
           p_current_status: string
@@ -94985,6 +95000,11 @@ export type Database = {
         }
         Returns: string
       }
+      comm_hub_flatten_tokens: {
+        Args: { p_prefix?: string; p_tokens: Json }
+        Returns: Json
+      }
+      comm_hub_html_escape: { Args: { p_in: string }; Returns: string }
       comm_hub_normalize_recipient_set: {
         Args: { p_bcc: Json; p_cc: Json; p_to: Json }
         Returns: Json
@@ -97020,6 +97040,7 @@ export type Database = {
       is_insured_person: { Args: { p_ssn: string }; Returns: boolean }
       is_self_employed: { Args: { p_ssn: string }; Returns: boolean }
       is_voluntary_contributor: { Args: { p_ssn: string }; Returns: boolean }
+      jsonb_object_keys_count: { Args: { p: Json }; Returns: number }
       kb_search: {
         Args: { p_module?: string; p_query: string }
         Returns: {
@@ -97600,8 +97621,20 @@ export type Database = {
         Args: { p_payload: Json }
         Returns: Json
       }
+      render_comm_hub_content: {
+        Args: { p_content: string; p_output_context?: string; p_tokens?: Json }
+        Returns: Json
+      }
+      render_comm_hub_template: {
+        Args: { p_context: Json; p_source: string }
+        Returns: Json
+      }
       render_comm_hub_template_preview: {
         Args: { p_payload: Json }
+        Returns: Json
+      }
+      render_comm_hub_template_version: {
+        Args: { p_template_version_id: string; p_tokens?: Json }
         Returns: Json
       }
       render_email_template: {
