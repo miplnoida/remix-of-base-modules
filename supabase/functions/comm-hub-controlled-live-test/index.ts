@@ -227,6 +227,31 @@ Deno.serve(async (req) => {
       env.blockers.push({ code, stage, ...(message ? { message } : {}) });
     }
   };
+  // Central retry-safety classifier. Failures BEFORE durable execution
+  // creation are almost always safe to retry once the operator corrects
+  // the input, mode, dispatch credential or evidence. Only failures that
+  // may have caused a provider network call or an ambiguous durable row
+  // are unsafe to auto-retry.
+  const RETRY_SAFE_STAGES = new Set<string>([
+    "auth",
+    "input_validation",
+    "real_email_gate",
+    "preflight",
+    "authorisation",
+    "pre_transition_evidence",
+    "grant_validation",
+    "request_creation",
+    "canonical_send_decision",
+    "idempotency",
+  ]);
+  const classifyRetrySafe = (stage: string, code: string): boolean => {
+    if (RETRY_SAFE_STAGES.has(stage)) return true;
+    if (code === "controlled_live_provider_mode_inactive") return true;
+    if (code === "legacy_stub_mode_required") return true;
+    // Dispatcher stage: safe only if provider was not attempted.
+    if (stage === "dispatcher" && !env.provider_call_attempted) return true;
+    return false;
+  };
   const fail = (
     status: Status,
     stage: string,
@@ -241,6 +266,7 @@ Deno.serve(async (req) => {
     env.failure_stage = stage;
     env.completed_at = new Date().toISOString();
     addBlocker(code, stage, message);
+    env.retry_safe = classifyRetrySafe(stage, code);
     Object.assign(env, partial);
     return json(env, http);
   };
