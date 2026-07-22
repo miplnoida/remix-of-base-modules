@@ -94,6 +94,8 @@ interface Envelope {
   real_email_authorised: boolean;
   provider_mode: string;
   retry_safe: boolean;
+  action: "RUN_CONTROLLED_STUB" | "SEND_ONE_REAL_EMAIL" | null;
+  certification_kind: "CONTROLLED_STUB" | "ONE_REAL_EMAIL" | null;
 }
 
 const EMPTY_ENVELOPE = (started: string): Envelope => ({
