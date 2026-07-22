@@ -1939,6 +1939,14 @@ async function processTargetedDryRun(admin: any, body: TargetedDryRunBody): Prom
 // deno-lint-ignore no-explicit-any
 interface TargetedControlledLiveBody {
   operation: "targeted_controlled_live";
+  /**
+   * Explicit dispatcher action. REQUIRED for `targeted_controlled_live`.
+   * `RUN_CONTROLLED_STUB` selects the deterministic simulator.
+   * `SEND_ONE_REAL_EMAIL` is a distinct action and is currently rejected
+   * with `real_email_action_not_enabled` until its dedicated release path
+   * ships.
+   */
+  action?: ControlledDispatchAction | string;
   messageId?: string;
   requestId?: string;
   executionId?: string;
@@ -1946,6 +1954,9 @@ interface TargetedControlledLiveBody {
 }
 
 interface TargetedControlledLiveEnvelope {
+  schema_version: typeof CONTROLLED_DISPATCH_SCHEMA_VERSION;
+  operation: "targeted_controlled_live";
+  action: ControlledDispatchAction | null;
   status:
     | "BLOCKED"
     | "DISPATCH_FAILED"
@@ -1953,7 +1964,16 @@ interface TargetedControlledLiveEnvelope {
     | "PROVIDER_ACCEPTED"
     | "DELIVERY_PENDING"
     | "DELIVERED";
+  passed: boolean;
   idempotent_replay: boolean;
+  retry_safe: boolean;
+  automatic_retry_allowed: boolean;
+  existing_message_dispatchable: boolean;
+  requires_new_execution: boolean;
+  requires_new_grant: boolean;
+  requires_new_preview: boolean;
+  requires_new_dry_run: boolean;
+  reconciliation_required: boolean;
   request_id: string | null;
   message_id: string | null;
   delivery_attempt_id: string | null;
@@ -1963,20 +1983,27 @@ interface TargetedControlledLiveEnvelope {
   grant_status: string | null;
   original_decision_id: string | null;
   revalidation_decision_id: string | null;
+  provider_adapter_invoked: boolean;
   provider_call_attempted: boolean;
+  external_provider_call_attempted: boolean;
+  simulated: boolean;
   provider_name: string | null;
   provider_message_id: string | null;
   provider_status: string | null;
   provider_response_safe: unknown;
   recipient_set_hash: string | null;
   subject_hash: string | null;
+  body_html_hash: string | null;
+  body_text_hash: string | null;
   body_hash: string | null;
-  blockers: Array<{ code: string; stage?: string; message?: string }>;
+  content_hash: string | null;
+  blockers: Array<{ code: string; stage?: string; message?: string; retry_safe?: boolean; recommended_action?: string; metadata?: Record<string, unknown> }>;
   warnings: unknown[];
   started_at: string;
   completed_at: string;
   failure_stage: string | null;
 }
+
 
 // deno-lint-ignore no-explicit-any
 async function processTargetedControlledLive(admin: any, body: TargetedControlledLiveBody): Promise<Response> {
