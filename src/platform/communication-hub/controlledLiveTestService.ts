@@ -10,7 +10,20 @@ import { CONTROLLED_LIVE_CONFIRMATION_PHRASE } from "./controlledLiveService";
 import { getFreshAuthenticatedSession, CommHubAuthError } from "./authSession";
 import { z } from "zod";
 
+/**
+ * Explicit action for the Controlled-Live orchestrator.
+ *
+ * - `RUN_CONTROLLED_STUB` — always uses the deterministic provider stub,
+ *   regardless of environment. This is the first-class Go Live stage 5.
+ * - `SEND_ONE_REAL_EMAIL` — invokes the real provider. Requires the
+ *   panel confirmation phrase and server-side `COMM_HUB_REAL_EMAIL_TEST`.
+ */
+export type ControlledLiveAction = "RUN_CONTROLLED_STUB" | "SEND_ONE_REAL_EMAIL";
+export type ControlledLiveCertificationKind = "CONTROLLED_STUB" | "ONE_REAL_EMAIL";
+
 export interface RunControlledLiveTestInput {
+  /** REQUIRED. See {@link ControlledLiveAction}. */
+  action: ControlledLiveAction;
   moduleCode: string;
   eventCode: string;
   recipient: string;
@@ -23,13 +36,13 @@ export interface RunControlledLiveTestInput {
   /** Must be `CONTROLLED_LIVE_CONFIRMATION_PHRASE`. */
   confirmation: string;
   data?: Record<string, unknown>;
-  /** CH-SIMPLE-P3E-C real-email gate. Defaults to stub. */
-  allowRealEmail?: boolean;
-  /** Required when `allowRealEmail = true`. Must equal `SEND ONE CONTROLLED LIVE EMAIL`. */
+  /** Required when `action = "SEND_ONE_REAL_EMAIL"`. Must equal `SEND ONE CONTROLLED LIVE EMAIL`. */
   panelConfirmation?: string;
 }
 
 export interface ControlledLiveTestResult {
+  action: ControlledLiveAction | null;
+  certificationKind: ControlledLiveCertificationKind | null;
   status: string;
   passed: boolean;
   message: string;
