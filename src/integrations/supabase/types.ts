@@ -41441,23 +41441,31 @@ export type Database = {
       communication_message: {
         Row: {
           attempt_count: number
+          body_hash: string | null
           body_html: string | null
           body_text: string | null
           bounced_at: string | null
+          certified_dependency_hash: string | null
           channel: string
           click_tracking_enabled: boolean | null
           complained_at: string | null
+          content_hash: string | null
+          controlled_action: string | null
+          controlled_live_execution_id: string | null
+          controlled_live_grant_id: string | null
           created_at: string
           delivered_at: string | null
           delivery_last_event_at: string | null
           delivery_last_event_type: string | null
           delivery_status: string | null
+          dry_run_certification_id: string | null
           dry_run_locked: boolean
           error_code: string | null
           error_message: string | null
           from_display_name: string | null
           from_email: string | null
           generated_document_id: string | null
+          governance_certification_id: string | null
           id: string
           last_attempt_at: string | null
           locked_at: string | null
@@ -41466,9 +41474,12 @@ export type Database = {
           open_tracking_enabled: boolean | null
           origin: string | null
           original_decision_id: string | null
+          preview_approval_id: string | null
+          preview_snapshot_id: string | null
           provider_id: string | null
           provider_message_id: string | null
           recipient_id: string | null
+          recipient_set_hash: string | null
           rendered_at: string | null
           reply_to_email: string | null
           request_id: string
@@ -41477,6 +41488,8 @@ export type Database = {
           sent_at: string | null
           status: string
           subject: string | null
+          subject_hash: string | null
+          targeted_dispatch_only: boolean
           template_version_id: string | null
           test_mode: boolean
           tracking_policy_source: string | null
@@ -41484,23 +41497,31 @@ export type Database = {
         }
         Insert: {
           attempt_count?: number
+          body_hash?: string | null
           body_html?: string | null
           body_text?: string | null
           bounced_at?: string | null
+          certified_dependency_hash?: string | null
           channel: string
           click_tracking_enabled?: boolean | null
           complained_at?: string | null
+          content_hash?: string | null
+          controlled_action?: string | null
+          controlled_live_execution_id?: string | null
+          controlled_live_grant_id?: string | null
           created_at?: string
           delivered_at?: string | null
           delivery_last_event_at?: string | null
           delivery_last_event_type?: string | null
           delivery_status?: string | null
+          dry_run_certification_id?: string | null
           dry_run_locked?: boolean
           error_code?: string | null
           error_message?: string | null
           from_display_name?: string | null
           from_email?: string | null
           generated_document_id?: string | null
+          governance_certification_id?: string | null
           id?: string
           last_attempt_at?: string | null
           locked_at?: string | null
@@ -41509,9 +41530,12 @@ export type Database = {
           open_tracking_enabled?: boolean | null
           origin?: string | null
           original_decision_id?: string | null
+          preview_approval_id?: string | null
+          preview_snapshot_id?: string | null
           provider_id?: string | null
           provider_message_id?: string | null
           recipient_id?: string | null
+          recipient_set_hash?: string | null
           rendered_at?: string | null
           reply_to_email?: string | null
           request_id: string
@@ -41520,6 +41544,8 @@ export type Database = {
           sent_at?: string | null
           status?: string
           subject?: string | null
+          subject_hash?: string | null
+          targeted_dispatch_only?: boolean
           template_version_id?: string | null
           test_mode?: boolean
           tracking_policy_source?: string | null
@@ -41527,23 +41553,31 @@ export type Database = {
         }
         Update: {
           attempt_count?: number
+          body_hash?: string | null
           body_html?: string | null
           body_text?: string | null
           bounced_at?: string | null
+          certified_dependency_hash?: string | null
           channel?: string
           click_tracking_enabled?: boolean | null
           complained_at?: string | null
+          content_hash?: string | null
+          controlled_action?: string | null
+          controlled_live_execution_id?: string | null
+          controlled_live_grant_id?: string | null
           created_at?: string
           delivered_at?: string | null
           delivery_last_event_at?: string | null
           delivery_last_event_type?: string | null
           delivery_status?: string | null
+          dry_run_certification_id?: string | null
           dry_run_locked?: boolean
           error_code?: string | null
           error_message?: string | null
           from_display_name?: string | null
           from_email?: string | null
           generated_document_id?: string | null
+          governance_certification_id?: string | null
           id?: string
           last_attempt_at?: string | null
           locked_at?: string | null
@@ -41552,9 +41586,12 @@ export type Database = {
           open_tracking_enabled?: boolean | null
           origin?: string | null
           original_decision_id?: string | null
+          preview_approval_id?: string | null
+          preview_snapshot_id?: string | null
           provider_id?: string | null
           provider_message_id?: string | null
           recipient_id?: string | null
+          recipient_set_hash?: string | null
           rendered_at?: string | null
           reply_to_email?: string | null
           request_id?: string
@@ -41563,12 +41600,56 @@ export type Database = {
           sent_at?: string | null
           status?: string
           subject?: string | null
+          subject_hash?: string | null
+          targeted_dispatch_only?: boolean
           template_version_id?: string | null
           test_mode?: boolean
           tracking_policy_source?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "comm_msg_targeted_fk_approval"
+            columns: ["preview_approval_id"]
+            isOneToOne: false
+            referencedRelation: "communication_preview_approval"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_msg_targeted_fk_dry_run"
+            columns: ["dry_run_certification_id"]
+            isOneToOne: false
+            referencedRelation: "communication_dry_run_certification"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_msg_targeted_fk_execution"
+            columns: ["controlled_live_execution_id"]
+            isOneToOne: false
+            referencedRelation: "communication_controlled_live_execution"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_msg_targeted_fk_governance"
+            columns: ["governance_certification_id"]
+            isOneToOne: false
+            referencedRelation: "comm_hub_certification"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_msg_targeted_fk_grant"
+            columns: ["controlled_live_grant_id"]
+            isOneToOne: false
+            referencedRelation: "communication_controlled_live_grant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_msg_targeted_fk_snapshot"
+            columns: ["preview_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "communication_preview_snapshot"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "communication_message_generated_document_id_fkey"
             columns: ["generated_document_id"]
@@ -41945,6 +42026,9 @@ export type Database = {
           channels: string[]
           configuration_version: number | null
           context: Json
+          controlled_action: string | null
+          controlled_live_execution_id: string | null
+          controlled_live_grant_id: string | null
           core_template_id: string | null
           country_code: string | null
           created_at: string
@@ -41971,6 +42055,7 @@ export type Database = {
           scheduled_at: string | null
           send_policy_version: number | null
           status: string
+          targeted_dispatch_only: boolean
           template_id: string | null
           updated_at: string
         }
@@ -41982,6 +42067,9 @@ export type Database = {
           channels?: string[]
           configuration_version?: number | null
           context?: Json
+          controlled_action?: string | null
+          controlled_live_execution_id?: string | null
+          controlled_live_grant_id?: string | null
           core_template_id?: string | null
           country_code?: string | null
           created_at?: string
@@ -42008,6 +42096,7 @@ export type Database = {
           scheduled_at?: string | null
           send_policy_version?: number | null
           status?: string
+          targeted_dispatch_only?: boolean
           template_id?: string | null
           updated_at?: string
         }
@@ -42019,6 +42108,9 @@ export type Database = {
           channels?: string[]
           configuration_version?: number | null
           context?: Json
+          controlled_action?: string | null
+          controlled_live_execution_id?: string | null
+          controlled_live_grant_id?: string | null
           core_template_id?: string | null
           country_code?: string | null
           created_at?: string
@@ -42045,6 +42137,7 @@ export type Database = {
           scheduled_at?: string | null
           send_policy_version?: number | null
           status?: string
+          targeted_dispatch_only?: boolean
           template_id?: string | null
           updated_at?: string
         }
@@ -42054,6 +42147,20 @@ export type Database = {
             columns: ["core_template_id"]
             isOneToOne: false
             referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_request_targeted_fk_execution"
+            columns: ["controlled_live_execution_id"]
+            isOneToOne: false
+            referencedRelation: "communication_controlled_live_execution"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_request_targeted_fk_grant"
+            columns: ["controlled_live_grant_id"]
+            isOneToOne: false
+            referencedRelation: "communication_controlled_live_grant"
             referencedColumns: ["id"]
           },
           {
@@ -94413,6 +94520,10 @@ export type Database = {
         }
         Returns: Json
       }
+      _comm_hub_reject_reserved_targeted_fields: {
+        Args: { payload: Json }
+        Returns: undefined
+      }
       _evaluate_comm_hub_send_decision_core: {
         Args: { p_payload: Json }
         Returns: Json
@@ -95398,23 +95509,31 @@ export type Database = {
         }
         Returns: {
           attempt_count: number
+          body_hash: string | null
           body_html: string | null
           body_text: string | null
           bounced_at: string | null
+          certified_dependency_hash: string | null
           channel: string
           click_tracking_enabled: boolean | null
           complained_at: string | null
+          content_hash: string | null
+          controlled_action: string | null
+          controlled_live_execution_id: string | null
+          controlled_live_grant_id: string | null
           created_at: string
           delivered_at: string | null
           delivery_last_event_at: string | null
           delivery_last_event_type: string | null
           delivery_status: string | null
+          dry_run_certification_id: string | null
           dry_run_locked: boolean
           error_code: string | null
           error_message: string | null
           from_display_name: string | null
           from_email: string | null
           generated_document_id: string | null
+          governance_certification_id: string | null
           id: string
           last_attempt_at: string | null
           locked_at: string | null
@@ -95423,9 +95542,12 @@ export type Database = {
           open_tracking_enabled: boolean | null
           origin: string | null
           original_decision_id: string | null
+          preview_approval_id: string | null
+          preview_snapshot_id: string | null
           provider_id: string | null
           provider_message_id: string | null
           recipient_id: string | null
+          recipient_set_hash: string | null
           rendered_at: string | null
           reply_to_email: string | null
           request_id: string
@@ -95434,6 +95556,8 @@ export type Database = {
           sent_at: string | null
           status: string
           subject: string | null
+          subject_hash: string | null
+          targeted_dispatch_only: boolean
           template_version_id: string | null
           test_mode: boolean
           tracking_policy_source: string | null
@@ -95456,23 +95580,31 @@ export type Database = {
         }
         Returns: {
           attempt_count: number
+          body_hash: string | null
           body_html: string | null
           body_text: string | null
           bounced_at: string | null
+          certified_dependency_hash: string | null
           channel: string
           click_tracking_enabled: boolean | null
           complained_at: string | null
+          content_hash: string | null
+          controlled_action: string | null
+          controlled_live_execution_id: string | null
+          controlled_live_grant_id: string | null
           created_at: string
           delivered_at: string | null
           delivery_last_event_at: string | null
           delivery_last_event_type: string | null
           delivery_status: string | null
+          dry_run_certification_id: string | null
           dry_run_locked: boolean
           error_code: string | null
           error_message: string | null
           from_display_name: string | null
           from_email: string | null
           generated_document_id: string | null
+          governance_certification_id: string | null
           id: string
           last_attempt_at: string | null
           locked_at: string | null
@@ -95481,9 +95613,12 @@ export type Database = {
           open_tracking_enabled: boolean | null
           origin: string | null
           original_decision_id: string | null
+          preview_approval_id: string | null
+          preview_snapshot_id: string | null
           provider_id: string | null
           provider_message_id: string | null
           recipient_id: string | null
+          recipient_set_hash: string | null
           rendered_at: string | null
           reply_to_email: string | null
           request_id: string
@@ -95492,6 +95627,8 @@ export type Database = {
           sent_at: string | null
           status: string
           subject: string | null
+          subject_hash: string | null
+          targeted_dispatch_only: boolean
           template_version_id: string | null
           test_mode: boolean
           tracking_policy_source: string | null
@@ -95503,6 +95640,16 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      claim_comm_hub_targeted_message: {
+        Args: {
+          p_action: string
+          p_execution_id: string
+          p_grant_id: string
+          p_message_id: string
+          p_worker_id: string
+        }
+        Returns: Json
       }
       cleanup_expired_auth_exchange_codes: { Args: never; Returns: number }
       clear_comm_hub_message_lock: {
@@ -96181,6 +96328,10 @@ export type Database = {
           p_remarks?: string
           p_user_code?: string
         }
+        Returns: Json
+      }
+      create_comm_hub_controlled_stub_message: {
+        Args: { p_execution_id: string; p_grant_id: string }
         Returns: Json
       }
       create_comm_hub_synthetic_failed_test_message: {
@@ -98504,6 +98655,7 @@ export type Database = {
         Returns: Json
       }
       send_communication_v1: { Args: { payload: Json }; Returns: Json }
+      send_communication_v1_core: { Args: { payload: Json }; Returns: Json }
       set_comm_hub_module_automation_setting: {
         Args: {
           p_actor_user_id: string
