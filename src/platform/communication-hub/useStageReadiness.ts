@@ -45,9 +45,12 @@ export interface StageReadinessState {
   stages: Partial<Record<ReleaseStageTarget, ReadinessEnvelope>>;
   /** Human-readable single-line reason a given mode is locked; `null` when ready. */
   modeLockReason: Partial<Record<CommunicationOperatingMode, string | null>>;
+  /** Human-readable single-line reason a given target stage is locked; `null` when ready. */
+  stageLockReason: Partial<Record<ReleaseStageTarget, string | null>>;
   evaluatedAt: string | null;
   refresh: () => void;
 }
+
 
 /** Convert stage envelope blockers into a single-line reason for card display. */
 function summarizeBlockers(env: ReadinessEnvelope | undefined): string | null {
