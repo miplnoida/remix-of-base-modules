@@ -959,6 +959,7 @@ Deno.serve(async (req) => {
           {
             p_payload: {
               execution_id: env.controlled_live_execution_id,
+              certification_kind: env.certification_kind,
               module_code: body.moduleCode,
               event_code: body.eventCode,
               channel: body.channel ?? "email",
