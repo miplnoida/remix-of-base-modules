@@ -30,9 +30,27 @@ import {
 
 interface Props {
   onModeChanged?: (newMode: CommunicationOperatingMode) => void;
+  /**
+   * Per-mode lock reason from server-side stage readiness. When `null`
+   * the mode is selectable. Any non-null value locks the card and shows
+   * the reason verbatim (business-language, no raw codes).
+   */
+  modeLockReason?: Partial<Record<CommunicationOperatingMode, string | null>>;
+  /** Currently-selected event scope, required for production modes. */
+  moduleCode?: string | null;
+  eventCode?: string | null;
+  channel?: string | null;
 }
 
-export default function ReleaseModeCards({ onModeChanged }: Props) {
+const EMERGENCY_STOP_DEFAULT_REASON = "Emergency Stop activated from Go Live";
+
+export default function ReleaseModeCards({
+  onModeChanged,
+  modeLockReason,
+  moduleCode,
+  eventCode,
+  channel,
+}: Props) {
   const [settings, setSettings] = useState<CommunicationGlobalSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<CommunicationOperatingMode | null>(null);
@@ -56,7 +74,7 @@ export default function ReleaseModeCards({ onModeChanged }: Props) {
   const isEmergency = currentMode === "EMERGENCY_STOP";
 
   function openMode(mode: CommunicationOperatingMode) {
-    setReason("");
+    setReason(mode === "EMERGENCY_STOP" ? EMERGENCY_STOP_DEFAULT_REASON : "");
     setConfirmation("");
     setPending(mode);
   }
@@ -78,6 +96,11 @@ export default function ReleaseModeCards({ onModeChanged }: Props) {
         newMode: pending,
         reason: reason.trim(),
         expectedVersion: settings.configurationVersion,
+        // Server requires event scope only for Manual/Automated Production;
+        // it ignores the fields for other transitions.
+        moduleCode: moduleCode ?? null,
+        eventCode: eventCode ?? null,
+        channel: channel ?? null,
       });
       toast.success(`Mode set to ${res.new_mode}`);
       setPending(null);
@@ -92,6 +115,10 @@ export default function ReleaseModeCards({ onModeChanged }: Props) {
         toast.error("You do not have permission to change the operating mode.");
       } else if (msg.includes("mode_derived_field_direct_write")) {
         toast.error("This setting is managed by the operating mode.");
+      } else if (msg.includes("mode_requires_event_certification")) {
+        toast.error(
+          "This production mode requires a certified event. Complete the certification path in Go Live first.",
+        );
       } else {
         toast.error(msg || "Failed to apply mode");
       }
@@ -133,29 +160,56 @@ export default function ReleaseModeCards({ onModeChanged }: Props) {
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {MODE_CARDS.map((c) => {
           const isCurrent = currentMode === c.mode;
+          const lockReason = modeLockReason?.[c.mode] ?? null;
+          const isLocked = !isCurrent && !!lockReason;
           return (
-            <Card key={c.mode} className={isCurrent ? "border-primary" : ""}>
+            <Card
+              key={c.mode}
+              className={
+                isCurrent
+                  ? "border-primary"
+                  : isLocked
+                    ? "border-muted-foreground/30 opacity-80"
+                    : ""
+              }
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-base">
                   <span>{c.label}</span>
-                  {isCurrent && (
+                  {isCurrent ? (
                     <Badge variant="secondary" className="text-[10px]">
                       <CheckCircle2 className="mr-1 h-3 w-3" />Active
                     </Badge>
-                  )}
+                  ) : isLocked ? (
+                    <Badge variant="outline" className="text-[10px]">
+                      <ShieldAlert className="mr-1 h-3 w-3" />Locked
+                    </Badge>
+                  ) : null}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm font-medium">{c.headline}</p>
                 <p className="text-xs text-muted-foreground">{c.detail}</p>
+                {isLocked && (
+                  <div className="rounded-md border border-dashed bg-muted/40 p-2 text-[11px]">
+                    <span className="font-medium">Locked: </span>{lockReason}
+                  </div>
+                )}
                 <Button
                   size="sm"
                   variant={c.danger ? "destructive" : (isCurrent ? "outline" : "default")}
-                  disabled={isCurrent || loading}
+                  disabled={isCurrent || loading || isLocked}
                   onClick={() => openMode(c.mode)}
                   className="w-full"
+                  title={isLocked ? lockReason ?? undefined : undefined}
                 >
-                  {isCurrent ? "Active" : c.mode === "EMERGENCY_STOP" ? "Engage Emergency Stop" : `Switch to ${c.label}`}
+                  {isCurrent
+                    ? "Active"
+                    : isLocked
+                      ? "Locked — certification required"
+                      : c.mode === "EMERGENCY_STOP"
+                        ? "Engage Emergency Stop"
+                        : `Switch to ${c.label}`}
                 </Button>
               </CardContent>
             </Card>
@@ -176,12 +230,24 @@ export default function ReleaseModeCards({ onModeChanged }: Props) {
       <Dialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm mode change</DialogTitle>
+            <DialogTitle>
+              {pending === "EMERGENCY_STOP" ? "Engage Emergency Stop?" : "Confirm mode change"}
+            </DialogTitle>
             <DialogDescription>
-              You are about to switch the Communication Hub to{" "}
-              <strong>{pending ? MODE_CARDS.find((c) => c.mode === pending)?.label : ""}</strong>.
-              This applies the entire mode profile atomically and increments the
-              configuration version once.
+              {pending === "EMERGENCY_STOP" ? (
+                <>
+                  This immediately blocks <strong>all new dispatch</strong> across the
+                  Communication Hub. Historical evidence is preserved. An authorised
+                  administrator must select another mode later to resume.
+                </>
+              ) : (
+                <>
+                  You are about to switch the Communication Hub to{" "}
+                  <strong>{pending ? MODE_CARDS.find((c) => c.mode === pending)?.label : ""}</strong>.
+                  This applies the entire mode profile atomically and increments the
+                  configuration version once.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -205,7 +271,11 @@ export default function ReleaseModeCards({ onModeChanged }: Props) {
               onClick={handleApply}
               disabled={applying}
             >
-              {applying ? "Applying…" : "Apply mode"}
+              {applying
+                ? "Applying…"
+                : pending === "EMERGENCY_STOP"
+                  ? "Engage Emergency Stop"
+                  : "Apply mode"}
             </Button>
           </DialogFooter>
         </DialogContent>
