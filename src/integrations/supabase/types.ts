@@ -94700,9 +94700,11 @@ export type Database = {
         Args: never
         Returns: {
           blocker_count: number
+          detail: Json
           is_certified: boolean
-          result: Json
+          result: string
           template_code: string
+          template_purpose: string
           template_version_id: string
           warning_count: number
         }[]
@@ -94977,6 +94979,10 @@ export type Database = {
           scope: string
         }[]
       }
+      comm_hub_classify_template_purpose: {
+        Args: { p_template_id: string }
+        Returns: string
+      }
       comm_hub_controlled_live_scope_hash: {
         Args: {
           p_channel: string
@@ -95013,6 +95019,7 @@ export type Database = {
         Args: { p_context: Json; p_source: string }
         Returns: Json
       }
+      comm_hub_scrub_protected_keys: { Args: { p_bundle: Json }; Returns: Json }
       complete_comm_hub_trace: {
         Args: { p_payload: Json; p_status: string; p_trace_id: string }
         Returns: Json
@@ -97633,10 +97640,20 @@ export type Database = {
         Args: { p_payload: Json }
         Returns: Json
       }
-      render_comm_hub_template_version: {
-        Args: { p_template_version_id: string; p_tokens?: Json }
-        Returns: Json
-      }
+      render_comm_hub_template_version:
+        | {
+            Args: { p_template_version_id: string; p_tokens: Json }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_channel: string
+              p_render_mode: string
+              p_template_version_id: string
+              p_tokens: Json
+            }
+            Returns: Json
+          }
       render_email_template: {
         Args: { p_template_id: string; p_variables?: Json }
         Returns: string
@@ -97656,6 +97673,14 @@ export type Database = {
       repair_legal_referral_resync_status: {
         Args: { p_actor: string; p_referral_id: string }
         Returns: string
+      }
+      report_comm_hub_status_normalisation: {
+        Args: never
+        Returns: {
+          occurrence_count: number
+          scope: string
+          status_value: string
+        }[]
       }
       reserve_comm_hub_controlled_live_grant: {
         Args: {
