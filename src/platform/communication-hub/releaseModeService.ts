@@ -108,6 +108,9 @@ export async function applyReleaseMode(params: {
   newMode: CommunicationOperatingMode;
   reason: string;
   expectedVersion?: number;
+  moduleCode?: string | null;
+  eventCode?: string | null;
+  channel?: string | null;
 }): Promise<ApplyReleaseModeResult> {
   const { data, error } = await (supabase as any).rpc(
     "apply_communication_release_mode",
@@ -115,22 +118,30 @@ export async function applyReleaseMode(params: {
       p_new_mode: params.newMode,
       p_reason: params.reason ?? null,
       p_expected_version: params.expectedVersion ?? null,
+      p_module_code: params.moduleCode ?? null,
+      p_event_code: params.eventCode ?? null,
+      p_channel: params.channel ?? null,
     },
   );
   if (error) {
     // Bubble up structured error codes ("not_authorised",
     // "configuration_version_conflict", "unknown_operating_mode",
-    // "mode_derived_field_direct_write") without swallowing message.
+    // "mode_derived_field_direct_write", "mode_requires_event_certification")
+    // without swallowing message.
     throw new Error(error.message ?? "apply_communication_release_mode failed");
   }
   return data as ApplyReleaseModeResult;
 }
 
+/**
+ * Which modes require a typed confirmation phrase. Emergency Stop deliberately
+ * does NOT require a typed phrase — Slice B replaces it with a single
+ * impact-confirm dialog so operators can halt dispatch as fast as possible.
+ */
 export function requiresTypedConfirmation(mode: CommunicationOperatingMode): string | null {
   switch (mode) {
     case "MANUAL_PRODUCTION": return "ACTIVATE MANUAL PRODUCTION";
     case "AUTOMATED_PRODUCTION": return "ACTIVATE AUTOMATED PRODUCTION";
-    case "EMERGENCY_STOP": return "ENGAGE EMERGENCY STOP";
     default: return null;
   }
 }

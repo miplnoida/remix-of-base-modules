@@ -93981,7 +93981,10 @@ export type Database = {
       }
       apply_communication_release_mode: {
         Args: {
+          p_channel?: string
+          p_event_code?: string
           p_expected_version?: number
+          p_module_code?: string
           p_new_mode: string
           p_reason?: string
         }
