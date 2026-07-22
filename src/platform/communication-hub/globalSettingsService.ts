@@ -40,6 +40,8 @@ export const BLOCKED_OPERATING_MODES: readonly CommunicationOperatingMode[] = [
   "AUTOMATED_PRODUCTION",
 ] as const;
 
+export type CommunicationAutomationState = "STANDBY" | "ARMED" | "SUSPENDED";
+
 export interface CommunicationGlobalSettings {
   id: string;
   singletonGuard: "primary";
@@ -57,6 +59,18 @@ export interface CommunicationGlobalSettings {
   whatsappLiveEnabled: boolean;
   printEnabled: boolean;
   letterEnabled: boolean;
+  /** Phase 4A — server-owned automation activation state. */
+  automationState: CommunicationAutomationState;
+  automationArmedAt: string | null;
+  automationArmedBy: string | null;
+  automationArmReason: string | null;
+  automationSuspendedAt: string | null;
+  automationSuspensionReason: string | null;
+  schedulerEnabled: boolean;
+  automaticTriggersEnabled: boolean;
+  retryWorkerEnabled: boolean;
+  batchEnabled: boolean;
+  bulkEnabled: boolean;
   updatedAt: string;
 }
 
