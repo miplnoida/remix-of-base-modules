@@ -33,17 +33,27 @@ export async function getFreshAuthenticatedSession(): Promise<Session> {
   }
 
   const current = data?.session ?? null;
-  if (current?.access_token) {
-    // If the token expires within 60 seconds, proactively refresh so the
-    // edge function does not receive an expired JWT.
-    const expiresAtMs = (current.expires_at ?? 0) * 1000;
-    if (!expiresAtMs || expiresAtMs - Date.now() > 60_000) {
+  const expiresAtMs = (current?.expires_at ?? 0) * 1000;
+  const isNearExpiry = !expiresAtMs || expiresAtMs - Date.now() < 60_000;
+
+  // If we have a non-expiring token, validate it against the Auth server.
+  // The local session can look valid while the server-side session was
+  // invalidated (key rotation, sign-out elsewhere, session pruning) — in
+  // that case getUser() returns an error and we must refresh before
+  // handing the token to any edge function.
+  if (current?.access_token && !isNearExpiry) {
+    const { data: userData, error: userErr } = await supabase.auth.getUser(current.access_token);
+    if (!userErr && userData?.user?.id) {
       return current;
     }
   }
 
   const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
   if (refreshError || !refreshed?.session?.access_token) {
+    // Clear the stale local session so the app stops replaying an
+    // invalid token on subsequent calls and the user is prompted to
+    // sign in again.
+    try { await supabase.auth.signOut({ scope: "local" } as any); } catch { /* noop */ }
     throw new CommHubAuthError(
       "authentication_required",
       refreshError?.message ?? "no active session",
