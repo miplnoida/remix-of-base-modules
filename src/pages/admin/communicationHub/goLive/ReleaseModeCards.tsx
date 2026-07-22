@@ -168,6 +168,8 @@ export default function ReleaseModeCards({
           const isCurrent = currentMode === c.mode;
           const advisory = modeLockReason?.[c.mode] ?? null;
           const hasAdvisory = !isCurrent && !!advisory;
+          const isAutoProd = c.mode === "AUTOMATED_PRODUCTION";
+          const autoState = settings?.automationState ?? "STANDBY";
           return (
             <Card
               key={c.mode}
@@ -178,16 +180,26 @@ export default function ReleaseModeCards({
                   <span>{c.label}</span>
                   {isCurrent ? (
                     <Badge variant="secondary" className="text-[10px]">
-                      <CheckCircle2 className="mr-1 h-3 w-3" />Active
+                      <CheckCircle2 className="mr-1 h-3 w-3" />
+                      {isAutoProd ? `Active — ${autoState}` : "Active"}
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-[10px]">Available</Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {isAutoProd ? "Available — will enter Standby" : "Available"}
+                    </Badge>
                   )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm font-medium">{c.headline}</p>
                 <p className="text-xs text-muted-foreground">{c.detail}</p>
+                {isAutoProd && (
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-[11px]">
+                    Selecting this mode does <strong>not</strong> start any scheduler,
+                    automatic trigger, retry worker, batch or bulk processing.
+                    Automation must be armed separately after switching.
+                  </div>
+                )}
                 {hasAdvisory && (
                   <div className="rounded-md border border-dashed bg-muted/40 p-2 text-[11px]">
                     <span className="font-medium">Advisory: </span>{advisory}
