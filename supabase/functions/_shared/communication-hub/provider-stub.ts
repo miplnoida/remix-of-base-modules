@@ -38,6 +38,13 @@ export interface ProviderStubInput {
   providerInvocationKey: string;
   subject: string;
   bodyHash: string;
+  /**
+   * Explicit server action selecting this adapter. When set to
+   * `RUN_CONTROLLED_STUB` (Controlled Stub Go Live stage), the simulator
+   * is authoritative and env-var gates are bypassed. Legacy callers may
+   * still rely on `COMM_HUB_PROVIDER_MODE=stub`.
+   */
+  action?: "RUN_CONTROLLED_STUB" | "LEGACY_STUB";
 }
 
 export interface ProviderStubOutcome {
@@ -63,14 +70,22 @@ function classify(recipient: string): ProviderStubStatus {
   return "PROVIDER_ACCEPTED";
 }
 
+/**
+ * Legacy env-mode probe. Retained for callers that have not yet migrated
+ * to the explicit `action` contract. Do NOT gate new RUN_CONTROLLED_STUB
+ * paths on this — the action itself is the authoritative selector.
+ */
 export function isProviderStubActive(): boolean {
   return (globalThis as any).Deno?.env?.get?.("COMM_HUB_PROVIDER_MODE") === "stub";
 }
 
 export function invokeProviderStub(input: ProviderStubInput): ProviderStubOutcome {
-  if (!isProviderStubActive()) {
+  // The simulator may be selected either by explicit server action
+  // (preferred, environment-independent) or by the legacy env variable.
+  const explicitAction = input.action === "RUN_CONTROLLED_STUB";
+  if (!explicitAction && !isProviderStubActive()) {
     throw new Error(
-      "invokeProviderStub called with COMM_HUB_PROVIDER_MODE != 'stub'; real provider path is P3E-C only",
+      "invokeProviderStub requires action='RUN_CONTROLLED_STUB' or COMM_HUB_PROVIDER_MODE='stub'",
     );
   }
   if (!input.providerInvocationKey || input.providerInvocationKey.length < 8) {

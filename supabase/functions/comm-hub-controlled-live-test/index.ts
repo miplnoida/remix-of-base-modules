@@ -227,6 +227,31 @@ Deno.serve(async (req) => {
       env.blockers.push({ code, stage, ...(message ? { message } : {}) });
     }
   };
+  // Central retry-safety classifier. Failures BEFORE durable execution
+  // creation are almost always safe to retry once the operator corrects
+  // the input, mode, dispatch credential or evidence. Only failures that
+  // may have caused a provider network call or an ambiguous durable row
+  // are unsafe to auto-retry.
+  const RETRY_SAFE_STAGES = new Set<string>([
+    "auth",
+    "input_validation",
+    "real_email_gate",
+    "preflight",
+    "authorisation",
+    "pre_transition_evidence",
+    "grant_validation",
+    "request_creation",
+    "canonical_send_decision",
+    "idempotency",
+  ]);
+  const classifyRetrySafe = (stage: string, code: string): boolean => {
+    if (RETRY_SAFE_STAGES.has(stage)) return true;
+    if (code === "controlled_live_provider_mode_inactive") return true;
+    if (code === "legacy_stub_mode_required") return true;
+    // Dispatcher stage: safe only if provider was not attempted.
+    if (stage === "dispatcher" && !env.provider_call_attempted) return true;
+    return false;
+  };
   const fail = (
     status: Status,
     stage: string,
@@ -241,6 +266,7 @@ Deno.serve(async (req) => {
     env.failure_stage = stage;
     env.completed_at = new Date().toISOString();
     addBlocker(code, stage, message);
+    env.retry_safe = classifyRetrySafe(stage, code);
     Object.assign(env, partial);
     return json(env, http);
   };
@@ -303,21 +329,33 @@ Deno.serve(async (req) => {
   }
   env.dispatch_secret_source = DISPATCH_SECRET_SOURCE;
 
-  // Provider-mode preflight (fail-closed).
-  // Real email requires the real-email gate above; stub mode is the safe
-  // controlled-live default. Anything else (including missing) is blocked
-  // before any execution or grant is created.
-  {
+  // Provider-adapter selection.
+  //
+  // RUN_CONTROLLED_STUB is the Go Live Controlled Stub stage and is
+  // ALWAYS routed to the deterministic simulator via the explicit
+  // `action` parameter — it never reads COMM_HUB_PROVIDER_MODE and
+  // never requires an environment switch. This is the root-cause fix
+  // for `controlled_live_provider_mode_inactive` — the blocker is
+  // no longer emitted for RUN_CONTROLLED_STUB.
+  //
+  // SEND_ONE_REAL_EMAIL keeps its real-email gate above and uses the
+  // real provider transport.
+  if (action === "RUN_CONTROLLED_STUB") {
+    env.provider_mode = "stub";
+  } else {
     const rawMode = (Deno.env.get("COMM_HUB_PROVIDER_MODE") ?? "").trim().toLowerCase();
     const resolvedMode = env.real_email_authorised ? "real" : rawMode;
     env.provider_mode = resolvedMode || "inactive";
+    // For SEND_ONE_REAL_EMAIL we already required the real-email gate.
+    // Legacy callers may still set stub via env; anything else is blocked.
     if (!env.real_email_authorised && resolvedMode !== "stub") {
+      env.retry_safe = true;
       return fail(
         "BLOCKED",
         "preflight",
         "controlled_live_provider_mode_inactive",
-        "Controlled Live provider mode is not active. Set COMM_HUB_PROVIDER_MODE=stub before retrying.",
-        {},
+        "Legacy Controlled Stub configuration detected. This older path still expects an environment provider mode. Use the current Go Live Controlled Stub action.",
+        { retry_safe: true },
         503,
       );
     }
@@ -732,6 +770,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           operation: "targeted_controlled_live",
+          action: action,
           messageId: env.message_id,
           requestId: env.request_id,
           executionId,
