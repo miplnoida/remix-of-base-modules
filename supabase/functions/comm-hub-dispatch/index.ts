@@ -2422,35 +2422,15 @@ async function processTargetedControlledLive(admin: any, body: TargetedControlle
     return block("provider_preflight", "execution_attempt_record_failed", detail, "DISPATCH_FAILED", 500);
   }
 
-  // 11. Invoke provider (STUB for Controlled Stub action; real provider
-  // is future SEND_ONE_REAL_EMAIL work). Adapter selection is driven by
-  // the explicit `action` on the targeted request — NOT by
-  // COMM_HUB_PROVIDER_MODE. This is the root-cause fix so Controlled
-  // Stub is environment-independent.
-  const targetAction: string = (payload as any)?.action === "RUN_CONTROLLED_STUB"
-    ? "RUN_CONTROLLED_STUB"
-    : (isProviderStubActive() ? "RUN_CONTROLLED_STUB" : "LEGACY_STUB_INACTIVE");
-  if (targetAction === "LEGACY_STUB_INACTIVE") {
-    await admin.rpc("record_comm_hub_controlled_live_provider_outcome", {
-      p_execution_id: executionId,
-      p_provider_status: "PROVIDER_REJECTED",
-      p_provider_message_id: null,
-      p_provider_response_safe: { error: "legacy_stub_mode_required" },
-      p_warnings: [{ code: "legacy_stub_mode_required" }],
-    });
-    await admin.rpc("consume_comm_hub_controlled_live_grant", {
-      p_grant_id: grantId, p_execution_id: executionId,
-      p_provider_invocation_key: providerInvocationKey,
-    });
-    env.grant_status = "CONSUMED";
-    env.provider_call_attempted = true;
-    env.status = "PROVIDER_REJECTED";
-    env.failure_stage = "provider_invocation";
-    env.blockers.push({ code: "legacy_stub_mode_required", stage: "provider_invocation" });
-    env.completed_at = new Date().toISOString();
-    return json(env, 200);
-  }
-
+  // 11. Invoke provider. Adapter selection is driven exclusively by the
+  // explicit `action` on the targeted request — validated at entry. There
+  // is NO fallback to COMM_HUB_PROVIDER_MODE for targeted requests, and
+  // no reference to any `payload.action` variable: `body.action` is the
+  // sole authoritative source. Only `RUN_CONTROLLED_STUB` reaches this
+  // point in Slice 1; `SEND_ONE_REAL_EMAIL` is rejected up-front.
+  void isProviderStubActive; // retained import for legacy queue callers
+  env.provider_adapter_invoked = true;
+  env.simulated = true;
   let outcome;
   try {
     outcome = invokeProviderStub({
@@ -2460,6 +2440,7 @@ async function processTargetedControlledLive(admin: any, body: TargetedControlle
       bodyHash,
       action: "RUN_CONTROLLED_STUB",
     });
+
   } catch (e: any) {
     // Provider transport threw before response — treat as ambiguous.
     await admin.rpc("record_comm_hub_controlled_live_provider_outcome", {
