@@ -558,6 +558,15 @@ export default function GoLivePage() {
         }}
       />
 
+      {settings && settings.operatingMode === "AUTOMATED_PRODUCTION" && (
+        <AutomationStandbyPanel
+          settings={settings}
+          onChanged={() => {
+            fetchGlobalSettings().then(setSettings).catch(() => {});
+          }}
+        />
+      )}
+
       <Separator />
 
       {settings && (
