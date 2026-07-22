@@ -38129,6 +38129,59 @@ export type Database = {
           },
         ]
       }
+      comm_hub_certification_freshness: {
+        Row: {
+          certification_id: string
+          certified_dependency_hash: string
+          changed_dependency_categories: string[]
+          current_dependency_hash: string | null
+          current_manifest_summary: Json
+          evaluation_version: string
+          freshness_status: string
+          last_evaluated_at: string | null
+          last_evaluated_source: string | null
+          stale_detected_at: string | null
+          stale_reason_codes: string[]
+          updated_at: string
+        }
+        Insert: {
+          certification_id: string
+          certified_dependency_hash: string
+          changed_dependency_categories?: string[]
+          current_dependency_hash?: string | null
+          current_manifest_summary?: Json
+          evaluation_version?: string
+          freshness_status?: string
+          last_evaluated_at?: string | null
+          last_evaluated_source?: string | null
+          stale_detected_at?: string | null
+          stale_reason_codes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          certification_id?: string
+          certified_dependency_hash?: string
+          changed_dependency_categories?: string[]
+          current_dependency_hash?: string | null
+          current_manifest_summary?: Json
+          evaluation_version?: string
+          freshness_status?: string
+          last_evaluated_at?: string | null
+          last_evaluated_source?: string | null
+          stale_detected_at?: string | null
+          stale_reason_codes?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comm_hub_certification_freshness_certification_id_fkey"
+            columns: ["certification_id"]
+            isOneToOne: true
+            referencedRelation: "comm_hub_certification"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comm_hub_event_release_certification: {
         Row: {
           channel: string
@@ -94413,6 +94466,23 @@ export type Database = {
         }
         Returns: Json
       }
+      assess_comm_hub_template_version_manifests: {
+        Args: never
+        Returns: {
+          classification: string
+          current_dependency_hash: string
+          freshness_status: string
+          governance_status: string
+          has_certification: boolean
+          manifest_build_status: string
+          missing_dependencies: string[]
+          recommended_action: string
+          template_code: string
+          template_id: string
+          template_purpose: string
+          template_version_id: string
+        }[]
+      }
       assign_cashier_office_override: {
         Args: {
           p_assigned_by: string
@@ -94732,6 +94802,14 @@ export type Database = {
           role_name: string
           workbasket_id: string
         }[]
+      }
+      build_comm_hub_dependency_manifest: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_entity_version_id?: string
+        }
+        Returns: Json
       }
       c3_config_period_deletability: {
         Args: { p_period_id: string }
@@ -95142,6 +95220,10 @@ export type Database = {
         }
         Returns: Json
       }
+      check_comm_hub_certification_freshness: {
+        Args: { p_certification_id: string }
+        Returns: Json
+      }
       check_comm_hub_readiness: { Args: { p_payload: Json }; Returns: Json }
       check_dms_transfer_eligibility: { Args: { p_ssn: string }; Returns: Json }
       check_duplicate_open_batch: {
@@ -95377,6 +95459,7 @@ export type Database = {
         }[]
       }
       comm_hub_backfill_governance_assessment: { Args: never; Returns: Json }
+      comm_hub_canonical_jsonb: { Args: { p: Json }; Returns: Json }
       comm_hub_classify_template_purpose: {
         Args: { p_template_id: string }
         Returns: string
@@ -95392,6 +95475,10 @@ export type Database = {
           p_recipient_hash: string
         }
         Returns: string
+      }
+      comm_hub_diff_manifests: {
+        Args: { p_certified: Json; p_current: Json }
+        Returns: string[]
       }
       comm_hub_dry_run_scope_hash: {
         Args: {
@@ -95448,6 +95535,10 @@ export type Database = {
       complete_comm_hub_trace: {
         Args: { p_payload: Json; p_status: string; p_trace_id: string }
         Returns: Json
+      }
+      compute_comm_hub_dependency_hash: {
+        Args: { p_manifest: Json }
+        Returns: string
       }
       consume_comm_hub_controlled_live_grant: {
         Args: {
@@ -97736,6 +97827,14 @@ export type Database = {
         }
         Returns: Json
       }
+      mark_comm_hub_certifications_possibly_stale: {
+        Args: {
+          p_category?: string
+          p_entity_id: string
+          p_entity_type: string
+        }
+        Returns: number
+      }
       mark_comm_hub_dry_run_dispatching: {
         Args: { p_execution_id: string; p_requested_by: string }
         Returns: Json
@@ -98027,6 +98126,10 @@ export type Database = {
       }
       record_controlled_live_manual_verification: {
         Args: { p_payload: Json }
+        Returns: Json
+      }
+      refresh_comm_hub_certification_freshness: {
+        Args: { p_certification_id: string; p_source?: string }
         Returns: Json
       }
       register_voluntary_contributor: {
