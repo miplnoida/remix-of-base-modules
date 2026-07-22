@@ -93884,8 +93884,16 @@ export type Database = {
       _bn_susp_user_code: { Args: { p_user_id: string }; Returns: string }
       _ch_extract_domain: { Args: { p_email: string }; Returns: string }
       _ch_mask_email: { Args: { p_email: string }; Returns: string }
+      _ch_target_stage_to_send_context: {
+        Args: { p_target: string }
+        Returns: string
+      }
       _chub_assert_admin: { Args: never; Returns: undefined }
       _evaluate_comm_hub_send_decision_core: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
+      _evaluate_comm_hub_send_rules: {
         Args: { p_payload: Json }
         Returns: Json
       }
