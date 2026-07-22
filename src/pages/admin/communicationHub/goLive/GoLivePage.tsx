@@ -907,7 +907,3 @@ export default function GoLivePage() {
     </CommunicationHubWorkspaceShell>
   );
 }
-
-    </CommunicationHubWorkspaceShell>
-  );
-}
