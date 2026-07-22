@@ -38033,6 +38033,347 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_hub_certification: {
+        Row: {
+          certification_kind: string
+          certification_reason: string
+          certified_at: string
+          certified_by: string | null
+          channel: string | null
+          correlation_id: string | null
+          dependency_hash: string
+          dependency_manifest: Json
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          entity_version: string
+          error_count: number
+          governance_record_id: string
+          id: string
+          is_stale: boolean
+          renderer_version: string | null
+          result: string
+          stale_detected_at: string | null
+          stale_reason: string | null
+          superseded_by: string | null
+          template_purpose: string | null
+          template_type: string | null
+          validation_findings: Json
+          warning_count: number
+        }
+        Insert: {
+          certification_kind: string
+          certification_reason: string
+          certified_at?: string
+          certified_by?: string | null
+          channel?: string | null
+          correlation_id?: string | null
+          dependency_hash: string
+          dependency_manifest: Json
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          entity_version: string
+          error_count?: number
+          governance_record_id: string
+          id?: string
+          is_stale?: boolean
+          renderer_version?: string | null
+          result: string
+          stale_detected_at?: string | null
+          stale_reason?: string | null
+          superseded_by?: string | null
+          template_purpose?: string | null
+          template_type?: string | null
+          validation_findings?: Json
+          warning_count?: number
+        }
+        Update: {
+          certification_kind?: string
+          certification_reason?: string
+          certified_at?: string
+          certified_by?: string | null
+          channel?: string | null
+          correlation_id?: string | null
+          dependency_hash?: string
+          dependency_manifest?: Json
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          entity_version?: string
+          error_count?: number
+          governance_record_id?: string
+          id?: string
+          is_stale?: boolean
+          renderer_version?: string | null
+          result?: string
+          stale_detected_at?: string | null
+          stale_reason?: string | null
+          superseded_by?: string | null
+          template_purpose?: string | null
+          template_type?: string | null
+          validation_findings?: Json
+          warning_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comm_hub_certification_governance_record_id_fkey"
+            columns: ["governance_record_id"]
+            isOneToOne: false
+            referencedRelation: "comm_hub_governance_record"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_hub_certification_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "comm_hub_certification"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comm_hub_event_release_certification: {
+        Row: {
+          channel: string
+          event_code: string
+          id: string
+          is_stale: boolean
+          latest_certification_id: string | null
+          latest_dependency_hash: string | null
+          module_code: string
+          release_status: Database["public"]["Enums"]["comm_hub_release_lifecycle"]
+          stale_reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          channel: string
+          event_code: string
+          id?: string
+          is_stale?: boolean
+          latest_certification_id?: string | null
+          latest_dependency_hash?: string | null
+          module_code: string
+          release_status?: Database["public"]["Enums"]["comm_hub_release_lifecycle"]
+          stale_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          channel?: string
+          event_code?: string
+          id?: string
+          is_stale?: boolean
+          latest_certification_id?: string | null
+          latest_dependency_hash?: string | null
+          module_code?: string
+          release_status?: Database["public"]["Enums"]["comm_hub_release_lifecycle"]
+          stale_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comm_hub_event_release_certificati_latest_certification_id_fkey"
+            columns: ["latest_certification_id"]
+            isOneToOne: false
+            referencedRelation: "comm_hub_certification"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comm_hub_governance_audit: {
+        Row: {
+          action: Database["public"]["Enums"]["comm_hub_governance_action"]
+          actor: string | null
+          audited_at: string
+          certification_id: string | null
+          correlation_id: string | null
+          dependency_hash: string | null
+          detail: Json
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          entity_version: string
+          governance_record_id: string | null
+          governance_version: number | null
+          id: string
+          new_status: string | null
+          previous_status: string | null
+          reason: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["comm_hub_governance_action"]
+          actor?: string | null
+          audited_at?: string
+          certification_id?: string | null
+          correlation_id?: string | null
+          dependency_hash?: string | null
+          detail?: Json
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          entity_version: string
+          governance_record_id?: string | null
+          governance_version?: number | null
+          id?: string
+          new_status?: string | null
+          previous_status?: string | null
+          reason?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["comm_hub_governance_action"]
+          actor?: string | null
+          audited_at?: string
+          certification_id?: string | null
+          correlation_id?: string | null
+          dependency_hash?: string | null
+          detail?: Json
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          entity_version?: string
+          governance_record_id?: string | null
+          governance_version?: number | null
+          id?: string
+          new_status?: string | null
+          previous_status?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comm_hub_governance_audit_certification_id_fkey"
+            columns: ["certification_id"]
+            isOneToOne: false
+            referencedRelation: "comm_hub_certification"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comm_hub_governance_audit_governance_record_id_fkey"
+            columns: ["governance_record_id"]
+            isOneToOne: false
+            referencedRelation: "comm_hub_governance_record"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comm_hub_governance_record: {
+        Row: {
+          activated_by: string | null
+          certification_status: string | null
+          certified_by: string | null
+          classification: string | null
+          correlation_id: string | null
+          created_at: string
+          created_by: string | null
+          dependency_hash: string | null
+          dependency_manifest: Json
+          enforcement_status: string | null
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          entity_version: string
+          governance_status: string
+          governance_version: number
+          id: string
+          is_stale: boolean
+          last_certified_at: string | null
+          last_validated_at: string | null
+          reason: string | null
+          retired_by: string | null
+          stale_detected_at: string | null
+          stale_reason: string | null
+          updated_at: string
+          updated_by: string | null
+          validated_by: string | null
+          validation_status: string | null
+        }
+        Insert: {
+          activated_by?: string | null
+          certification_status?: string | null
+          certified_by?: string | null
+          classification?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dependency_hash?: string | null
+          dependency_manifest?: Json
+          enforcement_status?: string | null
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          entity_version?: string
+          governance_status: string
+          governance_version?: number
+          id?: string
+          is_stale?: boolean
+          last_certified_at?: string | null
+          last_validated_at?: string | null
+          reason?: string | null
+          retired_by?: string | null
+          stale_detected_at?: string | null
+          stale_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          validated_by?: string | null
+          validation_status?: string | null
+        }
+        Update: {
+          activated_by?: string | null
+          certification_status?: string | null
+          certified_by?: string | null
+          classification?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dependency_hash?: string | null
+          dependency_manifest?: Json
+          enforcement_status?: string | null
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          entity_version?: string
+          governance_status?: string
+          governance_version?: number
+          id?: string
+          is_stale?: boolean
+          last_certified_at?: string | null
+          last_validated_at?: string | null
+          reason?: string | null
+          retired_by?: string | null
+          stale_detected_at?: string | null
+          stale_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          validated_by?: string | null
+          validation_status?: string | null
+        }
+        Relationships: []
+      }
+      comm_hub_sender_readiness: {
+        Row: {
+          computed_at: string
+          id: string
+          is_stale: boolean
+          readiness_details: Json
+          readiness_state: Database["public"]["Enums"]["comm_hub_sender_readiness_state"]
+          sender_profile_id: string
+          sender_version: string
+          stale_reason: string | null
+        }
+        Insert: {
+          computed_at?: string
+          id?: string
+          is_stale?: boolean
+          readiness_details?: Json
+          readiness_state: Database["public"]["Enums"]["comm_hub_sender_readiness_state"]
+          sender_profile_id: string
+          sender_version?: string
+          stale_reason?: string | null
+        }
+        Update: {
+          computed_at?: string
+          id?: string
+          is_stale?: boolean
+          readiness_details?: Json
+          readiness_state?: Database["public"]["Enums"]["comm_hub_sender_readiness_state"]
+          sender_profile_id?: string
+          sender_version?: string
+          stale_reason?: string | null
+        }
+        Relationships: []
+      }
       comm_layout_block: {
         Row: {
           advanced_html: string | null
@@ -93926,6 +94267,20 @@ export type Database = {
         Returns: string
       }
       _chub_assert_admin: { Args: never; Returns: undefined }
+      _comm_hub_governance_transition_core: {
+        Args: {
+          p_action: Database["public"]["Enums"]["comm_hub_governance_action"]
+          p_actor: string
+          p_entity_id: string
+          p_entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          p_entity_version: string
+          p_expected_version: number
+          p_reason: string
+          p_source?: string
+          p_target_status: string
+        }
+        Returns: Json
+      }
       _evaluate_comm_hub_send_decision_core: {
         Args: { p_payload: Json }
         Returns: Json
@@ -95021,6 +95376,7 @@ export type Database = {
           scope: string
         }[]
       }
+      comm_hub_backfill_governance_assessment: { Args: never; Returns: Json }
       comm_hub_classify_template_purpose: {
         Args: { p_template_id: string }
         Returns: string
@@ -95050,6 +95406,33 @@ export type Database = {
       }
       comm_hub_flatten_tokens: {
         Args: { p_prefix?: string; p_tokens: Json }
+        Returns: Json
+      }
+      comm_hub_governance_is_valid_transition: {
+        Args: {
+          p_entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          p_from: string
+          p_to: string
+        }
+        Returns: boolean
+      }
+      comm_hub_governance_status_is_valid: {
+        Args: {
+          p_entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
+          p_status: string
+        }
+        Returns: boolean
+      }
+      comm_hub_governance_transition: {
+        Args: {
+          p_action?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_entity_version: string
+          p_expected_version?: number
+          p_reason: string
+          p_target_status: string
+        }
         Returns: Json
       }
       comm_hub_html_escape: { Args: { p_in: string }; Returns: string }
@@ -98581,6 +98964,74 @@ export type Database = {
         | "other"
       comm_asset_scope: "global" | "organization" | "department" | "location"
       comm_asset_source: "upload" | "external_url"
+      comm_hub_contract_lifecycle:
+        | "DRAFT"
+        | "DISCOVERED"
+        | "VALIDATED"
+        | "ENFORCED"
+        | "RETIRED"
+      comm_hub_governance_action:
+        | "VALIDATE"
+        | "CERTIFY"
+        | "ACTIVATE"
+        | "ENFORCE"
+        | "RETIRE"
+        | "RECERTIFY"
+        | "MARK_STALE"
+        | "SUSPEND"
+        | "RESUME"
+        | "CORRECTION_TO_DRAFT"
+        | "CORRECTION_TO_VALIDATED"
+        | "BACKFILL_DISCOVER"
+        | "READINESS_UPDATE"
+        | "ASSESS"
+      comm_hub_governance_entity_type:
+        | "TEMPLATE_VERSION"
+        | "TEMPLATE_VARIABLE_CONTRACT"
+        | "EVENT_PAYLOAD_SCHEMA"
+        | "EVENT_TEMPLATE_MAPPING"
+        | "TEST_SCENARIO"
+        | "SENDER_CONFIGURATION"
+        | "EVENT_RELEASE_CERTIFICATION"
+      comm_hub_mapping_lifecycle:
+        | "DRAFT"
+        | "VALIDATED"
+        | "CERTIFIED"
+        | "ACTIVE"
+        | "RETIRED"
+      comm_hub_release_lifecycle:
+        | "NOT_CERTIFIED"
+        | "CONTROLLED_STUB_CERTIFIED"
+        | "MANUAL_PRODUCTION_CERTIFIED"
+        | "AUTOMATED_PRODUCTION_CERTIFIED"
+        | "STALE"
+        | "SUSPENDED"
+        | "RETIRED"
+      comm_hub_scenario_lifecycle:
+        | "DRAFT"
+        | "SCHEMA_VALID"
+        | "TEMPLATE_COMPATIBLE"
+        | "FULLY_RENDERABLE"
+        | "ACTIVE"
+        | "RETIRED"
+      comm_hub_schema_lifecycle:
+        | "DRAFT"
+        | "DISCOVERED"
+        | "VALIDATED"
+        | "ENFORCED"
+        | "RETIRED"
+      comm_hub_sender_readiness_state:
+        | "BLOCKED"
+        | "TEST_READY"
+        | "REAL_EMAIL_READY"
+        | "STALE"
+      comm_hub_template_lifecycle:
+        | "DRAFT"
+        | "DISCOVERED"
+        | "VALIDATED"
+        | "CERTIFIED"
+        | "ACTIVE"
+        | "RETIRED"
       communication_controlled_live_grant_status:
         | "ISSUED"
         | "RESERVED"
@@ -99162,6 +99613,83 @@ export const Constants = {
       ],
       comm_asset_scope: ["global", "organization", "department", "location"],
       comm_asset_source: ["upload", "external_url"],
+      comm_hub_contract_lifecycle: [
+        "DRAFT",
+        "DISCOVERED",
+        "VALIDATED",
+        "ENFORCED",
+        "RETIRED",
+      ],
+      comm_hub_governance_action: [
+        "VALIDATE",
+        "CERTIFY",
+        "ACTIVATE",
+        "ENFORCE",
+        "RETIRE",
+        "RECERTIFY",
+        "MARK_STALE",
+        "SUSPEND",
+        "RESUME",
+        "CORRECTION_TO_DRAFT",
+        "CORRECTION_TO_VALIDATED",
+        "BACKFILL_DISCOVER",
+        "READINESS_UPDATE",
+        "ASSESS",
+      ],
+      comm_hub_governance_entity_type: [
+        "TEMPLATE_VERSION",
+        "TEMPLATE_VARIABLE_CONTRACT",
+        "EVENT_PAYLOAD_SCHEMA",
+        "EVENT_TEMPLATE_MAPPING",
+        "TEST_SCENARIO",
+        "SENDER_CONFIGURATION",
+        "EVENT_RELEASE_CERTIFICATION",
+      ],
+      comm_hub_mapping_lifecycle: [
+        "DRAFT",
+        "VALIDATED",
+        "CERTIFIED",
+        "ACTIVE",
+        "RETIRED",
+      ],
+      comm_hub_release_lifecycle: [
+        "NOT_CERTIFIED",
+        "CONTROLLED_STUB_CERTIFIED",
+        "MANUAL_PRODUCTION_CERTIFIED",
+        "AUTOMATED_PRODUCTION_CERTIFIED",
+        "STALE",
+        "SUSPENDED",
+        "RETIRED",
+      ],
+      comm_hub_scenario_lifecycle: [
+        "DRAFT",
+        "SCHEMA_VALID",
+        "TEMPLATE_COMPATIBLE",
+        "FULLY_RENDERABLE",
+        "ACTIVE",
+        "RETIRED",
+      ],
+      comm_hub_schema_lifecycle: [
+        "DRAFT",
+        "DISCOVERED",
+        "VALIDATED",
+        "ENFORCED",
+        "RETIRED",
+      ],
+      comm_hub_sender_readiness_state: [
+        "BLOCKED",
+        "TEST_READY",
+        "REAL_EMAIL_READY",
+        "STALE",
+      ],
+      comm_hub_template_lifecycle: [
+        "DRAFT",
+        "DISCOVERED",
+        "VALIDATED",
+        "CERTIFIED",
+        "ACTIVE",
+        "RETIRED",
+      ],
       communication_controlled_live_grant_status: [
         "ISSUED",
         "RESERVED",
