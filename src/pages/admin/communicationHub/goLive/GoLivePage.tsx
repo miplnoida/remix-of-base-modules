@@ -745,7 +745,7 @@ export default function GoLivePage() {
       {/* STEP 5 — CONTROLLED LIVE */}
       <span id="go-live-step-controlled-live" aria-hidden />
       <CommunicationHubSectionCard
-        title={<StepHeader index={5} title="Controlled Live Test" status={stepStatus.s5} /> as any}
+        title={<StepHeader index={5} title="Run Controlled Stub" status={stepStatus.s5} /> as any}
         description="Runs exactly one controlled-live send against the provider — stub by default. Real-email delivery is only permitted when the server-side gate is enabled by platform administrators."
       >
         {!dryRunCertified ? (
@@ -793,14 +793,92 @@ export default function GoLivePage() {
 
       <Separator />
 
-      {/* STEP 6 — REVIEW */}
+      {/* STEP 6 — SEND ONE REAL EMAIL (locked) */}
       <CommunicationHubSectionCard
-        title={<StepHeader index={6} title="Review & Complete" status={stepStatus.s6} /> as any}
+        title={
+          <StepHeader
+            index={6}
+            title="Send One Real Email"
+            status={controlledLiveDone ? "attention" : "locked"}
+            hint={
+              controlledLiveDone
+                ? stageReadiness.stageLockReason.ONE_REAL_EMAIL ?? undefined
+                : "Locked. Requires a passing Controlled Stub certification and platform-approved real-provider gate."
+            }
+          /> as any
+        }
+        description="Reserved single real send with a one-use server grant. Enabled only when platform administrators explicitly unlock the real-provider gate."
+      >
+        <Alert>
+          <Lock className="h-4 w-4" />
+          <AlertTitle>Locked</AlertTitle>
+          <AlertDescription>
+            {controlledLiveDone
+              ? (stageReadiness.stageLockReason.ONE_REAL_EMAIL ??
+                 "Prerequisites not satisfied for a real email send.")
+              : "Complete the Controlled Stub certification first. The real-provider gate is not opened from this page."}
+          </AlertDescription>
+        </Alert>
+      </CommunicationHubSectionCard>
+
+      <Separator />
+
+      {/* STEP 7 — ACTIVATE MANUAL PRODUCTION (locked) */}
+      <CommunicationHubSectionCard
+        title={
+          <StepHeader
+            index={7}
+            title="Activate Manual Production"
+            status={stageReadiness.stageLockReason.MANUAL_PRODUCTION ? "locked" : "attention"}
+            hint={stageReadiness.stageLockReason.MANUAL_PRODUCTION ?? "Ready to activate from the mode cards above."}
+          /> as any
+        }
+        description="Certified events send by explicit operator action only. Activated via the Manual Production mode card once the event is certified."
+      >
+        <Alert>
+          <Lock className="h-4 w-4" />
+          <AlertTitle>{stageReadiness.stageLockReason.MANUAL_PRODUCTION ? "Locked" : "Ready to activate"}</AlertTitle>
+          <AlertDescription>
+            {stageReadiness.stageLockReason.MANUAL_PRODUCTION ??
+              "Use the Manual Production mode card at the top of the page to activate."}
+          </AlertDescription>
+        </Alert>
+      </CommunicationHubSectionCard>
+
+      <Separator />
+
+      {/* STEP 8 — ACTIVATE AUTOMATED PRODUCTION (locked) */}
+      <CommunicationHubSectionCard
+        title={
+          <StepHeader
+            index={8}
+            title="Activate Automated Production"
+            status={stageReadiness.stageLockReason.AUTOMATED_PRODUCTION ? "locked" : "attention"}
+            hint={stageReadiness.stageLockReason.AUTOMATED_PRODUCTION ?? "Ready to activate from the mode cards above."}
+          /> as any
+        }
+        description="Certified events run automatically under policy. Activated via the Automated Production mode card once the event is certified for cron."
+      >
+        <Alert>
+          <Lock className="h-4 w-4" />
+          <AlertTitle>{stageReadiness.stageLockReason.AUTOMATED_PRODUCTION ? "Locked" : "Ready to activate"}</AlertTitle>
+          <AlertDescription>
+            {stageReadiness.stageLockReason.AUTOMATED_PRODUCTION ??
+              "Use the Automated Production mode card at the top of the page to activate."}
+          </AlertDescription>
+        </Alert>
+      </CommunicationHubSectionCard>
+
+      <Separator />
+
+      {/* STEP 9 — REVIEW */}
+      <CommunicationHubSectionCard
+        title={<StepHeader index={9} title="Review & Complete" status={stepStatus.s6} /> as any}
         description="Full evidence trail for this event. All ids below are server-issued — nothing here is authoritative in the browser."
       >
         {!controlledLiveDone ? (
           <div className="text-sm text-muted-foreground">
-            Locked. Complete the controlled-live test to view the evidence summary.
+            Locked. Complete the Controlled Stub certification to view the evidence summary.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -810,32 +888,21 @@ export default function GoLivePage() {
             <div><span className="text-muted-foreground">Preview approval id:</span> <code className="font-mono text-xs">{session.previewApprovalId ?? "—"}</code></div>
             <div><span className="text-muted-foreground">Dry-run execution id:</span> <code className="font-mono text-xs">{session.dryRunExecutionId ?? "—"}</code></div>
             <div><span className="text-muted-foreground">Dry-run certification id:</span> <code className="font-mono text-xs">{session.dryRunCertificationId ?? "—"}</code></div>
-            <div><span className="text-muted-foreground">Controlled-live execution id:</span> <code className="font-mono text-xs">{session.controlledLiveExecutionId ?? "—"}</code></div>
-            <div><span className="text-muted-foreground">Controlled-live certification id:</span> <code className="font-mono text-xs">{session.controlledLiveCertificationId ?? "—"}</code></div>
+            <div><span className="text-muted-foreground">Controlled-stub execution id:</span> <code className="font-mono text-xs">{session.controlledLiveExecutionId ?? "—"}</code></div>
+            <div><span className="text-muted-foreground">Controlled-stub certification id:</span> <code className="font-mono text-xs">{session.controlledLiveCertificationId ?? "—"}</code></div>
             <div className="md:col-span-2">
               <Alert>
                 <AlertTitle>Recommendation</AlertTitle>
                 <AlertDescription>
-                  This event is <strong>P3E_STUB_CERTIFIED</strong> once the controlled-live test passes against the provider stub.
-                  A separate operator sign-off ceremony is required before it can be advanced to
-                  P3E_PROVIDER_ACCEPTED and, ultimately, P3E_CONTROLLED_LIVE_CERTIFIED.
-                  Manual Production approval remains disabled in this stage.
+                  This event is <strong>P3E_STUB_CERTIFIED</strong> once the controlled-stub test passes.
+                  Send One Real Email, Manual Production and Automated Production remain locked until
+                  platform administrators unlock the real-provider gate and certify the event for
+                  live_manual_only / live_cron_allowed.
                 </AlertDescription>
               </Alert>
             </div>
           </div>
         )}
-      </CommunicationHubSectionCard>
-
-      {/* Manual Production placeholder */}
-      <CommunicationHubSectionCard
-        title="Manual Production approval (coming soon)"
-        description="Reserved for a future stage. Not enabled here — no live production sends can be issued from this page."
-      >
-        <div className="text-xs text-muted-foreground">
-          Manual Production, Automated Production, cron, bulk and uncontrolled external recipients
-          are intentionally out of scope for CH-SIMPLE-P3F.
-        </div>
       </CommunicationHubSectionCard>
     </CommunicationHubWorkspaceShell>
   );
