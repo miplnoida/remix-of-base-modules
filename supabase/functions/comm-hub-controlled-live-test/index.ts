@@ -565,192 +565,61 @@ Deno.serve(async (req) => {
     const recipientSetHash = gm.recipient_set_hash as string;
     void recipientSetHash;
 
-    // 5.a Load the approved Preview snapshot server-side (authoritative
-    // source of subject, body, hashes and versions). Browser-supplied
-    // content is never trusted here.
-    const { data: approvalRow, error: approvalErr } = await admin
-      .from("communication_preview_approval")
-      .select("id, snapshot_id, status, expires_at, content_hash_at_approval")
-      .eq("id", body.previewApprovalId)
-      .maybeSingle();
-    if (approvalErr || !approvalRow) {
-      env.status = "BLOCKED";
-      env.failure_stage = "request_creation";
-      addBlocker("controlled_live_snapshot_missing", "request_creation",
-        approvalErr ? errorMessage(approvalErr) : "preview approval not found");
-      preRequestFailureCode = "controlled_live_snapshot_missing";
-      throw new Error("snapshot_missing");
-    }
-    const approval: any = approvalRow;
-    if (!["ACTIVE", "RESERVED"].includes(String(approval.status))) {
-      env.status = "BLOCKED";
-      env.failure_stage = "request_creation";
-      addBlocker("controlled_live_snapshot_mismatch", "request_creation",
-        `preview approval status ${approval.status} not usable`);
-      preRequestFailureCode = "controlled_live_snapshot_mismatch";
-      throw new Error("approval_not_usable");
-    }
-    if (body.previewSnapshotId && approval.snapshot_id !== body.previewSnapshotId) {
-      env.status = "BLOCKED";
-      env.failure_stage = "request_creation";
-      addBlocker("controlled_live_snapshot_mismatch", "request_creation",
-        "approval snapshot_id does not match previewSnapshotId");
-      preRequestFailureCode = "controlled_live_snapshot_mismatch";
-      throw new Error("approval_snapshot_mismatch");
-    }
-    env.preview_snapshot_id = approval.snapshot_id ?? env.preview_snapshot_id;
-
-    const { data: snapshotRow, error: snapshotErr } = await admin
-      .from("communication_preview_snapshot")
-      .select(
-        "id, module_code, event_code, channel, recipient_set_hash, template_id, template_version_id, sender_profile_id, rendered_subject, rendered_body_html, rendered_body_text, subject_hash, body_hash, content_hash, context_data, unresolved_variables, configuration_version, recipient_policy_version, send_policy_version, review_policy_version, status, expires_at",
-      )
-      .eq("id", approval.snapshot_id)
-      .maybeSingle();
-    if (snapshotErr || !snapshotRow) {
-      env.status = "BLOCKED";
-      env.failure_stage = "request_creation";
-      addBlocker("controlled_live_snapshot_missing", "request_creation",
-        snapshotErr ? errorMessage(snapshotErr) : "preview snapshot not found");
-      preRequestFailureCode = "controlled_live_snapshot_missing";
-      throw new Error("snapshot_missing");
-    }
-    const snap: any = snapshotRow;
-    if (String(snap.status) !== "PREPARED") {
-      env.status = "BLOCKED";
-      env.failure_stage = "request_creation";
-      addBlocker("controlled_live_snapshot_mismatch", "request_creation",
-        `snapshot status ${snap.status} not PREPARED`);
-      preRequestFailureCode = "controlled_live_snapshot_mismatch";
-      throw new Error("snapshot_not_prepared");
-    }
-    if (snap.expires_at && new Date(snap.expires_at).getTime() <= Date.now()) {
-      env.status = "BLOCKED";
-      env.failure_stage = "request_creation";
-      addBlocker("controlled_live_snapshot_expired", "request_creation");
-      preRequestFailureCode = "controlled_live_snapshot_expired";
-      throw new Error("snapshot_expired");
-    }
-    const channel = (body.channel ?? "email").toLowerCase();
-    const snapshotChecks: Array<{ cond: boolean; code: string; msg?: string }> = [
-      { cond: snap.module_code !== body.moduleCode, code: "controlled_live_snapshot_mismatch", msg: "module mismatch" },
-      { cond: snap.event_code !== body.eventCode, code: "controlled_live_snapshot_mismatch", msg: "event mismatch" },
-      { cond: String(snap.channel).toLowerCase() !== channel, code: "controlled_live_snapshot_mismatch", msg: "channel mismatch" },
-      { cond: snap.recipient_set_hash !== gm.recipient_set_hash, code: "controlled_live_snapshot_mismatch", msg: "recipient hash mismatch" },
-      { cond: snap.content_hash !== approval.content_hash_at_approval, code: "controlled_live_content_hash_mismatch" },
-      { cond: !snap.template_version_id, code: "controlled_live_template_version_missing" },
-      { cond: !snap.sender_profile_id, code: "controlled_live_sender_profile_missing" },
-      { cond: !snap.rendered_subject || String(snap.rendered_subject).trim() === "", code: "controlled_live_subject_missing" },
-      { cond: (!snap.rendered_body_html || String(snap.rendered_body_html).trim() === "")
-              && (!snap.rendered_body_text || String(snap.rendered_body_text).trim() === ""), code: "controlled_live_body_missing" },
-      { cond: Array.isArray(snap.unresolved_variables) && snap.unresolved_variables.length > 0, code: "controlled_live_unresolved_variables" },
-    ];
-    const failedSnap = snapshotChecks.find((c) => c.cond);
-    if (failedSnap) {
-      env.status = "BLOCKED";
-      env.failure_stage = "request_creation";
-      addBlocker(failedSnap.code, "request_creation", failedSnap.msg);
-      preRequestFailureCode = failedSnap.code;
-      throw new Error(failedSnap.code);
-    }
-
-    // 6. Send communication via canonical spine (creates request+recipient+message).
-    // The deployed RPC is `send_communication_v1(payload jsonb)` and consumes
-    // camelCase properties. Content comes from the locked snapshot only.
-    const requestIdempotencyKey = `controlled-live-request:${executionId}`;
-    const rpcPayload: Record<string, unknown> = {
-      moduleCode: snap.module_code,
-      eventCode: snap.event_code,
-      channels: [channel],
-      recipients: [
-        {
-          role: "to",
-          recipient_type: "email",
-          email: body.recipient,
-          channelHint: channel,
-        },
-      ],
-      message: {
-        subject: snap.rendered_subject,
-        bodyHtml: snap.rendered_body_html,
-        bodyText: snap.rendered_body_text,
-      },
-      data: snap.context_data ?? {},
-      idempotencyKey: requestIdempotencyKey,
-      correlationId: executionId,
-      requestedBy: operatorId,
-      origin: "comm_hub",
-      testMode: false,
-      priority: "normal",
-      metadata: {
-        send_context: "controlled_live",
-        controlled_live_execution_id: executionId,
-        controlled_live_grant_id: grantId,
-        preview_snapshot_id: approval.snapshot_id,
-        preview_approval_id: body.previewApprovalId,
-        dry_run_certification_id: body.dryRunCertificationId,
-        reason: body.reason,
-      },
-      canonicalDecision: begin.decision ?? {},
-    };
-    const { data: sendRaw, error: sendErr } = await admin.rpc(
-      "send_communication_v1",
-      { payload: rpcPayload },
+    // 5.a Slice 2: Server-owned Controlled Stub message creation.
+    //
+    // The dedicated RPC `create_comm_hub_controlled_stub_message` loads
+    // approval, snapshot, dry-run certification, governance evidence and
+    // sender profile server-side and creates ONE authoritative
+    // targeted-dispatch-only request+recipient+message row set in a single
+    // transaction. Browser-supplied content is NEVER accepted here.
+    //
+    // We no longer call `send_communication_v1` for Controlled Stub
+    // (Slice 2 Part 8). Generic sends now reject reserved targeted fields
+    // at the SQL layer (Slice 2 Part 9).
+    const { data: createRaw, error: createErr } = await admin.rpc(
+      "create_comm_hub_controlled_stub_message",
+      { p_execution_id: executionId, p_grant_id: grantId },
     );
-    if (sendErr) {
+    if (createErr) {
       env.status = "ENQUEUE_FAILED";
       env.failure_stage = "request_creation";
-      addBlocker("send_communication_error", "request_creation", errorMessage(sendErr));
-      preRequestFailureCode = "send_communication_error";
-      throw new Error("enqueue_failed");
+      addBlocker("controlled_stub_creation_rpc_error", "request_creation",
+        errorMessage(createErr));
+      preRequestFailureCode = "controlled_stub_creation_rpc_error";
+      throw new Error("stub_rpc_error");
     }
-    const send: any = sendRaw ?? {};
-    env.request_id = send.requestId ?? send.request_id ?? null;
-    env.request_number = send.requestNo ?? send.request_no ?? null;
-    const messageIds: string[] = Array.isArray(send.messageIds)
-      ? send.messageIds
-      : Array.isArray(send.message_ids)
-        ? send.message_ids
-        : [];
-    env.message_id = messageIds.length === 1
-      ? messageIds[0]
-      : (send.message_id ?? send.messages?.[0]?.id ?? null);
-    env.original_decision_id = send.decisionId ?? send.decision_id ?? send.original_decision_id ?? null;
-    env.trace_id = send.trace_id ?? null;
-    if (Array.isArray(send.blockers) && send.blockers.length) {
+    const create: any = createRaw ?? {};
+    if (create.ok !== true) {
       env.status = "BLOCKED";
-      env.failure_stage = "canonical_send_decision";
-      env.blockers.push(...send.blockers);
-      preRequestFailureCode = "canonical_send_decision";
-      throw new Error("send_blocked");
+      env.failure_stage = "request_creation";
+      addBlocker(
+        String(create.code ?? "controlled_stub_creation_blocked"),
+        "request_creation",
+        String(create.message ?? "Controlled Stub creation refused"),
+      );
+      preRequestFailureCode = String(create.code ?? "controlled_stub_creation_blocked");
+      throw new Error("stub_creation_blocked");
     }
-    if (send.ok === false || ["BLOCKED", "FAILED", "ENQUEUE_FAILED"].includes(String(send.status ?? ""))) {
-      env.status = send.status === "BLOCKED" ? "BLOCKED" : "ENQUEUE_FAILED";
-      env.failure_stage = "canonical_send_decision";
-      addBlocker("canonical_send_refused_without_blocker", "canonical_send_decision",
-        String(send.message ?? send.status ?? "send_communication_v1 refused the request"));
-      throw new Error("send_refused");
+    env.request_id = create.request_id ?? null;
+    env.request_number = create.request_no ?? null;
+    env.message_id = create.message_id ?? null;
+    env.preview_snapshot_id = create.preview_snapshot_id ?? env.preview_snapshot_id;
+    env.preview_approval_id = create.preview_approval_id ?? env.preview_approval_id;
+    env.dry_run_certification_id = create.dry_run_certification_id ?? env.dry_run_certification_id;
+    env.original_decision_id = env.original_decision_id ?? begin.decision?.decision_id ?? null;
+    if (create.idempotent_replay) {
+      env.warnings.push({
+        code: "controlled_stub_creation_replay",
+        message: "Authoritative Controlled Stub message replayed via idempotency.",
+      });
     }
-    if (!env.request_id) {
+    if (!env.request_id || !env.message_id) {
       env.status = "ENQUEUE_FAILED";
       env.failure_stage = "request_creation";
-      addBlocker("request_id_missing", "request_creation");
-      throw new Error("no_request");
-    }
-    if (messageIds.length > 1) {
-      env.status = "ENQUEUE_FAILED";
-      env.failure_stage = "request_creation";
-      addBlocker("controlled_live_message_count_invalid", "request_creation",
-        `expected exactly one message, got ${messageIds.length}`);
-      preRequestFailureCode = "controlled_live_message_count_invalid";
-      throw new Error("too_many_messages");
-    }
-    if (!env.message_id) {
-      env.status = "ENQUEUE_FAILED";
-      env.failure_stage = "request_creation";
-      addBlocker("message_id_missing", "request_creation");
-      preRequestFailureCode = "message_id_missing";
-      throw new Error("no_message");
+      addBlocker("controlled_stub_creation_contract_invalid", "request_creation",
+        "creation function returned without request_id or message_id");
+      preRequestFailureCode = "controlled_stub_creation_contract_invalid";
+      throw new Error("stub_creation_contract_invalid");
     }
 
     // 7. Targeted controlled-live dispatch.

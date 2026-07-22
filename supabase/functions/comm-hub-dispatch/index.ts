@@ -443,7 +443,7 @@ serve(async (req) => {
     // exposing internals. Then attempt the atomic single-row claim.
     const { data: peek } = await admin
       .from("communication_message")
-      .select("id, request_id, status, origin, channel, test_mode, created_at, next_attempt_at, locked_at")
+      .select("id, request_id, status, origin, channel, test_mode, created_at, next_attempt_at, locked_at, targeted_dispatch_only, send_context")
       .eq("id", targetMessageId)
       .maybeSingle();
     // CH-TRACE-2: resolve upstream trace so target-mode failures show up in the caller's timeline.
@@ -461,6 +461,18 @@ serve(async (req) => {
       await traceStep(admin, targetTraceId, {
         stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
         blocker_codes: ["target_not_found"], message_id: targetMessageId,
+      });
+    } else if ((peek as any).targeted_dispatch_only === true
+               || (peek as any).send_context === "controlled_live") {
+      // Slice 2: targeted messages must never be claimed through the
+      // generic dispatcher path. Route through operation="targeted_controlled_live".
+      targetNoClaimReason = "target_is_targeted_dispatch_only";
+      claimed = [];
+      await traceStep(admin, targetTraceId, {
+        stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
+        blocker_codes: ["target_is_targeted_dispatch_only"],
+        plain_summary: "targeted messages require operation=targeted_controlled_live",
+        message_id: targetMessageId,
       });
     } else if ((peek as any).origin !== "comm_hub" || (peek as any).channel !== "email") {
       targetNoClaimReason = "target_not_eligible_origin_or_channel";
@@ -2134,42 +2146,99 @@ async function processTargetedControlledLive(admin: any, body: TargetedControlle
   env.grant_id = grantId;
 
 
-  // 1. Load message.
-  const { data: msg, error: msgError } = await admin
-    .from("communication_message")
-    .select("id, request_id, recipient_id, channel, subject, body_text, body_html, status, send_context, origin, attempt_count, original_decision_id")
-    .eq("id", messageId).maybeSingle();
-  if (msgError) return block("message_load", "message_read_failed", msgError.message, "DISPATCH_FAILED", 500);
-  if (!msg) return block("message_load", "message_not_found", undefined, "BLOCKED", 404);
-  if ((msg as any).send_context !== "controlled_live") {
-    return block("context_validation", "message_not_controlled_live", undefined, "BLOCKED", 409);
+  // 1. Slice 2: Atomic targeted claim via dedicated server-owned RPC.
+  //    This is the ONLY way targeted messages become claimed. The RPC
+  //    verifies targeted_dispatch_only, action, execution, grant, context,
+  //    channel, origin, queue status, existing controlled attempts and
+  //    lock conflicts inside a single transaction with FOR UPDATE SKIP LOCKED.
+  const workerId = `dispatch-targeted:${crypto.randomUUID().slice(0, 8)}`;
+  const { data: claimRaw, error: claimErr } = await admin.rpc(
+    "claim_comm_hub_targeted_message",
+    {
+      p_message_id: messageId,
+      p_execution_id: executionId,
+      p_grant_id: grantId,
+      p_action: action,
+      p_worker_id: workerId,
+    },
+  );
+  if (claimErr) {
+    return block("targeted_claim", "targeted_claim_rpc_error",
+      String(claimErr.message ?? claimErr).slice(0, 300), "DISPATCH_FAILED", 500,
+      { requires_new_execution: false, requires_new_grant: false, retry_safe: true });
   }
-  if ((msg as any).channel !== "email" || (msg as any).origin !== "comm_hub") {
-    return block("context_validation", "message_context_mismatch", undefined, "BLOCKED", 409);
+  const claim: any = claimRaw ?? {};
+  if (claim.ok !== true || claim.claimed !== true) {
+    const code = String(claim.code ?? "targeted_claim_refused");
+    // Precise blocker mapping: propagate the RPC's code verbatim so the
+    // orchestrator sees the exact reason (missing flag, action/execution/grant
+    // mismatch, not queued, locked, existing attempt).
+    return block("targeted_claim", code,
+      String(claim.message ?? `targeted claim refused: ${code}`),
+      "BLOCKED", 409,
+      { requires_new_execution: false, requires_new_grant: false, retry_safe: code !== "targeted_attempt_already_exists" });
   }
-  const requestId = (msg as any).request_id as string;
+  // Construct a msg-like object from the authoritative claim result so
+  // the downstream dispatch path uses frozen evidence, never a fresh SELECT.
+  const msg = {
+    id: claim.message_id,
+    request_id: claim.request_id,
+    recipient_id: claim.recipient_id,
+    channel: claim.channel,
+    subject: null,
+    body_text: null,
+    body_html: null,
+    status: claim.status,
+    send_context: claim.send_context,
+    origin: claim.origin,
+    attempt_count: claim.attempt_count,
+    original_decision_id: null,
+    template_version_id: claim.template_version_id,
+    sender_profile_id: claim.sender_profile_id,
+    from_email: claim.from_email,
+    from_display_name: claim.from_display_name,
+    reply_to_email: claim.reply_to_email,
+    preview_snapshot_id: claim.preview_snapshot_id,
+    preview_approval_id: claim.preview_approval_id,
+    dry_run_certification_id: claim.dry_run_certification_id,
+    governance_certification_id: claim.governance_certification_id,
+    certified_dependency_hash: claim.certified_dependency_hash,
+    recipient_set_hash: claim.recipient_set_hash,
+    subject_hash: claim.subject_hash,
+    body_hash: claim.body_hash,
+    content_hash: claim.content_hash,
+    controlled_action: claim.action,
+    controlled_live_execution_id: claim.execution_id,
+    controlled_live_grant_id: claim.grant_id,
+    targeted_dispatch_only: true,
+  } as any;
+  const requestId = msg.request_id as string;
   env.request_id = requestId;
   if (body?.requestId && body.requestId !== requestId) {
     return block("context_validation", "request_message_mismatch", undefined, "BLOCKED", 409);
   }
-  env.original_decision_id = (msg as any).original_decision_id ?? null;
+  // Fetch remaining non-frozen content (subject/body) from the row for provider payload.
+  const { data: contentRow } = await admin
+    .from("communication_message")
+    .select("subject, body_text, body_html, original_decision_id")
+    .eq("id", messageId).maybeSingle();
+  if (contentRow) {
+    msg.subject = (contentRow as any).subject;
+    msg.body_text = (contentRow as any).body_text;
+    msg.body_html = (contentRow as any).body_html;
+    msg.original_decision_id = (contentRow as any).original_decision_id ?? null;
+  }
+  env.original_decision_id = msg.original_decision_id ?? null;
 
-  // 2. Verify grant belongs to this execution and is RESERVED/ISSUED.
+  // Grant metadata for hash comparisons downstream.
   const { data: grantRow, error: grantError } = await admin
     .from("communication_controlled_live_grant")
     .select("id, execution_id, status, recipient_set_hash")
     .eq("id", grantId).maybeSingle();
   if (grantError) return block("grant_load", "grant_read_failed", grantError.message, "DISPATCH_FAILED", 500);
   if (!grantRow) return block("grant_load", "grant_not_found", undefined, "BLOCKED", 404);
-  if ((grantRow as any).execution_id !== executionId) {
-    return block("grant_load", "grant_execution_mismatch", undefined, "BLOCKED", 409);
-  }
   const initialGrantStatus = (grantRow as any).status as string;
   env.grant_status = initialGrantStatus;
-  if (initialGrantStatus !== "ISSUED" && initialGrantStatus !== "RESERVED") {
-    return block("grant_load", "grant_not_dispatchable",
-      `grant status is ${initialGrantStatus}`, "BLOCKED", 409);
-  }
 
   // 3. Idempotency: authoritative attempt already exists?
   const { data: existing, error: existingError } = await admin

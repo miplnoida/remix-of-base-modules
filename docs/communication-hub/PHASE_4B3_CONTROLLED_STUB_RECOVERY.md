@@ -259,3 +259,65 @@ Slice 1 intentionally does **not** implement:
 
 These remain Slice 2 work and must not be started until Slice 2 is
 explicitly authorised.
+
+---
+
+## Slice 2 — Authoritative Controlled Stub Creation and Targeted Claim
+
+Status: **COMPLETE (PHASE_4B3_CONTROLLED_STUB_RECOVERY_SLICE2_COMPLETE)**.
+No runtime rows were created during Slice 2. Row-count delta: `controlled_live` messages 0→0, `targeted_dispatch_only` requests 0→0, controlled attempts 0→0.
+
+### 1. Schema additions (additive only)
+
+`communication_request` — minimal targeting metadata:
+- `targeted_dispatch_only boolean NOT NULL DEFAULT false`
+- `controlled_action text`
+- `controlled_live_execution_id uuid`
+- `controlled_live_grant_id uuid`
+
+`communication_message` — frozen evidence bundle:
+- `targeted_dispatch_only`, `controlled_action`
+- `controlled_live_execution_id`, `controlled_live_grant_id`
+- `preview_snapshot_id`, `preview_approval_id`
+- `dry_run_certification_id`, `governance_certification_id`
+- `certified_dependency_hash`
+- `recipient_set_hash`, `subject_hash`, `body_hash`, `content_hash`
+
+`body_html_hash` / `body_text_hash` are **deferred** to a later slice per instructions.
+
+### 2. Constraints and safety
+
+- CHECK enforces targeted rows must carry `send_context='controlled_live'`, non-null action/execution/grant/snapshot/approval, and frozen hashes.
+- Partial UNIQUE index guarantees exactly one targeted message per `(execution_id, grant_id, action)` and one targeted request per `(execution_id, grant_id)`.
+- Immutability trigger blocks direct mutation of the frozen classification fields once set.
+- Foreign keys to executions/grants/snapshots/approvals/dry-run/governance certifications use `ON DELETE RESTRICT` to preserve provenance.
+
+### 3. Server-owned RPCs
+
+- `public.create_comm_hub_controlled_stub_message(p_execution_id, p_grant_id)` — transactional creation of request + recipient + message with frozen evidence loaded from the approved snapshot; deterministic idempotency by `(execution_id, grant_id)`.
+- `public.claim_comm_hub_targeted_message(p_message_id, p_execution_id, p_grant_id, p_action, p_worker_id)` — atomic `FOR UPDATE SKIP LOCKED` claim that returns the frozen evidence bundle. Refuses non-targeted rows, action/execution/grant mismatches, non-queued status, existing controlled attempts, and locked rows with precise codes.
+
+### 4. Generic-send hardening
+
+- `send_communication_v1` is now the internal core (`send_communication_v1_core`) wrapped by a validator that raises if any browser call supplies the reserved targeted fields (`targeted_dispatch_only`, `controlled_*`, `preview_*`, `dry_run_certification_id`, `governance_certification_id`, `certified_dependency_hash`).
+- `claim_comm_hub_messages` and `claim_comm_hub_message_by_id` filter `targeted_dispatch_only = false` so targeted rows are never picked up by the generic queue.
+
+### 5. Edge Function wiring
+
+- `comm-hub-controlled-live-test` no longer calls `send_communication_v1`. It calls `create_comm_hub_controlled_stub_message` and consumes the returned authoritative IDs.
+- `comm-hub-dispatch` targeted path now calls `claim_comm_hub_targeted_message` first. The frozen bundle is used directly; downstream code no longer trusts a fresh SELECT for classification fields. The generic peek path additionally rejects `targeted_dispatch_only=true` rows with `target_is_targeted_dispatch_only` for defence in depth.
+
+### 6. Tests
+
+`src/platform/communication-hub/__tests__/CommHubControlledDispatchSlice2.test.ts` — 8 static invariants covering:
+- orchestrator uses the creation RPC and no generic-send RPC call remains;
+- dispatcher uses the atomic targeted claim RPC with `action`;
+- generic peek path routes targeted rows away with the correct blocker code.
+
+Slice 1 (27) + Slice 2 (8) = **35 passing**.
+
+### 7. Deferred to later slices
+
+- `body_html_hash` / `body_text_hash` columns and hashing.
+- SEND_ONE_REAL_EMAIL adapter and release-mode gate.
+- Retry policy adaptations for targeted messages.
