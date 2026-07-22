@@ -98305,6 +98305,25 @@ export type Database = {
         Args: { p_c3_id: string; p_user_id?: string }
         Returns: Json
       }
+      write_comm_hub_operating_mode_audit: {
+        Args: {
+          p_actor: string
+          p_automation_after: string
+          p_automation_before: string
+          p_channel?: string
+          p_configuration_version: number
+          p_control_settings_id: string
+          p_effective_after: Json
+          p_effective_before: Json
+          p_event_code?: string
+          p_module_code?: string
+          p_new_mode: Database["public"]["Enums"]["communication_operating_mode"]
+          p_previous_mode: Database["public"]["Enums"]["communication_operating_mode"]
+          p_reason: string
+          p_source: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role:
