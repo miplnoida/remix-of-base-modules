@@ -38,7 +38,8 @@ import PreviewApprovalPanel, {
 } from "../controlCenter/PreviewApprovalPanel";
 import EventTestContextSummary from "./EventTestContextSummary";
 import DryRunPanel from "../controlCenter/DryRunPanel";
-import ControlledLivePanel from "../controlCenter/ControlledLivePanel";
+import ControlledStubPanel from "../controlCenter/ControlledStubPanel";
+import OneRealEmailPanel from "../controlCenter/OneRealEmailPanel";
 import ReadinessSummary from "./ReadinessSummary";
 import {
   evaluateCanonicalSendDecision,
