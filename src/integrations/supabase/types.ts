@@ -41726,11 +41726,15 @@ export type Database = {
           manifest_schema_version: string | null
           metadata: Json
           module_code: string
+          recipient_context_ref: string | null
           recipient_policy_version: number | null
           recipient_set_hash: string
           rendered_body_html: string | null
           rendered_body_text: string | null
           rendered_subject: string | null
+          request_context_values: Json | null
+          resolved_token_bundle: Json | null
+          resolver_version: string | null
           review_policy_version: number | null
           send_context: string
           send_policy_version: number | null
@@ -41739,8 +41743,13 @@ export type Database = {
           subject_hash: string
           template_id: string | null
           template_version_id: string | null
+          test_scenario_hash: string | null
+          test_scenario_id: string | null
           to_recipients: Json
           unresolved_variables: Json
+          unresolved_variables_normalised: Json | null
+          variable_contract_version: string | null
+          variable_evidence: Json | null
         }
         Insert: {
           bcc_recipients?: Json
@@ -41768,11 +41777,15 @@ export type Database = {
           manifest_schema_version?: string | null
           metadata?: Json
           module_code: string
+          recipient_context_ref?: string | null
           recipient_policy_version?: number | null
           recipient_set_hash: string
           rendered_body_html?: string | null
           rendered_body_text?: string | null
           rendered_subject?: string | null
+          request_context_values?: Json | null
+          resolved_token_bundle?: Json | null
+          resolver_version?: string | null
           review_policy_version?: number | null
           send_context: string
           send_policy_version?: number | null
@@ -41781,8 +41794,13 @@ export type Database = {
           subject_hash: string
           template_id?: string | null
           template_version_id?: string | null
+          test_scenario_hash?: string | null
+          test_scenario_id?: string | null
           to_recipients?: Json
           unresolved_variables?: Json
+          unresolved_variables_normalised?: Json | null
+          variable_contract_version?: string | null
+          variable_evidence?: Json | null
         }
         Update: {
           bcc_recipients?: Json
@@ -41810,11 +41828,15 @@ export type Database = {
           manifest_schema_version?: string | null
           metadata?: Json
           module_code?: string
+          recipient_context_ref?: string | null
           recipient_policy_version?: number | null
           recipient_set_hash?: string
           rendered_body_html?: string | null
           rendered_body_text?: string | null
           rendered_subject?: string | null
+          request_context_values?: Json | null
+          resolved_token_bundle?: Json | null
+          resolver_version?: string | null
           review_policy_version?: number | null
           send_context?: string
           send_policy_version?: number | null
@@ -41823,8 +41845,13 @@ export type Database = {
           subject_hash?: string
           template_id?: string | null
           template_version_id?: string | null
+          test_scenario_hash?: string | null
+          test_scenario_id?: string | null
           to_recipients?: Json
           unresolved_variables?: Json
+          unresolved_variables_normalised?: Json | null
+          variable_contract_version?: string | null
+          variable_evidence?: Json | null
         }
         Relationships: [
           {
@@ -98333,6 +98360,21 @@ export type Database = {
           p_channel?: string
           p_event_code: string
           p_module_code: string
+        }
+        Returns: Json
+      }
+      resolve_comm_hub_template_variables: {
+        Args: {
+          p_channel?: string
+          p_event_code: string
+          p_event_payload?: Json
+          p_module_code: string
+          p_recipient_context?: Json
+          p_request_context?: Json
+          p_resolution_mode?: string
+          p_system_context?: Json
+          p_template_version_id: string
+          p_test_scenario_id?: string
         }
         Returns: Json
       }
