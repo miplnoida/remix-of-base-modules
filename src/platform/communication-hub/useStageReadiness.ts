@@ -144,9 +144,20 @@ export function useStageReadiness(input: StageReadinessInput): StageReadinessSta
     EMERGENCY_STOP: null, // Emergency Stop is always available.
   };
 
+  // Per-stage lock reasons for the nine-stage Go Live journey.
+  const stageLockReason: Partial<Record<ReleaseStageTarget, string | null>> = {
+    SAFE_TESTING: summarizeBlockers(state.stages.SAFE_TESTING),
+    CONTROLLED_STUB: summarizeBlockers(state.stages.CONTROLLED_STUB),
+    ONE_REAL_EMAIL: summarizeBlockers(state.stages.ONE_REAL_EMAIL),
+    MANUAL_PRODUCTION: summarizeBlockers(state.stages.MANUAL_PRODUCTION),
+    AUTOMATED_PRODUCTION: summarizeBlockers(state.stages.AUTOMATED_PRODUCTION),
+  };
+
   return {
     ...state,
     modeLockReason,
+    stageLockReason,
     refresh: runFanOut,
   };
 }
+
