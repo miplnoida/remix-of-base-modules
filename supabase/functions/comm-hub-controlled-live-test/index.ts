@@ -436,50 +436,10 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 4. Temporarily transition operating mode.
-  let transitioned = false;
-  if (priorMode === "DRY_RUN") {
-    const { error: mErr } = await admin.rpc("set_communication_operating_mode", {
-      p_new_mode: "CONTROLLED_LIVE",
-      p_reason: "controlled_live_test:" + executionId,
-    });
-    if (mErr) {
-      const { data: revoked } = await admin.rpc("revoke_comm_hub_controlled_live_grant", {
-        p_grant_id: grantId, p_execution_id: executionId,
-        p_reason: "operating_mode_transition_failed",
-      });
-      env.grant_status = (revoked as any)?.status ?? null;
-      env.cleanup_succeeded = true;
-      env.final_operating_mode = priorMode;
-      env.status = "BLOCKED";
-      env.failure_stage = "operating_mode_transition";
-      env.message = errorMessage(mErr);
-      addBlocker("mode_transition_failed", "operating_mode_transition", env.message);
-      env.completed_at = new Date().toISOString();
-      const { error: finalizeTransitionError } = await admin.rpc(
-        "finalize_comm_hub_controlled_live",
-        {
-          p_execution_id: executionId,
-          p_state: "BLOCKED",
-          p_final_operating_mode: priorMode,
-          p_cleanup_succeeded: true,
-          p_cleanup_state: "transition_not_applied",
-          p_cleanup_error: null,
-          p_warnings: [],
-          p_failure_stage: env.failure_stage,
-        },
-      );
-      if (finalizeTransitionError) {
-        addBlocker("execution_finalization_failed", "finalization",
-          errorMessage(finalizeTransitionError));
-      }
-      await admin.from("communication_controlled_live_execution")
-        .update({ blockers: env.blockers })
-        .eq("id", executionId);
-      return json(env, 200);
-    }
-    transitioned = true;
-  }
+  // 4. Operating mode is already CONTROLLED_LIVE (validated in preflight).
+  // Controlled Stub and One Real Email never mutate the operating mode; the
+  // operator drives mode transitions explicitly from the Go Live screen.
+  const transitioned = false;
 
   // Everything past this point MUST run through cleanup.
   const cleanup = async (): Promise<{ succeeded: boolean; finalMode: string | null; error: string | null }> => {
