@@ -209,6 +209,15 @@ export default function GoLivePage() {
   const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
   const [eventContext, setEventContext] = useState<EventTestContext | null>(null);
 
+  // CH-GL-02 Slice B — fan out readiness across every downstream stage so the
+  // mode cards can lock Manual/Automated Production with the exact server
+  // reason, without the old preview-only shortcut.
+  const stageReadiness = useStageReadiness({
+    moduleCode: session.moduleCode || null,
+    eventCode: session.eventCode || null,
+    channel: session.channel,
+  });
+
   useEffect(() => {
     let cancelled = false;
     if (!session.moduleCode || !session.eventCode) {
@@ -537,8 +546,13 @@ export default function GoLivePage() {
           Individual technical switches are managed by the server-side mode
           profile and are never surfaced as editable controls here. */}
       <ReleaseModeCards
+        moduleCode={session.moduleCode || null}
+        eventCode={session.eventCode || null}
+        channel={session.channel || null}
+        modeLockReason={stageReadiness.modeLockReason}
         onModeChanged={() => {
           fetchGlobalSettings().then(setSettings).catch(() => {});
+          stageReadiness.refresh();
           if (eventChosen) refreshDecision();
         }}
       />
