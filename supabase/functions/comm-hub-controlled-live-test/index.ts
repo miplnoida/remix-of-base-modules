@@ -348,9 +348,9 @@ Deno.serve(async (req) => {
     return fail("BLOCKED", "preflight", "automated_production_active",
       "Automated Production is not permitted for controlled-live testing");
   }
-  if (priorMode !== "DRY_RUN" && priorMode !== "CONTROLLED_LIVE") {
-    return fail("BLOCKED", "preflight", "operating_mode_not_supported",
-      `operating mode ${priorMode} cannot start a controlled-live test`);
+  if (priorMode !== "CONTROLLED_LIVE") {
+    return fail("BLOCKED", "preflight", "operating_mode_not_controlled_live",
+      `Operating mode must be CONTROLLED_LIVE before starting ${action}. Current mode: ${priorMode}.`);
   }
 
   // 2. Begin controlled-live authorisation (idempotent).
