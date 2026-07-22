@@ -114,12 +114,17 @@ export default function ReleaseModeCards({
         await refresh();
       } else if (msg.includes("not_authorised")) {
         toast.error("You do not have permission to change the operating mode.");
+      } else if (msg.includes("unknown_operating_mode")) {
+        toast.error("The requested operating mode is not recognised.");
+      } else if (msg.includes("settings_singleton_missing")) {
+        toast.error("Communication Hub settings are missing. Contact platform admin.");
       } else if (msg.includes("mode_derived_field_direct_write")) {
         toast.error("This setting is managed by the operating mode.");
-      } else if (msg.includes("mode_requires_event_certification")) {
-        toast.error(
-          "This production mode requires a certified event. Complete the certification path in Go Live first.",
-        );
+      } else if (msg.includes("authentication_required")) {
+        toast.error("Your session has expired. Please sign in again.");
+      } else if (/type|enum|invalid input/i.test(msg)) {
+        toast.error("Operating mode could not be changed. No mode settings were changed.");
+        console.error("[ReleaseModeCards] mode transition raw error:", msg);
       } else {
         toast.error(msg || "Failed to apply mode");
       }
