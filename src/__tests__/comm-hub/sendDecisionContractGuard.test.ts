@@ -29,10 +29,14 @@ function findLatestDefinition(): { file: string; body: string } {
   for (const f of files) {
     const sql = readFileSync(join(MIGRATIONS_DIR, f), "utf8");
     // Extract every CREATE OR REPLACE FUNCTION ... _evaluate_comm_hub_send_decision_core block
+    // Strict: the function name must appear directly after FUNCTION, otherwise
+    // we can spuriously match a different function whose body happens to
+    // reference the canonical name (e.g. the Slice A pure evaluator).
     const re = new RegExp(
-      `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION[\\s\\S]*?public\\.${FUNC_NAME}\\s*\\([\\s\\S]*?\\$function\\$;`,
+      `CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${FUNC_NAME}\\s*\\([\\s\\S]*?\\$function\\$;`,
       "gi",
     );
+
     let m;
     while ((m = re.exec(sql)) !== null) {
       hits.push({ file: f, body: m[0] });
