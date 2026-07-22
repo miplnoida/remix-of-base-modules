@@ -57,10 +57,12 @@ describe("dispatcher — targeted_controlled_live action contract", () => {
     expect(dispatcher).toMatch(/interface TargetedControlledLiveBody[\s\S]*?action\?:/);
   });
   it("validates action BEFORE any DB read", () => {
-    const idx = dispatcher.indexOf("processTargetedControlledLive");
-    const bodyIdx = dispatcher.indexOf(".from(\"communication_message\")", idx);
-    const actionIdx = dispatcher.indexOf("ACTION_BLOCKER_CODES.TARGETED_ACTION_MISSING", idx);
+    const fnStart = dispatcher.indexOf("async function processTargetedControlledLive");
+    expect(fnStart).toBeGreaterThan(0);
+    const bodyIdx = dispatcher.indexOf(".from(\"communication_message\")", fnStart);
+    const actionIdx = dispatcher.indexOf("ACTION_BLOCKER_CODES.TARGETED_ACTION_MISSING", fnStart);
     expect(actionIdx).toBeGreaterThan(0);
+    expect(bodyIdx).toBeGreaterThan(0);
     expect(actionIdx).toBeLessThan(bodyIdx);
   });
   it("references all required action blocker codes via the shared catalogue", () => {
