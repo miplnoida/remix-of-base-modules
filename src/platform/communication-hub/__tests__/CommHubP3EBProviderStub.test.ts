@@ -32,16 +32,29 @@ describe("CH-SIMPLE-P3E-B provider stub", () => {
   });
   afterEach(() => __resetProviderStubForTests());
 
-  it("is inactive by default", () => {
+  it("legacy env-mode probe is inactive without COMM_HUB_PROVIDER_MODE=stub", () => {
     setProviderMode(undefined);
     expect(isProviderStubActive()).toBe(false);
+    // Without explicit action AND without env activation, the simulator refuses.
     expect(() =>
       invokeProviderStub({
         recipient: "accepted+a@example.test",
         providerInvocationKey: "abcdef01-invk",
         subject: "s", bodyHash: "h",
       }),
-    ).toThrowError(/COMM_HUB_PROVIDER_MODE/);
+    ).toThrowError(/RUN_CONTROLLED_STUB|COMM_HUB_PROVIDER_MODE/);
+  });
+
+  it("explicit action='RUN_CONTROLLED_STUB' bypasses env gate", () => {
+    setProviderMode(undefined);
+    expect(isProviderStubActive()).toBe(false);
+    const outcome = invokeProviderStub({
+      recipient: "accepted+action@example.test",
+      providerInvocationKey: "action-key-00000001",
+      subject: "s", bodyHash: "h",
+      action: "RUN_CONTROLLED_STUB",
+    });
+    expect(outcome.status).toBe("PROVIDER_ACCEPTED");
   });
 
   it("classifies recipient fixtures deterministically", () => {
