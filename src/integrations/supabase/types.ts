@@ -39494,6 +39494,14 @@ export type Database = {
           allowed_email_addresses: string[]
           allowed_email_domains: string[]
           automatic_triggers_enabled: boolean
+          automation_arm_reason: string | null
+          automation_armed_at: string | null
+          automation_armed_by: string | null
+          automation_state: string
+          automation_state_changed_at: string
+          automation_state_changed_by: string | null
+          automation_suspended_at: string | null
+          automation_suspension_reason: string | null
           batch_enabled: boolean
           batch_size: number
           bulk_enabled: boolean
@@ -39535,6 +39543,14 @@ export type Database = {
           allowed_email_addresses?: string[]
           allowed_email_domains?: string[]
           automatic_triggers_enabled?: boolean
+          automation_arm_reason?: string | null
+          automation_armed_at?: string | null
+          automation_armed_by?: string | null
+          automation_state?: string
+          automation_state_changed_at?: string
+          automation_state_changed_by?: string | null
+          automation_suspended_at?: string | null
+          automation_suspension_reason?: string | null
           batch_enabled?: boolean
           batch_size?: number
           bulk_enabled?: boolean
@@ -39576,6 +39592,14 @@ export type Database = {
           allowed_email_addresses?: string[]
           allowed_email_domains?: string[]
           automatic_triggers_enabled?: boolean
+          automation_arm_reason?: string | null
+          automation_armed_at?: string | null
+          automation_armed_by?: string | null
+          automation_state?: string
+          automation_state_changed_at?: string
+          automation_state_changed_by?: string | null
+          automation_suspended_at?: string | null
+          automation_suspension_reason?: string | null
           batch_enabled?: boolean
           batch_size?: number
           bulk_enabled?: boolean
@@ -93817,6 +93841,16 @@ export type Database = {
       }
     }
     Functions: {
+      _apply_comm_hub_mode_transition_core: {
+        Args: {
+          p_actor: string
+          p_expected_version: number
+          p_new_mode: Database["public"]["Enums"]["communication_operating_mode"]
+          p_reason: string
+          p_source: string
+        }
+        Returns: Json
+      }
       _bn_mortality_dispatch_servicing: {
         Args: {
           p_actor_user_id: string
@@ -94016,6 +94050,14 @@ export type Database = {
         Returns: Json
       }
       approve_comm_hub_preview: { Args: { p_payload: Json }; Returns: Json }
+      arm_comm_hub_automation: {
+        Args: {
+          p_confirmation: string
+          p_expected_version?: number
+          p_reason: string
+        }
+        Returns: Json
+      }
       assign_cashier_office_override: {
         Args: {
           p_assigned_by: string
@@ -95739,6 +95781,10 @@ export type Database = {
           p_module_code: string
           p_reason: string
         }
+        Returns: Json
+      }
+      disarm_comm_hub_automation: {
+        Args: { p_reason: string; p_suspend?: boolean }
         Returns: Json
       }
       dms_queue_claim_batch: {
