@@ -41703,7 +41703,10 @@ export type Database = {
         Row: {
           bcc_recipients: Json
           body_hash: string
+          canonical_renderer_version: string | null
           cc_recipients: Json
+          certified_dependency_hash: string | null
+          changed_dependency_categories: string[]
           channel: string
           configuration_version: number | null
           content_hash: string
@@ -41711,9 +41714,16 @@ export type Database = {
           context_hash: string
           created_at: string
           created_by: string | null
+          current_dependency_hash: string | null
           event_code: string
+          event_template_map_id: string | null
           expires_at: string
+          governance_certification_id: string | null
+          governance_evidence: Json
+          governance_freshness_status: string | null
+          governance_record_id: string | null
           id: string
+          manifest_schema_version: string | null
           metadata: Json
           module_code: string
           recipient_policy_version: number | null
@@ -41735,7 +41745,10 @@ export type Database = {
         Insert: {
           bcc_recipients?: Json
           body_hash: string
+          canonical_renderer_version?: string | null
           cc_recipients?: Json
+          certified_dependency_hash?: string | null
+          changed_dependency_categories?: string[]
           channel?: string
           configuration_version?: number | null
           content_hash: string
@@ -41743,9 +41756,16 @@ export type Database = {
           context_hash: string
           created_at?: string
           created_by?: string | null
+          current_dependency_hash?: string | null
           event_code: string
+          event_template_map_id?: string | null
           expires_at?: string
+          governance_certification_id?: string | null
+          governance_evidence?: Json
+          governance_freshness_status?: string | null
+          governance_record_id?: string | null
           id?: string
+          manifest_schema_version?: string | null
           metadata?: Json
           module_code: string
           recipient_policy_version?: number | null
@@ -41767,7 +41787,10 @@ export type Database = {
         Update: {
           bcc_recipients?: Json
           body_hash?: string
+          canonical_renderer_version?: string | null
           cc_recipients?: Json
+          certified_dependency_hash?: string | null
+          changed_dependency_categories?: string[]
           channel?: string
           configuration_version?: number | null
           content_hash?: string
@@ -41775,9 +41798,16 @@ export type Database = {
           context_hash?: string
           created_at?: string
           created_by?: string | null
+          current_dependency_hash?: string | null
           event_code?: string
+          event_template_map_id?: string | null
           expires_at?: string
+          governance_certification_id?: string | null
+          governance_evidence?: Json
+          governance_freshness_status?: string | null
+          governance_record_id?: string | null
           id?: string
+          manifest_schema_version?: string | null
           metadata?: Json
           module_code?: string
           recipient_policy_version?: number | null
@@ -41796,7 +41826,29 @@ export type Database = {
           to_recipients?: Json
           unresolved_variables?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "communication_preview_snapshot_event_template_map_id_fkey"
+            columns: ["event_template_map_id"]
+            isOneToOne: false
+            referencedRelation: "communication_hub_event_template_map"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_preview_snapshot_governance_certification_id_fkey"
+            columns: ["governance_certification_id"]
+            isOneToOne: false
+            referencedRelation: "comm_hub_certification"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_preview_snapshot_governance_record_id_fkey"
+            columns: ["governance_record_id"]
+            isOneToOne: false
+            referencedRelation: "comm_hub_governance_record"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       communication_recipient: {
         Row: {
@@ -95225,6 +95277,18 @@ export type Database = {
         Returns: Json
       }
       check_comm_hub_readiness: { Args: { p_payload: Json }; Returns: Json }
+      check_comm_hub_runtime_governance: {
+        Args: {
+          p_channel?: string
+          p_dry_run_certification_id?: string
+          p_event_code: string
+          p_module_code: string
+          p_preview_approval_id?: string
+          p_preview_snapshot_id?: string
+          p_target_stage?: string
+        }
+        Returns: Json
+      }
       check_dms_transfer_eligibility: { Args: { p_ssn: string }; Returns: Json }
       check_duplicate_open_batch: {
         Args: { p_batch_date: string; p_cashier_user_code: string }
