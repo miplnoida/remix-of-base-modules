@@ -142,6 +142,8 @@ export async function runControlledLiveTest(
   }
   const r = parsed.data as any;
   return {
+    action: (r.action as ControlledLiveAction | null) ?? input.action ?? null,
+    certificationKind: (r.certification_kind as ControlledLiveCertificationKind | null) ?? null,
     status: r.status,
     passed: !!r.passed,
     message: r.message ?? "",
