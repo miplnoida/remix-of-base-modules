@@ -94,6 +94,8 @@ interface Envelope {
   real_email_authorised: boolean;
   provider_mode: string;
   retry_safe: boolean;
+  action: "RUN_CONTROLLED_STUB" | "SEND_ONE_REAL_EMAIL" | null;
+  certification_kind: "CONTROLLED_STUB" | "ONE_REAL_EMAIL" | null;
 }
 
 const EMPTY_ENVELOPE = (started: string): Envelope => ({
@@ -133,6 +135,8 @@ const EMPTY_ENVELOPE = (started: string): Envelope => ({
   real_email_authorised: false,
   provider_mode: "unknown",
   retry_safe: false,
+  action: null,
+  certification_kind: null,
 });
 
 function errorMessage(error: unknown): string {
@@ -243,7 +247,7 @@ Deno.serve(async (req) => {
 
   // 0. Input validation.
   const required = ["moduleCode", "eventCode", "recipient", "previewApprovalId",
-    "dryRunCertificationId", "idempotencyKey", "reason", "confirmation"];
+    "dryRunCertificationId", "idempotencyKey", "reason", "confirmation", "action"];
   for (const k of required) {
     if (typeof body?.[k] !== "string" || body[k].length === 0) {
       return fail("BLOCKED", "input_validation", "missing_" + k,
@@ -255,13 +259,23 @@ Deno.serve(async (req) => {
       "confirmation phrase does not match", {}, 400);
   }
 
-  // 0.a Real-email gate (CH-SIMPLE-P3E-C step 7).
-  // Any real send requires: explicit body flag, exact panel phrase, and
-  // server-side environment allowance. Anything less falls back to the
-  // provider stub — the default P3E-B behaviour.
+  // 0.a Explicit action gate. Controlled Stub and One Real Email are two
+  // separate, first-class actions with different safety envelopes.
+  const action = body.action as string;
+  if (action !== "RUN_CONTROLLED_STUB" && action !== "SEND_ONE_REAL_EMAIL") {
+    return fail("BLOCKED", "input_validation", "action_invalid",
+      "action must be RUN_CONTROLLED_STUB or SEND_ONE_REAL_EMAIL", {}, 400);
+  }
+  env.action = action as Envelope["action"];
+  env.certification_kind = action === "RUN_CONTROLLED_STUB"
+    ? "CONTROLLED_STUB"
+    : "ONE_REAL_EMAIL";
+
+  // 0.b Real-email gate applies ONLY to SEND_ONE_REAL_EMAIL. Controlled Stub
+  // always runs against the deterministic provider stub and NEVER touches a
+  // real provider, regardless of environment configuration.
   const PANEL_PHRASE = "SEND ONE CONTROLLED LIVE EMAIL";
-  const realEmailRequested = body.allowRealEmail === true;
-  if (realEmailRequested) {
+  if (action === "SEND_ONE_REAL_EMAIL") {
     if (Deno.env.get("COMM_HUB_REAL_EMAIL_TEST") !== "true") {
       return fail("BLOCKED", "real_email_gate", "real_email_disabled",
         "COMM_HUB_REAL_EMAIL_TEST is not enabled on this environment", {}, 400);
@@ -334,9 +348,9 @@ Deno.serve(async (req) => {
     return fail("BLOCKED", "preflight", "automated_production_active",
       "Automated Production is not permitted for controlled-live testing");
   }
-  if (priorMode !== "DRY_RUN" && priorMode !== "CONTROLLED_LIVE") {
-    return fail("BLOCKED", "preflight", "operating_mode_not_supported",
-      `operating mode ${priorMode} cannot start a controlled-live test`);
+  if (priorMode !== "CONTROLLED_LIVE") {
+    return fail("BLOCKED", "preflight", "operating_mode_not_controlled_live",
+      `Operating mode must be CONTROLLED_LIVE before starting ${action}. Current mode: ${priorMode}.`);
   }
 
   // 2. Begin controlled-live authorisation (idempotent).
@@ -422,77 +436,34 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 4. Temporarily transition operating mode.
-  let transitioned = false;
-  if (priorMode === "DRY_RUN") {
-    const { error: mErr } = await admin.rpc("set_communication_operating_mode", {
-      p_new_mode: "CONTROLLED_LIVE",
-      p_reason: "controlled_live_test:" + executionId,
-    });
-    if (mErr) {
-      const { data: revoked } = await admin.rpc("revoke_comm_hub_controlled_live_grant", {
-        p_grant_id: grantId, p_execution_id: executionId,
-        p_reason: "operating_mode_transition_failed",
-      });
-      env.grant_status = (revoked as any)?.status ?? null;
-      env.cleanup_succeeded = true;
-      env.final_operating_mode = priorMode;
-      env.status = "BLOCKED";
-      env.failure_stage = "operating_mode_transition";
-      env.message = errorMessage(mErr);
-      addBlocker("mode_transition_failed", "operating_mode_transition", env.message);
-      env.completed_at = new Date().toISOString();
-      const { error: finalizeTransitionError } = await admin.rpc(
-        "finalize_comm_hub_controlled_live",
-        {
-          p_execution_id: executionId,
-          p_state: "BLOCKED",
-          p_final_operating_mode: priorMode,
-          p_cleanup_succeeded: true,
-          p_cleanup_state: "transition_not_applied",
-          p_cleanup_error: null,
-          p_warnings: [],
-          p_failure_stage: env.failure_stage,
-        },
-      );
-      if (finalizeTransitionError) {
-        addBlocker("execution_finalization_failed", "finalization",
-          errorMessage(finalizeTransitionError));
-      }
-      await admin.from("communication_controlled_live_execution")
-        .update({ blockers: env.blockers })
-        .eq("id", executionId);
-      return json(env, 200);
-    }
-    transitioned = true;
-  }
+  // 4. Operating mode is already CONTROLLED_LIVE (validated in preflight).
+  // Controlled Stub and One Real Email never mutate the operating mode; the
+  // operator drives mode transitions explicitly from the Go Live screen.
+  const transitioned = false;
 
-  // Everything past this point MUST run through cleanup.
+  // Cleanup is a read-only mode confirmation: this orchestrator never
+  // mutates the operating mode. It only re-reads the current mode as
+  // evidence for the execution record.
   const cleanup = async (): Promise<{ succeeded: boolean; finalMode: string | null; error: string | null }> => {
     try {
-      const { data: r, error: restoreError } = await admin.rpc(
-        "restore_comm_hub_operating_mode_after_controlled_live",
-        { p_execution_id: executionId },
-      );
-      if (restoreError) {
-        return { succeeded: false, finalMode: null, error: errorMessage(restoreError) };
-      }
-      const ok = (r as any)?.ok === true;
       const { data: settingsAfter, error: settingsAfterError } = await admin
         .from("communication_hub_control_settings")
         .select("operating_mode")
         .eq("singleton_guard", "primary")
         .maybeSingle();
+      if (settingsAfterError) {
+        return { succeeded: false, finalMode: null, error: errorMessage(settingsAfterError) };
+      }
       return {
-        succeeded: ok && !settingsAfterError,
+        succeeded: true,
         finalMode: (settingsAfter as any)?.operating_mode ?? null,
-        error: settingsAfterError ? errorMessage(settingsAfterError)
-          : ok ? null : String((r as any)?.code ?? "restore_rpc_refused"),
+        error: null,
       };
     } catch (error) {
       return { succeeded: false, finalMode: null, error: errorMessage(error) };
     }
   };
+
 
   // Server-only grant metadata read. The operator-facing RPC
   // `admin_get_comm_hub_controlled_live_grant` requires an authenticated
@@ -988,6 +959,7 @@ Deno.serve(async (req) => {
           {
             p_payload: {
               execution_id: env.controlled_live_execution_id,
+              certification_kind: env.certification_kind,
               module_code: body.moduleCode,
               event_code: body.eventCode,
               channel: body.channel ?? "email",
