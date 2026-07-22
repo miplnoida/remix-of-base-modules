@@ -135,6 +135,8 @@ const EMPTY_ENVELOPE = (started: string): Envelope => ({
   real_email_authorised: false,
   provider_mode: "unknown",
   retry_safe: false,
+  action: null,
+  certification_kind: null,
 });
 
 function errorMessage(error: unknown): string {
