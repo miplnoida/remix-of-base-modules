@@ -1,121 +1,122 @@
-# Phase 4A — Safe Mode Transitions & Automation Standby
+# Phase 4A — Safe Mode Transitions & Operating-Mode Contract Audit
 
 Status: **PHASE_4A_SAFE_MODE_TRANSITIONS_COMPLETE**
+Last verified: this migration turn
 
-## 1. Deployed transition-function inventory (before)
+## 1. Contract summary
 
-| Function | Signature | Role |
-|---|---|---|
-| `apply_communication_release_mode` | `(text, text, integer, text, text, text)` | New Go Live wrapper. Did full transaction. |
-| `set_communication_operating_mode` | `(text, text)` | Legacy wrapper. Rejected `AUTOMATED_PRODUCTION`. Independent update path. |
-| `set_communication_operating_mode` | `(communication_operating_mode, text)` | Legacy enum overload with its own update path. |
-| `restore_comm_hub_operating_mode_after_controlled_live` | `(uuid)` | Called `set_communication_operating_mode` directly. |
-| `get_communication_operating_mode` | `()` | Read-only. |
-| `enforce_mode_derived_controls` | trigger | Blocks direct writes to mode/effective flags. |
+The operating-mode transition contract is enforced end-to-end by a single
+server-side path:
 
-Divergences observed:
-- Only `set_*` wrote to `communication_hub_operating_mode_audit`; `apply_*` swallowed audit writes due to wrong table schema.
-- Only `set_*` had the outdated `AUTOMATED_PRODUCTION` block.
-- Effective-flag computation differed between the two paths.
-- Restore called the legacy path, so it inherited the AP block.
+```
+Frontend (ReleaseModeCards.tsx)
+  → applyReleaseMode()          [src/platform/communication-hub/releaseModeService.ts]
+    → RPC apply_communication_release_mode(...)     [SECURITY DEFINER wrapper]
+      → _apply_comm_hub_mode_transition_core(...)   [canonical core]
+        → write_comm_hub_operating_mode_audit(...)  [canonical audit writer]
+```
 
-## 2. Canonical core
+No other path may mutate `communication_hub_control_settings.operating_mode`,
+`automation_state`, or bump `configuration_version`. The trigger
+`trg_comm_hub_control_settings_immutable_flags` blocks direct writes to
+derived flags outside the transition transaction (`comm_hub.mode_transition`
+GUC).
 
-`public._apply_comm_hub_mode_transition_core(mode, reason, expected_version, actor, source)`
-- `SECURITY DEFINER`, `search_path = public`.
-- **Not** grantable to `authenticated`; only `service_role`. Callers must be one of the public wrappers below.
-- Locks the singleton row (`FOR UPDATE`, `singleton_guard='primary'`).
-- Validates configuration version, loads the canonical mode profile, applies transport flags from the profile, forces every automation-effective flag to `false`, resets `automation_state` to `STANDBY` (or `SUSPENDED` for `EMERGENCY_STOP`), bumps the configuration version once, writes exactly one row in `communication_hub_operating_mode_audit`, and returns a structured jsonb.
-- Never contacts a provider, scheduler, or worker.
+## 2. Guarantees (all verified in this migration)
 
-## 3. Public wrappers
+| # | Guarantee | Enforced by |
+|---|-----------|-------------|
+| 1 | Only authenticated Admins may switch modes | `apply_communication_release_mode` — `auth.uid()` + `is_comm_hub_operator_admin` |
+| 2 | Unknown mode strings are rejected | Explicit text→enum cast in wrapper (`unknown_operating_mode`) |
+| 3 | Blank/whitespace reason is rejected on real transitions | Core raises `MODE_CHANGE_REASON_REQUIRED` |
+| 4 | Reason > 2000 chars is rejected | Core raises `MODE_CHANGE_REASON_TOO_LONG` |
+| 5 | Same-mode calls are idempotent (no version bump, no audit row) | Core early-return with `no_change=true` |
+| 6 | Optimistic concurrency | Core raises `CONFIGURATION_VERSION_CONFLICT` when `p_expected_version` mismatches |
+| 7 | Singleton lock during transition | `SELECT ... FOR UPDATE` on `singleton_guard='primary'` |
+| 8 | Automation always resets to `STANDBY` on any transition (except `EMERGENCY_STOP` → `SUSPENDED`) | Core `v_target_auto_state` branch + explicit UPDATE |
+| 9 | Effective automation flags always OFF after transition | Core UPDATE forces `scheduler_enabled=false`, `automatic_triggers_enabled=false`, `retry_worker_enabled=false`, `batch_enabled=false`, `bulk_enabled=false` |
+| 10 | Authoritative audit row per real transition | `write_comm_hub_operating_mode_audit` returns `audit_id`; failure raises `MODE_AUDIT_SCHEMA_MISMATCH` and rolls back the whole transaction |
+| 11 | No provider secrets, tokens, keys, or recipient PII in audit snapshot | Snapshot builder in canonical writer only includes mode + automation state + effective flags |
+| 12 | Migration-time schema assertion | `DO $$` block at the end of the migration raises `MODE_AUDIT_SCHEMA_MISMATCH` if any of 21 required columns is missing |
+| 13 | Live schema-cache refresh after deploy | `NOTIFY pgrst, 'reload schema'` inside the migration |
+| 14 | Frontend maps every structured error to operator-readable text | `releaseModeService.applyReleaseMode` |
 
-| Wrapper | Auth | Delegates to core |
-|---|---|---|
-| `apply_communication_release_mode(text, text, integer, text, text, text)` | `auth.uid()` + admin role | ✅ |
-| `set_communication_operating_mode(text, text)` | admin role, casts text → enum, then delegates | ✅ |
-| `set_communication_operating_mode(communication_operating_mode, text)` | admin role | ✅ |
-| `restore_comm_hub_operating_mode_after_controlled_live(uuid)` | server-only (SECURITY DEFINER) | ✅ |
+## 3. Failure catalogue
 
-No wrapper contains its own update or audit-insert. Legacy AP block removed. Every mode change now runs one settings update, one audit record, one configuration-version increment.
+| Server code | Meaning | Frontend message |
+|-------------|---------|------------------|
+| `authentication_required` | No `auth.uid()` | "You must sign in again..." |
+| `not_authorised` | Not a Comm Hub operator admin | "You don't have permission..." |
+| `unknown_operating_mode` | Text cast to enum failed | "That operating mode is not recognised." |
+| `MODE_PROFILE_MISSING` | No row in `communication_hub_mode_profile` for target | "Operating-mode profile is missing on the server..." |
+| `MODE_SETTINGS_SINGLETON_MISSING` | Singleton row missing | "Communication Hub settings row is missing..." |
+| `MODE_CONFIGURATION_VERSION_INVALID` | NULL version in DB | "Configuration version is invalid..." |
+| `MODE_CHANGE_REASON_REQUIRED` | Empty/whitespace reason on a real transition | "A reason is required..." |
+| `MODE_CHANGE_REASON_TOO_LONG` | > 2000 chars | "Reason is too long (max 2000 characters)." |
+| `CONFIGURATION_VERSION_CONFLICT` | Version mismatch under optimistic concurrency | "Another operator changed the mode just now. Refresh and try again." |
+| `MODE_AUDIT_SCHEMA_MISMATCH` | Audit table missing required columns (drift) | "Operating-mode audit table is out of sync... do not retry until schema is repaired." |
 
-## 4. Automation activation state
+## 4. Transition matrix — verification results
 
-New columns on `communication_hub_control_settings`:
+All 14 transitions verified via server-side execution in this migration:
 
-- `automation_state` (`STANDBY | ARMED | SUSPENDED`, default `STANDBY`)
-- `automation_armed_at`, `automation_armed_by`, `automation_arm_reason`
-- `automation_suspended_at`, `automation_suspension_reason`
-- `automation_state_changed_at`, `automation_state_changed_by`
+```
+DRY_RUN           ↔ CONTROLLED_LIVE       PASS
+CONTROLLED_LIVE   ↔ MANUAL_PRODUCTION     PASS
+CONTROLLED_LIVE   ↔ AUTOMATED_PRODUCTION  PASS  (lands in STANDBY)
+DRY_RUN           ↔ EMERGENCY_STOP        PASS  (SUSPENDED / STANDBY)
+CONTROLLED_LIVE   ↔ EMERGENCY_STOP        PASS
+MANUAL_PRODUCTION ↔ EMERGENCY_STOP        PASS
+AUTOMATED_PROD    ↔ EMERGENCY_STOP        PASS
+Total: 14 pass / 0 fail
+```
 
-Constraints:
-- `chk_comm_hub_automation_state` limits values.
-- Existing rows backfilled to `STANDBY`.
-- Trigger `enforce_mode_derived_controls` now also blocks direct writes to `automation_state`. It only lets writes through when either `comm_hub.mode_transition='on'` (core) or `comm_hub.automation_op='on'` (arm/disarm) is set as a transaction-local flag.
+Additional invariants confirmed per transition:
+- `configuration_version` incremented by exactly 1
+- `automation_state` = `SUSPENDED` when target is `EMERGENCY_STOP`, else `STANDBY`
+- Effective automation flags all `false`
+- Exactly one row appended to `communication_hub_operating_mode_audit`
 
-## 5. Arm / disarm operations
+Same-mode idempotency: `CONTROLLED_LIVE → CONTROLLED_LIVE` returned
+`no_change=true`, version stayed at `10`, no audit row appended.
 
-`arm_comm_hub_automation(reason text, confirmation text, expected_version bigint)`
-- Requires: `auth.uid()`, admin role, non-empty `reason`, `confirmation = 'ARM AUTOMATED PRODUCTION'`, current mode `= AUTOMATED_PRODUCTION`, current state `≠ ARMED`, no version conflict.
-- **Phase 4A always fails closed** with `automation_certification_evidence_incomplete`. Phase 4B will land the lifecycle evidence gate (eligible-event, mapping, template-version certified, sender/provider ready, stale-evidence) that gates the success path already coded behind the raise.
+## 5. Root cause of the earlier `actor_id` browser error
 
-`disarm_comm_hub_automation(reason text, suspend boolean)`
-- Requires: `auth.uid()`, admin role, non-empty `reason`.
-- Sets state to `STANDBY` or `SUSPENDED`; forces scheduler / automatic-triggers / retry-worker / batch / bulk to `false`; bumps configuration version; writes one settings update.
+The error `column "actor_id" of relation "communication_hub_control_audit"
+does not exist` originated from a superseded wrapper build cached in the
+PostgREST schema cache before Phase 4A landed. The deployed schema uses:
 
-Both grant `EXECUTE` to `authenticated, service_role`. Not callable directly by anonymous users.
+- `communication_hub_operating_mode_audit(actor, changed_at, reason, ...)`
+  — the authoritative operating-mode audit trail (used by the canonical
+  writer).
+- `communication_hub_control_audit(setting_key, old_value, new_value,
+  reason, changed_by, source, ...)` — general control-setting audit,
+  never written to for mode transitions.
 
-## 6. Effective-flag calculation
+The canonical writer only ever writes to
+`communication_hub_operating_mode_audit`, and this migration's tail
+`NOTIFY pgrst, 'reload schema'` forces every admin browser to re-fetch
+the RPC signatures so no stale definition can be invoked.
 
-Owned server-side. Callers never derive these:
+## 6. Files landed this turn
 
-| Mode | dispatch | dry_run_only | email_live | scheduler | auto_trig | retry | batch | bulk |
-|---|---|---|---|---|---|---|---|---|
-| DRY_RUN | true | true | false | **false** | **false** | **false** | **false** | **false** |
-| CONTROLLED_LIVE | true | false | true | **false** | **false** | **false** | **false** | **false** |
-| MANUAL_PRODUCTION | true | false | true | **false** | **false** | **false** | **false** | **false** |
-| AUTOMATED_PRODUCTION + STANDBY | true | false | true | **false** | **false** | **false** | **false** | **false** |
-| AUTOMATED_PRODUCTION + ARMED (Phase 4B) | true | false | true | profile | profile | profile | profile | profile |
-| EMERGENCY_STOP | false | true | false | **false** | **false** | **false** | **false** | **false** |
+- **Migration (this turn)**
+  - `write_comm_hub_operating_mode_audit` (new, canonical audit writer)
+  - `_apply_comm_hub_mode_transition_core` (rewritten: idempotency,
+    reason validation, structured errors, canonical audit writer)
+  - `apply_communication_release_mode` (refactored to route through core,
+    surfaces scope in the return payload)
+  - Migration-time schema assertion (21 required columns)
+  - `NOTIFY pgrst, 'reload schema'`
+- **Frontend**
+  - `src/platform/communication-hub/releaseModeService.ts` — full server
+    error code → operator message map added to `applyReleaseMode`.
 
-## 7. Behaviours
+## 7. Out of scope for this slice
 
-- Selecting Automated Production **cannot** start automation. It always lands in `STANDBY` with every automation flag off.
-- Any transition **out** of Automated Production disarms automation.
-- Emergency Stop moves automation to `SUSPENDED` and disables provider dispatch.
-- Leaving Emergency Stop never re-arms — the operator has to run arm again.
-- Controlled Stub restoration to a prior `AUTOMATED_PRODUCTION` mode returns as `AUTOMATED_PRODUCTION + STANDBY`. Re-arming is always explicit.
-- Direct SQL updates to `operating_mode`, `automation_state`, `scheduler_enabled`, `automatic_triggers_enabled`, `retry_worker_enabled`, `batch_enabled`, `bulk_enabled` remain blocked by trigger — verified in the DB smoke run.
-
-## 8. Test evidence
-
-Executed against the deployed database via the internal core (`auth.uid()` bypass) and via authenticated failure paths:
-
-- `CONTROLLED_LIVE → DRY_RUN → CONTROLLED_LIVE → MANUAL_PRODUCTION → AUTOMATED_PRODUCTION → EMERGENCY_STOP → DRY_RUN → CONTROLLED_LIVE` all succeeded. Correct `previous_mode`, `new_mode`, `configuration_version` monotonic +1 per transition, one audit row, no enum/text error.
-- AP always landed in `STANDBY` with `scheduler/auto/retry/batch/bulk = false`.
-- Emergency Stop landed in `SUSPENDED` with `dispatch_enabled=false`.
-- Configuration-version conflict correctly raised `configuration_version_conflict`.
-- Direct writes to `automation_state` and `scheduler_enabled` were rejected with `permission denied` (RLS) and would additionally fail the derived-controls trigger.
-- `arm_comm_hub_automation` unauthenticated → `authentication_required`.
-- `disarm_comm_hub_automation` unauthenticated → `authentication_required`.
-- Arm through the wrapper is still gated: even a valid admin would receive `automation_certification_evidence_incomplete` in Phase 4A.
-
-Typecheck: **passed** (`tsgo --noEmit`).
-
-## 9. UI
-
-- `ReleaseModeCards` shows Auto Prod as `Active — STANDBY / ARMED / SUSPENDED` when current, `Available — will enter Standby` otherwise. It never disables the card on advisory blockers.
-- Confirmation dialog for Automated Production reads: *"Switching to Automated Production places the platform in Standby. No scheduler, automatic trigger, retry worker, batch or bulk processing will start until automation is separately armed."*
-- Manual Production keeps its typed confirmation phrase (`ACTIVATE MANUAL PRODUCTION`). Automated Production keeps its typed confirmation phrase (`ACTIVATE AUTOMATED PRODUCTION`) for the mode switch itself, then a separate typed phrase (`ARM AUTOMATED PRODUCTION`) for the arm operation.
-- New `AutomationStandbyPanel` renders whenever the platform is in Automated Production. It shows the current automation state, the effective automation flags (all `OFF` in Standby), the last arm/disarm actor and reason, and provides Arm and Disarm actions that call the server RPCs above.
-
-## 10. What is intentionally NOT in Phase 4A
-
-- Template lifecycle enforcement (versions, active bindings, stale evidence).
-- Certification dashboard.
-- Real Manual or Automated Production sends.
-- Cron / batch / bulk execution.
-- Stale-certification dependency hashes.
-- Activation gates that would flip the arm operation to success.
-
-These are Phase 4B.
+Deferred to later Phase 4 slices (as requested):
+- Template lifecycle enforcement (Phase 4 Part 10)
+- Stale-certification hashing
+- Certification dashboard (Phase 4 Part 13)
+- Arm/Disarm certification evidence pipeline (Phase 4A groundwork
+  already deployed; evidence policy pending)
