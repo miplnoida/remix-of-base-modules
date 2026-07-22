@@ -1,132 +1,103 @@
+# Controlled Stub — Root-Cause Fix & One-Time Hardening
 
-# CH-GL-02 — Controlled Stub as a First-Class Stage
+Goal: Make `RUN_CONTROLLED_STUB` fully mode-driven, environment-independent, preflight-complete, idempotent, and server-authoritative. Zero real-provider risk. One coordinated implementation, then one connected-environment run.
 
-Goal: make **Controlled Stub** a genuinely distinct, mode-driven, environment-independent stage using an explicit action contract on the existing orchestrator. Keep **One Real Email** locked. Certify stub only. Then run one connected Preview → Dry Test → Controlled Stub pass and report evidence.
+## Scope Constraint
+- No real email is sent. `SEND_ONE_REAL_EMAIL` stays locked.
+- Additive migrations only — no destructive changes to historical evidence.
 
-## Scope (in)
-- Single orchestrator (`comm-hub-controlled-live-test`) — add explicit `action` field.
-- New DB certification_kind on existing controlled-live certification.
-- New `ControlledStubPanel.tsx` (React only; no new orchestrator).
-- Rename existing panel to `OneRealEmailPanel.tsx`, keep locked.
-- Wire Go Live Step 5 → ControlledStubPanel; Step 6 → OneRealEmailPanel (locked).
-- Tests + typecheck + build. Then one connected certification run.
+---
 
-## Scope (out)
-- Do NOT implement/execute `SEND_ONE_REAL_EMAIL`. Reject it at the orchestrator with `one_real_email_locked` for this task.
-- Do NOT create a parallel edge function.
-- Do NOT change Dry Run, Preview, or Mode card logic beyond removing the silent DRY_RUN→CONTROLLED_LIVE transition inside the orchestrator.
+## Slice A — Provider & Action Contract (Server)
 
-## Slice A — Backend contract & mode discipline
+1. **Edge Function `comm-hub-controlled-live-test`**
+   - Remove the `COMM_HUB_PROVIDER_MODE=stub` gate for `RUN_CONTROLLED_STUB` (delete the preflight that emits `controlled_live_provider_mode_inactive`).
+   - Explicit action gate stays (already implemented) but is now the *only* provider selector.
+   - Server-side legacy translation: if request carries only legacy `allowRealEmail`, coerce to explicit action + attach `deprecation` warning; never surface to UI.
+   - Emit new envelope fields: `action_used`, `provider_mode_used`, `provider_adapter_invoked`, `external_provider_call_attempted`, `simulated`.
+2. **`_shared/communication-hub/provider-stub.ts`**
+   - Remove the `COMM_HUB_PROVIDER_MODE` read. Simulator invocation gated by explicit `action === "RUN_CONTROLLED_STUB"` argument plus server-only caller assertion.
+3. **`comm-hub-dispatch`**
+   - Accept `operation: "targeted_controlled_test"` + `action`. Adapter selection derived from `action`, never from env. Reject action mismatch with structured blocker.
 
-1. **Orchestrator input contract** (`supabase/functions/comm-hub-controlled-live-test/index.ts`)
-   - Add `action: "RUN_CONTROLLED_STUB" | "SEND_ONE_REAL_EMAIL"` (required).
-   - Back-compat: if legacy `allowRealEmail` present, map to action and append a `deprecation_warnings` entry; if `action` is present it wins.
-   - `SEND_ONE_REAL_EMAIL` → return BLOCKED with `one_real_email_locked` (no execution, no grant).
-   - For `RUN_CONTROLLED_STUB`:
-     - Do NOT read `COMM_HUB_PROVIDER_MODE`, `COMM_HUB_REAL_EMAIL_TEST`, `COMMUNICATION_HUB_EMAIL_LIVE`. Provider adapter is hard-selected to the deterministic simulator by action.
-     - Require current operating mode already = `CONTROLLED_LIVE`. If `DRY_RUN`, return BLOCKED `mode_not_controlled_live` — do NOT call `set_communication_operating_mode` / auto-transition. Do NOT restore mode on exit.
-     - Preserve all existing revalidation preflight (Emergency Stop, preview approval, snapshot binding, config/policy versions, one-recipient, no CC/BCC, no conflicting execution).
+## Slice B — Read-Only Preflight
 
-2. **Response envelope** — return separate authoritative fields:
-   - `action_used = "RUN_CONTROLLED_STUB"`
-   - `provider_mode_used = "stub"`
-   - `provider_adapter_invoked: boolean`
-   - `external_provider_call_attempted: boolean` (always `false` for stub)
-   - `real_email_authorised: false`
-   - **Redefine** legacy `provider_call_attempted` to mean *external provider network call attempted* → `false` for stub.
-   - Include `certification_kind` when certification is issued.
+1. New RPC `check_comm_hub_controlled_stub_preflight(payload jsonb)` — pure `STABLE`, zero writes.
+   - Collects **all** blockers listed in Epic §9 (auth, platform, mode, event, recipient, preview, dry run, drift, execution safety).
+   - Returns single JSON envelope: `ready`, `retrySafe`, `currentMode`, `moduleCode`, `eventCode`, `channel`, `blockers[]`, `warnings[]`, `availableActions[]`, `configurationVersion`, `recipientPolicyVersion`, `platform{}`, `recipient{}`, `preview{}`, `dryRun{}`, `existingExecution{}`, `evaluatedAt`.
+2. New service `src/platform/communication-hub/controlledStubPreflightService.ts` calls the RPC and normalizes to camelCase.
 
-3. **DB migration** — add `certification_kind` typed column on `communication_controlled_live_certification`:
-   - Enum: `('CONTROLLED_STUB','ONE_REAL_EMAIL')`, default `CONTROLLED_STUB` (backfill existing rows to `CONTROLLED_STUB` — they were all stub).
-   - Update `record_controlled_live_certification` RPC to accept and require `p_certification_kind`.
-   - Update `get_controlled_live_certification` to surface it.
-   - Add index for filtering by `(certification_kind, status)`.
+## Slice C — Retry-Safety Classifier
 
-4. **Post-provider evidence reread** — after simulator response, reread from DB:
-   execution, grant (consumed), request, recipients=1, messages=1, attempts=1, attempt marked `attempt_type='controlled_live'` + `provider_status` in simulator set, dispatcher revalidation exists, cleanup ok, final mode = CONTROLLED_LIVE. Fail closed with new blocker codes.
+- New DB function `_comm_hub_classify_retry_safety(stage text, blockers jsonb) returns boolean` — single authoritative classifier used by both preflight and orchestrator.
+- Rules per Epic §10.
+- Orchestrator uses classifier instead of hardcoded `retry_safe = false`.
 
-5. **Idempotency** — idempotency key already scoped to execution; ensure terminal replay returns existing evidence with `idempotent_replay=true` and same identifiers; make sure no row-count deltas on replay.
+## Slice D — Additive Schema Evidence
 
-## Slice B — Client contract & types
+Migration adds columns (nullable, default sensible values):
 
-Files:
-- `src/platform/communication-hub/controlledLiveTestService.ts` — split into `runControlledStubTest()` (action=RUN_CONTROLLED_STUB) and a stubbed `sendOneRealEmailTest()` that just calls the locked action. Keep legacy `runControlledLiveTest` as thin wrapper mapping to stub for one release.
-- New `ControlledStubResult` type with `actionUsed`, `providerModeUsed`, `providerAdapterInvoked`, `externalProviderCallAttempted`, `realEmailAuthorised`, `certificationKind`, plus existing fields.
-- Zod schema updated for the new envelope, including deprecation_warnings.
+- `communication_delivery_attempt`: `attempt_type`, `action_used`, `provider_mode_used`, `provider_adapter_invoked`, `external_provider_call_attempted`, `simulated`, `provider_invocation_key`.
+- `communication_controlled_live_execution`: `action_used`, `provider_mode_used`, `provider_adapter_invoked`, `external_provider_call_attempted`, `simulated`.
+- `communication_controlled_live_certification`: (already has `certification_kind`); add `provider_mode_used`, `provider_adapter_invoked`, `external_provider_call_attempted`, `simulated`.
 
-## Slice C — UI split
+Add supporting index `(module_code, event_code, certification_kind, status)`.
 
-1. **New `src/pages/admin/communicationHub/controlCenter/ControlledStubPanel.tsx`**
-   - Inherits event, template, sender, masked recipient from Go Live state (props). Does NOT reload recipient policy or ask for another recipient.
-   - Copy per spec: "Run Controlled Stub", "provider simulator", "No external email will be sent".
-   - Reason input + simulation acknowledgement checkbox + optional typed phrase `RUN CONTROLLED STUB TEST` (never the old phrase).
-   - Result panel: Passed/Failed, External email sent: No, Simulator invoked, External provider called: No, exec no, request no, delivery attempt evidence, dispatcher revalidation, grant status, cleanup, certification status + kind, final operating mode, next action. UUIDs collapsed under "Advanced evidence".
-   - No inbox verification, no Received/Not received controls.
+## Slice E — Idempotent Lifecycle + Post-Dispatch Verification
 
-2. **Rename** `ControlledLivePanel.tsx` → `OneRealEmailPanel.tsx` (shared subcomponents extracted to `controlCenter/_shared/` — result rows, evidence table, blocker list). Panel remains locked; button disabled with "Locked — requires CONTROLLED_STUB certification" message. Update all imports.
+1. **`begin_comm_hub_controlled_live`** — extend to accept `action` and to persist new evidence columns. Enforce `certification_kind = 'CONTROLLED_STUB'` when action is `RUN_CONTROLLED_STUB`.
+2. **Idempotency**: durable key = `(module, event, channel, previewApprovalId, dryRunCertId, action)`. On replay, return existing terminal evidence with `idempotent_replay = true`, `retrySafe = true`, no new rows.
+3. **Post-dispatch reread**: orchestrator reloads execution/grant/request/message/attempt/decision before certifying (Epic §17). Certification issued only if all invariants hold.
+4. **Dispatcher validation** (Epic §16): 26-point check performed inside `comm-hub-dispatch` before simulator call; hash recomputation; grant reserve→consume; single attempt row.
 
-3. **GoLivePage.tsx**
-   - Step 5 renders `ControlledStubPanel`.
-   - Step 6 renders `OneRealEmailPanel`. Gate on presence of a valid `certification_kind='CONTROLLED_STUB'` for the current event/recipient/version tuple (still surfaced as locked; unlock not implemented in this task).
-   - Removes the current dependency on `provider_call_attempted=true` from Step 5 completion; replace with `providerAdapterInvoked && !externalProviderCallAttempted && certificationKind==='CONTROLLED_STUB'`.
+## Slice F — UI
 
-4. **useStageReadiness.ts** — update Step 5/6 lock reasons: Step 5 requires `operating_mode=CONTROLLED_LIVE`; Step 6 requires `stub_certification_present`.
+1. **`ControlledStubPanel.tsx`** (create if missing / finish):
+   - Title: **Run Controlled Stub**. Description per Epic §13.
+   - Displays locked inherited context; masked recipient; Preview + Dry-Run status.
+   - Business reason field + simulation acknowledgement + optional `RUN CONTROLLED STUB TEST` phrase.
+   - Calls `controlledStubPreflightService` on mount / event change; Run button disabled while blockers exist; shows *all* blockers together with plain-language mapping.
+   - Removes all real-email / inbox-verification wording.
+2. **`GoLivePage.tsx`**:
+   - Step 5 uses `ControlledStubPanel`.
+   - Completion contract per Epic §19: requires `certificationKind === 'CONTROLLED_STUB'` + all evidence flags. Does not require `providerCallAttempted=true`.
+   - Result surface per Epic §20 with "Advanced Evidence" collapse.
+3. **`ControlledLivePanel.tsx`**: retained only as shared evidence-view fragments; primary orchestration entrypoints removed.
 
-## Slice D — Tests
+## Slice G — Blocker Catalog & Messaging
 
-Add / update under `src/__tests__/comm-hub/` and `src/platform/communication-hub/__tests__/`:
+- `canonicalBlockerCatalog.ts`: register every code in Epic §12, plus legacy `controlled_live_provider_mode_inactive` mapped to Epic §11 wording ("Legacy Controlled Stub configuration detected", fix action "Return to Go Live", retrySafe=true).
+- `plainLanguageBlockers.ts`: matching plain-language strings.
+- `ReadinessSummary.tsx`: never falls back to generic "Readiness check could not be completed" when a known code exists.
 
-Static (grep-based) contract tests over the orchestrator source:
-- No `Deno.env.get("COMM_HUB_PROVIDER_MODE")` on the RUN_CONTROLLED_STUB path.
-- No `COMM_HUB_REAL_EMAIL_TEST` / `COMMUNICATION_HUB_EMAIL_LIVE` reads.
-- No `set_communication_operating_mode` call from the orchestrator.
-- Presence of `action_used`, `provider_adapter_invoked`, `external_provider_call_attempted`, `certification_kind`.
+## Slice H — Tests
 
-Behavioural (mocked supabase):
-- Stub requires CONTROLLED_LIVE; DRY_RUN returns `mode_not_controlled_live` and creates 0 rows.
-- Simulator invoked once; exactly one execution/grant/request/recipient/message/attempt/certification (assert via mock call counts + returned identifiers).
-- Legacy `provider_call_attempted` is false; `external_provider_call_attempted` false; `provider_adapter_invoked` true.
-- Replay with same idempotency key returns identical IDs and `idempotent_replay=true`.
-- `SEND_ONE_REAL_EMAIL` returns `one_real_email_locked` with no side effects.
-- Certification row carries `certification_kind='CONTROLLED_STUB'`.
+Add / extend tests covering Epic §23:
+- `provider-stub` env-independence unit tests.
+- `comm-hub-controlled-live-test` action-gate + legacy-translation tests.
+- Preflight zero-write and all-blockers-together tests.
+- Idempotent replay: assert row-count deltas = 0.
+- Retry-safety classifier unit tests.
+- UI: `ControlledStubPanel` wording + button-gate + blocker rendering.
+- Certification-kind gating for One Real Email.
 
-UI:
-- `ControlledStubPanel` renders no "Send", no "inbox verification", no "Received/Not received"; primary CTA text `Run Controlled Stub`; typed phrase (if used) is `RUN CONTROLLED STUB TEST`.
-- `OneRealEmailPanel` is locked; CTA disabled; shows required certification kind.
-- Go Live Step 5 uses ControlledStubPanel; Step 6 uses OneRealEmailPanel locked.
+## Slice I — Verification
 
-## Slice E — Verification & connected run
+- Full repo typecheck (`tsgo`).
+- Full Communication Hub Vitest suite + new Controlled Stub suites.
+- Production build.
+- Connected-environment run through Go Live steps 1→6 (stop before real email). Report per Epic §26.
 
-1. `tsgo --noEmit` — 0 errors.
-2. `bunx vitest run src/__tests__/comm-hub src/platform/communication-hub/__tests__` green.
-3. `bun run build` green.
-4. Connected certification via Go Live UI (`/admin/communication-hub/go-live`) with the currently selected test event and its approved recipient:
-   - Switch to Safe Testing → Select event → Check Everything → Prepare Preview → Approve Preview → Run Dry Test → Switch to Controlled Testing → Run Controlled Stub → reread durable evidence.
-   - Do NOT proceed to Step 6.
-5. Report: module/event, masked recipient, snapshot+approval IDs, dry-test cert ID, stub exec no, grant status, request no, counts, `provider_mode_used`, `provider_adapter_invoked`, `external_provider_call_attempted`, cleanup, final mode, certification ID + kind, replay result, row-count deltas.
+## Completion Markers
 
-## Result codes returned to you
-- `GL_NOW_CONTROLLED_STUB_CERTIFIED` — connected stub run passed and reread.
-- `GL_NOW_CONTROLLED_STUB_READY` — code/tests green, connected run blocked by missing event/recipient/permission.
-- `NO_GO` — any safety, idempotency, evidence, or external-call requirement incomplete.
+- Return **`GL_NOW_CONTROLLED_STUB_CERTIFIED`** if the connected run produces a `CONTROLLED_STUB` certification with all invariants verified from durable DB reread and zero external provider calls.
+- Return **`GL_NOW_CONTROLLED_STUB_READY`** if code, tests, typecheck, build all pass but the connected run is blocked by genuine credential/permission/deployment/event-config.
+- Return **`NO_GO`** on any environment leak, retry-safety regression, idempotency gap, or missing authoritative certification.
 
-## Technical notes
+## Technical Notes
 
-- Files touched:
-  ```text
-  supabase/functions/comm-hub-controlled-live-test/index.ts   (action contract, mode gate, envelope)
-  supabase/migrations/<new>.sql                                (certification_kind column + backfill + RPC updates)
-  src/platform/communication-hub/controlledLiveTestService.ts (split fns, new types, zod)
-  src/pages/admin/communicationHub/controlCenter/
-      ControlledStubPanel.tsx                                  (new)
-      OneRealEmailPanel.tsx                                    (renamed from ControlledLivePanel.tsx, locked)
-      _shared/*.tsx                                            (extracted rows/evidence/blockers)
-  src/pages/admin/communicationHub/goLive/GoLivePage.tsx      (Step 5/6 wiring, completion criteria)
-  src/platform/communication-hub/useStageReadiness.ts         (lock reasons)
-  src/__tests__/comm-hub/* + platform/communication-hub/__tests__/*  (new + updated)
-  ```
-- Backward compat: legacy `allowRealEmail` accepted for one release with deprecation warning surfaced in envelope; `runControlledLiveTest` client wrapper maps to stub only.
-- Idempotency scope for stub run is the existing `(execution, idempotency_key)` unique index; no new dedupe key.
-- All new blocker codes: `one_real_email_locked`, `mode_not_controlled_live`, `stub_provider_route_violation`, `stub_evidence_incomplete`, `stub_certification_kind_mismatch`.
-
-Awaiting approval before I start Slice A.
+- Migrations are additive; existing columns preserved.
+- No changes to `SEND_ONE_REAL_EMAIL` path other than certification-kind precondition.
+- No auto mode transitions inside the orchestrator; operator must switch to `CONTROLLED_LIVE` via Go Live selector.
+- No secrets returned to the browser; edge functions handle credentials.
+- Estimated: ~2 migrations, ~4 edge-function edits, ~3 service updates, ~2 UI components, ~6 new/updated test files.
