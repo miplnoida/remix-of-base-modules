@@ -2014,8 +2014,20 @@ async function processTargetedControlledLive(admin: any, body: TargetedControlle
   const startedAt = new Date().toISOString();
   const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const env: TargetedControlledLiveEnvelope = {
+    schema_version: CONTROLLED_DISPATCH_SCHEMA_VERSION,
+    operation: "targeted_controlled_live",
+    action: null,
     status: "BLOCKED",
+    passed: false,
     idempotent_replay: false,
+    retry_safe: false,
+    automatic_retry_allowed: false,
+    existing_message_dispatchable: false,
+    requires_new_execution: false,
+    requires_new_grant: false,
+    requires_new_preview: false,
+    requires_new_dry_run: false,
+    reconciliation_required: false,
     request_id: null,
     message_id: null,
     delivery_attempt_id: null,
@@ -2025,14 +2037,20 @@ async function processTargetedControlledLive(admin: any, body: TargetedControlle
     grant_status: null,
     original_decision_id: null,
     revalidation_decision_id: null,
+    provider_adapter_invoked: false,
     provider_call_attempted: false,
+    external_provider_call_attempted: false,
+    simulated: false,
     provider_name: null,
     provider_message_id: null,
     provider_status: null,
     provider_response_safe: null,
     recipient_set_hash: null,
     subject_hash: null,
+    body_html_hash: null,
+    body_text_hash: null,
     body_hash: null,
+    content_hash: null,
     blockers: [],
     warnings: [],
     started_at: startedAt,
@@ -2045,22 +2063,67 @@ async function processTargetedControlledLive(admin: any, body: TargetedControlle
     message?: string,
     status: TargetedControlledLiveEnvelope["status"] = "BLOCKED",
     http = 200,
+    extras: Partial<TargetedControlledLiveEnvelope> = {},
   ) => {
     env.status = status;
     env.failure_stage = stage;
     env.completed_at = new Date().toISOString();
-    env.blockers.push({ code, stage, message });
+    // Deduplicate by (code, stage) — the first precise blocker wins.
+    if (!env.blockers.some((b) => b.code === code && (b.stage ?? "") === stage)) {
+      env.blockers.push({ code, stage, message });
+    }
+    Object.assign(env, extras);
     return json(env, http);
   };
 
+  // 0.a Explicit action contract — validated BEFORE any DB read so a
+  // missing/invalid action can never mutate durable state. Also gates
+  // SEND_ONE_REAL_EMAIL, which is a separate release path.
+  const rawAction = typeof body?.action === "string" ? body.action.trim() : "";
+  if (!rawAction) {
+    return block(
+      "action_validation",
+      ACTION_BLOCKER_CODES.TARGETED_ACTION_MISSING,
+      "targeted_controlled_live requires an explicit `action`.",
+      "BLOCKED",
+      400,
+      { requires_new_execution: true, requires_new_grant: true, retry_safe: true },
+    );
+  }
+  if (!(CONTROLLED_DISPATCH_ACTIONS as readonly string[]).includes(rawAction)) {
+    return block(
+      "action_validation",
+      ACTION_BLOCKER_CODES.TARGETED_ACTION_INVALID,
+      `Unknown action '${rawAction.slice(0, 60)}'.`,
+      "BLOCKED",
+      400,
+      { requires_new_execution: true, requires_new_grant: true, retry_safe: true },
+    );
+  }
+  const action = rawAction as ControlledDispatchAction;
+  env.action = action;
+  if (action === "SEND_ONE_REAL_EMAIL") {
+    return block(
+      "action_validation",
+      ACTION_BLOCKER_CODES.REAL_EMAIL_ACTION_NOT_ENABLED,
+      "SEND_ONE_REAL_EMAIL is not enabled on the dispatcher in this release.",
+      "BLOCKED",
+      400,
+      { requires_new_execution: true, requires_new_grant: true, retry_safe: false },
+    );
+  }
+
   if (!body?.messageId || !uuidRe.test(body.messageId)) {
-    return block("input_validation", "message_id_invalid", undefined, "BLOCKED", 400);
+    return block("input_validation", "message_id_invalid", undefined, "BLOCKED", 400,
+      { requires_new_execution: true, requires_new_grant: true, retry_safe: true });
   }
   if (!body?.executionId || !uuidRe.test(body.executionId)) {
-    return block("input_validation", "execution_id_invalid", undefined, "BLOCKED", 400);
+    return block("input_validation", "execution_id_invalid", undefined, "BLOCKED", 400,
+      { requires_new_execution: true, requires_new_grant: true, retry_safe: true });
   }
   if (!body?.grantId || !uuidRe.test(body.grantId)) {
-    return block("input_validation", "grant_id_invalid", undefined, "BLOCKED", 400);
+    return block("input_validation", "grant_id_invalid", undefined, "BLOCKED", 400,
+      { requires_new_execution: true, requires_new_grant: true, retry_safe: true });
   }
 
   const messageId = body.messageId!;
@@ -2069,6 +2132,7 @@ async function processTargetedControlledLive(admin: any, body: TargetedControlle
   env.message_id = messageId;
   env.execution_id = executionId;
   env.grant_id = grantId;
+
 
   // 1. Load message.
   const { data: msg, error: msgError } = await admin
