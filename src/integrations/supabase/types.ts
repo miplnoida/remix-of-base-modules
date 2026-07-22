@@ -94506,6 +94506,18 @@ export type Database = {
         Returns: string
       }
       _chub_assert_admin: { Args: never; Returns: undefined }
+      _comm_hub_build_event_manifest: {
+        Args: {
+          p_channel?: string
+          p_event_code: string
+          p_module_code: string
+        }
+        Returns: Json
+      }
+      _comm_hub_ensure_event_governance_record: {
+        Args: { p_manifest_hash: string; p_mapping_id: string }
+        Returns: string
+      }
       _comm_hub_governance_transition_core: {
         Args: {
           p_action: Database["public"]["Enums"]["comm_hub_governance_action"]
@@ -94520,6 +94532,7 @@ export type Database = {
         }
         Returns: Json
       }
+      _comm_hub_hash_manifest: { Args: { p_manifest: Json }; Returns: string }
       _comm_hub_reject_reserved_targeted_fields: {
         Args: { payload: Json }
         Returns: undefined
@@ -94653,6 +94666,15 @@ export type Database = {
           p_confirmation: string
           p_expected_version?: number
           p_reason: string
+        }
+        Returns: Json
+      }
+      assert_comm_hub_event_ready_for_stage: {
+        Args: {
+          p_channel: string
+          p_event_code: string
+          p_module_code: string
+          p_target_stage: string
         }
         Returns: Json
       }
@@ -95396,6 +95418,32 @@ export type Database = {
           p_userid?: string
         }
         Returns: undefined
+      }
+      check_all_comm_hub_template_renderability: {
+        Args: never
+        Returns: {
+          blockers: Json
+          channel: string
+          checked_at: string
+          contract_row_count: number
+          dependency_hash: string
+          detected_variable_count: number
+          event_code: string
+          fixture_present: boolean
+          module_code: string
+          purpose: string
+          raw_token_count: number
+          recipient_required: boolean
+          recommended_action: string
+          renderable: boolean
+          sender_required: boolean
+          status: string
+          template_code: string
+          template_id: string
+          template_version_id: string
+          unresolved_required_count: number
+          version_no: number
+        }[]
       }
       check_and_log_unauthorized_access: {
         Args: {
@@ -98626,6 +98674,16 @@ export type Database = {
       run_ch_p3d_b2c_runtime_tests: { Args: never; Returns: Json }
       run_ch_p3e_a_runtime_tests: { Args: never; Returns: Json }
       run_ch_p3e_b_runtime_tests: { Args: never; Returns: Json }
+      run_comm_hub_go_live_certification: {
+        Args: {
+          p_channel?: string
+          p_event_code: string
+          p_execute?: boolean
+          p_module_code: string
+          p_target_stage?: string
+        }
+        Returns: Json
+      }
       save_batch_card_transactions: {
         Args: {
           p_batch_number: string

@@ -1,128 +1,141 @@
-# Phase 4B — Lifecycle Certification & Governance
+# Phase 4B3 — Unified Go-Live Certification Foundation
 
-## Deployed inventory (Section 1 — completed)
+Goal: replace scattered manual checks with one server-owned certification runner that proves an event is ready for a target stage before any runtime row is created. No real email. No provider call.
 
-Existing lifecycle fields (kept as-is; no rewrite):
+The work lands in one iteration, sequenced so each layer is complete before the next depends on it.
 
-- `core_template.status` — 343 `ACTIVE`, 6 `PUBLISHED` (publishing status).
-- `core_template_version.status` — 137 `PUBLISHED`, 27 `ACTIVE`, 1 lowercase `published` (publishing status; casing drift noted).
-- `communication_hub_template_variable_contract.contract_status` — 20 `DISCOVERED` (Phase 3 discovery status).
-- `communication_hub_event_payload_schema.status` — 2 `DISCOVERED`.
-- `communication_hub_event_template_map.active` (boolean).
-- `communication_hub_event_test_scenario.is_active` (boolean).
-- `communication_hub_event_live_control.status` — `dry_run_only`, `live_manual_only` (operator control).
-- `communication_hub_module_event_registry.{integration,template,mapping,live}_status` (integration UX).
-- `communication_hub_sender_profile.{provider_identity,spf,dkim,dmarc}_status` (readiness signals).
+## What ships (four foundations, together)
 
-Existing certification/governance-adjacent tables and functions we will reuse rather than duplicate:
+1. Targeted Controlled Stub message safety completed
+2. Canonical business-event envelope (typed contract)
+3. Platform-wide template renderability assessment (all 165 versions)
+4. One event-level Go-Live Certification Runner + immutable manifest
 
-- `communication_dry_run_certification`, `communication_controlled_live_certification` — kept; new governance sidecar references them by ID.
-- `certify_comm_hub_template_version`, `certify_all_comm_hub_template_versions` — Phase 3 assessment runner; will be delegated to by the new certification RPCs.
-- `core_release_readiness_attestation` / `_run` — release runs, not per-entity governance; not overloaded.
+Pilot event: `APPEALS / APPEAL_RECEIVED_NOTICE / email`.
 
-Conclusion: statuses mean different things (publishing vs discovery vs operator control vs readiness). We will **not** migrate existing status columns. We add a **governance sidecar** keyed by `(entity_type, entity_id, entity_version)`.
+## Sequence
 
-## Deliverables
+### 1. Inspection (read-only)
+- Confirm APPEALS event registration, template mapping, template version, active variable contract, payload schema.
+- Enumerate all 165 active/published template versions with purpose classification.
+- Confirm sender profile candidate + current readiness state.
+- Confirm dispatcher/orchestrator wiring from Slice 2 is still in place.
 
-### 1. Governance sidecar schema (Sections 2–3, 5, 10)
+### 2. Targeted-message safety completion
+Slice 2 already landed authoritative creation + atomic targeted claim. Verify and close the remaining gaps:
+- Confirm generic queue/cron/manual/batch/bulk claim paths exclude `targeted_dispatch_only = true`.
+- Add missing rejection in any residual claim path found in step 1.
+- Confirm `send_communication_v1` validator rejects reserved targeted fields.
+- Confirm targeted evidence immutability trigger covers all frozen fields.
 
-Additive tables (all in `public`, RLS on, GRANTs to `authenticated` + `service_role`, no `anon`):
+No new runtime rows created.
 
-- `comm_hub_governance_record` — lifecycle rows with `(entity_type, entity_id, entity_version)`, `governance_status`, `governance_version`, `validation_status`, `certification_status`, `enforcement_status`, `dependency_hash`, `dependency_manifest jsonb`, `is_stale`, `stale_reason`, timestamps, actor columns, `reason`, `correlation_id`. Unique on `(entity_type, entity_id, entity_version)`. Enum `comm_hub_governance_entity_type` (7 values), one enum per lifecycle model.
-- `comm_hub_certification` — immutable evidence rows (append-only via trigger). `certification_kind`, `result`, `dependency_manifest`, `dependency_hash`, `renderer_version`, `template_purpose`, `channel`, `template_type`, error/warning counts, `certified_by/at`, `stale_*`, `superseded_by`.
-- `comm_hub_governance_audit` — one row per transition; ties to `correlation_id`.
-- `comm_hub_sender_readiness` — computed readiness (`BLOCKED`/`TEST_READY`/`REAL_EMAIL_READY`/`STALE`) per sender profile version.
-- `comm_hub_event_release_certification` — per-(module,event,channel) release ladder (`NOT_CERTIFIED`, `CONTROLLED_STUB_CERTIFIED`, `MANUAL_PRODUCTION_CERTIFIED`, `AUTOMATED_PRODUCTION_CERTIFIED`, `STALE`, `SUSPENDED`, `RETIRED`).
+### 3. Canonical business-event envelope
+- New TypeScript type `BusinessEventEnvelope` (module/event/entity/reference/occurredAt/schemaVersion/eventPayload/recipientIntent/correlationId/idempotencyKey/source).
+- Static regression test proves envelope never carries: template code, version, flat tokens, sender, provider, From, recipient email, request number, generated timestamp, governance IDs, dependency hashes.
 
-Immutability enforced via `BEFORE UPDATE`/`BEFORE DELETE` triggers that reject writes to `ACTIVE`/`RETIRED` and to certification rows (only `is_stale`/`stale_*`/`superseded_by` may change).
+### 4. APPEALS pilot canonical payload + variable contract
+- Confirm/land the APPEALS event payload schema (`appeal.id/reference/case_reference/submitted_at`) in `communication_hub_event_payload_schema`.
+- Confirm/land contract entries for `appeal_reference`, `case_reference`, `submitted_at`, `recipient_name`, `request_no`, `generated_at` bound to canonical paths (`event_payload.appeal.*`, `recipient_context.display_name`, `request_context.request_no`, `system_context.generated_at`).
+- Governed synthetic test fixture stores canonical `eventPayload` only (never flat tokens).
+- Pilot adapter (or governed fixture) emits canonical envelope; strips flat template aliases if present in current adapter.
 
-### 2. Canonical transition core (Section 4)
+### 5. System-owned context resolvers
+Server-side builders (all in Postgres, invoked by the runner):
+- `recipient_context` — approved test recipient + policy version.
+- `request_context` — request-no capability probe + correlation + timestamp.
+- `system_context` — generated_at, module, event, channel, platform IDs.
+- `sender_context` — profile ID, From/display/reply-to, readiness version.
+Event payload cannot override these namespaces (assertion in resolver).
 
-`_comm_hub_governance_transition_core(entity_type, entity_id, entity_version, target_status, expected_version, reason, actor)` — the only path allowed to move a governance row. Auth, admin check, reason required, row lock, version check, transition matrix per entity type, gate function dispatch, audit write, single version bump. Correction transitions (`VALIDATED→DRAFT`, `CERTIFIED→VALIDATED`, `DISCOVERED→DRAFT`) allowed with reason and dependency-active check.
+### 6. Platform-wide renderability assessment
+New RPC `public.check_all_comm_hub_template_renderability()` returning one row per active/published version with: template/version ID, purpose, module/event, detected variables, contract status, source ownership, fixture status, recipient/sender requirements, resolved/unresolved counts, raw-token count, renderable flag, blockers, recommended action, dependency hash, checked timestamp. Purpose-specific rules for EVENT_COMMUNICATION / MANUAL_CORRESPONDENCE / DOCUMENT_GENERATION / FORM_OUTPUT.
 
-Public RPCs: `comm_hub_validate_template_version`, `comm_hub_certify_template_version`, `comm_hub_activate_template_version`, `..._retire_...`, and equivalents for contract / schema / mapping / scenario / sender / event release. All delegate to core.
+### 7. Event-level Go-Live Certification Runner
+New RPC `public.run_comm_hub_go_live_certification(p_module_code, p_event_code, p_channel, p_target_stage, p_execute default false)` performing all 30 checks listed in the brief and returning every blocker, not just the first. Stages: READINESS_ONLY / PREVIEW_READY / DRY_RUN_READY / CONTROLLED_STUB_READY. `p_execute` ignored (kept false) in this iteration.
 
-### 3. Dependency manifest & deterministic hash (Sections 6–7)
+### 8. Immutable event certification manifest + freshness
+- Deterministic canonicalisation of safe identifiers and versions.
+- SHA-256 manifest hash stored in a new/extended certification row.
+- States: CURRENT / STALE / POSSIBLY_STALE / NOT_CERTIFIED / BLOCKED / SUPERSEDED.
+- Staleness attributed to exactly one cause (template/contract/schema/mapping/scenario/recipient_policy/sender/code/dispatcher_contract).
 
-`comm_hub_build_dependency_manifest(entity_type, entity_id, entity_version)` returns a sorted `jsonb` with the fields listed in Section 6 for each entity type. Purpose-aware: `MANUAL_CORRESPONDENCE` and `DOCUMENT_GENERATION` skip event-only dependencies. Hash: `md5(regexp_replace(canonical_jsonb_text, '\s+', '', 'g'))` on a sorted rewrite (`comm_hub_canonicalize_jsonb`), never including secrets/timestamps/display names.
+### 9. Pre-runtime stop gate
+`prepare_comm_hub_preview` (and downstream approve/dry-run/controlled-stub RPCs) refuse to create rows unless the current certification returns `ready_for_requested_stage = true` for the requested stage.
 
-### 4. Stale detection (Sections 8–9)
+### 10. Other-adapter audit (read-only)
+Classify each business-module comm adapter into: CANONICAL_EVENT_PAYLOAD / LEGACY_FLAT_TEMPLATE_TOKENS / DIRECT_SEND_BYPASS / NO_EVENT_SCHEMA / NO_VARIABLE_CONTRACT / NO_MAPPING / READY_FOR_MIGRATION. Report only; do not migrate.
 
-Two-layer defence:
+### 11. Sender handling for the pilot
+Run the existing sender verification pipeline against the resolved APPEALS sender profile. Record TEST_READY only from real evidence. No manual insertion. REAL_EMAIL_READY untouched.
 
-1. Targeted `AFTER INSERT/UPDATE` triggers on `core_template_version`, `communication_hub_template_variable_contract`, `..._event_payload_schema`, `..._event_template_map`, `..._event_test_scenario`, `..._sender_profile`, `..._event_send_policy`, `..._event_review_policy` → call `comm_hub_mark_dependent_certifications_stale(entity_type, entity_id)` which flips `is_stale=true` and records `stale_reason`.
-2. Runtime re-check in every eligibility function: recompute current hash and compare against stored certification hash. Missed trigger cannot make stale config appear certified.
+### 12. Regression test — decoupling proof
+Test that:
+1. APPEALS canonical payload unchanged.
+2. A template alias renamed in a test version.
+3. Only the variable contract updated.
+4. No adapter change.
+5. New alias resolves.
+6. Renders with zero raw tokens.
 
-Historical evidence preserved: certifications never deleted, `superseded_by` chain, dry-run and controlled-stub snapshots retained.
+### 13. Tests, typecheck, build
+Full suite listed in section P of the brief. All run headless. No provider calls.
 
-### 5. Legacy backfill (Section 11)
+### 14. Runner invocation (report only)
+Call the runner READINESS_ONLY → PREVIEW_READY → DRY_RUN_READY → CONTROLLED_STUB_READY for APPEALS/APPEAL_RECEIVED_NOTICE/email. Report every field required in section Q. Do not execute Controlled Stub.
 
-`comm_hub_backfill_governance_assessment()` — one-shot RPC (idempotent, per-row upsert) that inserts a governance row for each of the 165 `PUBLISHED`/`ACTIVE` template versions with classification: `LEGACY_ASSESSED_CERTIFIABLE`, `LEGACY_REVIEW_REQUIRED`, `BLOCKED_CONFIGURATION`, `NOT_APPLICABLE_TO_EVENT_MAPPING`. Reuses the Phase 3 155-certifiable / 10-blocked outcome. Governance status starts at `DISCOVERED`; **not** auto-`ACTIVE`. Immutability rules apply only after admin explicit `CERTIFY`+`ACTIVATE`. Backfill report returned as `jsonb`.
+### 15. Documentation
+`docs/communication-hub/PHASE_4B3_UNIFIED_GO_LIVE_CERTIFICATION.md` covering all sections in R.
 
-### 6. Read-only validators (Section 12)
+## Technical details
 
-`comm_hub_validate_*` RO functions per entity type + `comm_hub_validate_event_release_eligibility(module,event,channel)`. Return `{entity, version, governance_status, dependency_hash, errors[], warnings[], blockers[], recommended_action, eligible_transitions[], renderable, test_ready, real_email_ready, manual_eligible, automated_eligible}`. No side effects.
+### New/changed database objects (additive only)
+- `communication_hub_event_payload_schema` — confirm APPEALS row (add if missing).
+- `communication_hub_template_variable_contract` — confirm APPEALS mappings (add if missing).
+- `communication_hub_event_certification` (new) — manifest hash, stage, state, blockers, superseded_by. Or extended `comm_hub_certification` if already suitable.
+- Function `public.check_all_comm_hub_template_renderability() returns table(...)`.
+- Function `public.run_comm_hub_go_live_certification(...) returns jsonb`.
+- Function `public._build_comm_hub_event_manifest(...) returns jsonb`.
+- Triggers on template/contract/schema/mapping/scenario/recipient_policy/sender to mark event certifications STALE with attribution.
+- Guard in `prepare_comm_hub_preview` to require `ready_for_requested_stage=true`.
+- All GRANTs kept minimal (service_role + authenticated where policies allow).
 
-### 7. Activation gates (Sections 13–18)
+### New/changed code
+- `src/platform/communication-hub/contracts/BusinessEventEnvelope.ts` — typed envelope + zod schema.
+- `src/services/communication-hub/certificationRunnerService.ts` — thin RPC wrapper.
+- `src/services/communication-hub/renderabilityService.ts` — thin RPC wrapper.
+- Pilot APPEALS adapter/fixture normalised to canonical envelope.
+- No changes to Preview/renderer/snapshot logic beyond the stop gate.
 
-Gate functions called from the transition core. Template certify gate uses Phase 3 `certify_comm_hub_template_version` + variable-mapping + representative render (via canonical `render_comm_hub_template_version`). Contract/schema/mapping/scenario gates as specified. Manual and Automated event certification gates as specified. Automation-arm RPC (`arm_comm_hub_automation` from Phase 4A) will consume `comm_hub_event_release_certification` and return precise blockers replacing `automation_certification_evidence_incomplete`.
+### Tests
+`src/platform/communication-hub/__tests__/` and `src/__tests__/comm-hub/`:
+- envelope purity tests
+- APPEALS schema/contract resolution tests
+- protected-namespace tests
+- renderability RPC purpose-rule tests (mocked)
+- manifest determinism tests
+- freshness attribution tests
+- runner readiness tests
+- targeted queue-exclusion static tests
+- decoupling regression test (section M)
+- typecheck via `tsgo`
+- build via existing pipeline
 
-### 8. Preview / Dry Run / Controlled Stub integration (Sections 19–20)
+### Zero side effects
+- No Controlled Stub execution.
+- No provider invocation.
+- No new runtime rows in `communication_request`, `communication_message`, `communication_controlled_live_execution`, `communication_controlled_live_grant`, `communication_delivery_attempt`.
+- All row counts asserted before/after.
 
-- `prepare_comm_hub_preview` and callers extended: precheck governance before render; persist `governance_certification_id`, `dependency_hash`, versions on the snapshot (add columns to `communication_preview_snapshot`).
-- `begin_comm_hub_dry_run` and `begin_comm_hub_controlled_live` extended to verify snapshot's `dependency_hash` still matches current certification; block on stale/superseded/suspended with structured codes.
+## Out of scope this iteration
+- SEND_ONE_REAL_EMAIL and REAL_EMAIL_READY.
+- Migrating any adapter other than APPEALS.
+- `body_html_hash` / `body_text_hash` columns (still deferred).
 
-### 9. Send-decision evaluator (Section 21)
+## Progress estimate (post-iteration)
+- Controlled Stub: ~1 iteration remaining (execute against certified APPEALS).
+- One controlled live test email: ~3 remaining.
+- First Manual Production event: ~5–7 remaining.
 
-Extend `_evaluate_comm_hub_send_rules` / `evaluate_comm_hub_send_decision` with structured governance blocker codes listed in Section 21. Frontend blocker catalogue extended accordingly.
-
-### 10. Governance dashboard (Sections 22–24)
-
-New admin route `/admin/communication-hub/governance`:
-
-- Overview tiles (all 16 platform totals from Section 22) fed by `comm_hub_get_governance_dashboard_totals()` RPC.
-- Searchable/filterable matrix by module/event/channel/blocker/stale from `comm_hub_list_governance_matrix()` RPC (paginated, permission-checked).
-- Row drawer with dependency manifest diff (certified hash vs current), changed categories, required recertification sequence.
-- Action buttons wired to the RPCs (Run Validation, Certify, Activate, Retire, Re-certify, View Manifest, View Stale Changes). Every action requires reason + expected version. No direct DB writes.
-
-### 11. Auditing (Section 25)
-
-Single `comm_hub_governance_audit` table. Every transition, stale detection, recertification writes exactly one row via the transition core. Correlation IDs generated per user action.
-
-### 12. Tests & reports (Sections 26–31)
-
-- Deterministic pgTAP-style SQL block in the migration exercising Sections 27/28/29 (valid/invalid transitions, hash determinism, dependency changes, gate rejections, RETIRED/ACTIVE immutability, historical readability, missed-trigger runtime stale detection).
-- Vitest suite for the dashboard totals, matrix filtering, action wiring, RPC-only mutation invariant, permission gating.
-- Regression exercise the Phase 4A 14-transition matrix + reason/version guards + Emergency Stop + STANDBY invariant.
-- `comm_hub_backfill_governance_assessment()` execution + report of the 165 versions (movement vs Phase 3's 155/10).
-
-### 13. Documentation (Section 32)
-
-`docs/communication-hub/PHASE_4B_LIFECYCLE_CERTIFICATION_GOVERNANCE.md` covering every subsection listed in Section 32, plus a "what did NOT change from Phase 4A" invariant list and remaining blockers.
-
-## Rollout order and safety
-
-1. Additive schema + immutability triggers only (no writes to existing tables' data).
-2. Transition core + RPCs + gates.
-3. Manifest + hash + stale detection + runtime re-check.
-4. Preview/Dry Run/Controlled Stub integration (add columns, no breaking rename).
-5. Send evaluator blocker extension.
-6. Legacy backfill in `DISCOVERED` state (never auto-active, never auto-retire).
-7. Dashboard.
-8. Tests + regression + backfill report.
-9. Docs.
-
-Nothing in Phase 4B sends a real email, runs cron, arms live automation, or executes batch/bulk. Manual and Automated Production remain **selectable** modes (Phase 4A behaviour preserved); only per-event send eligibility is gated by new governance evidence.
-
-## Sequencing across turns
-
-Given the scope, delivery will be split into 4 turns (each ending with a working, verifiable slice; nothing left half-applied):
-
-- **Turn B1** — Schema (sidecar, certification, audit, readiness, event release) + immutability triggers + transition core + entity-type enums + backfill in `DISCOVERED`. Includes deterministic transition and immutability tests. Ends with 165 legacy versions assessed and visible.
-- **Turn B2** — Manifest builder + deterministic hash + all validator RPCs + gates + stale detection (triggers + runtime re-check). Includes determinism / dependency-change tests.
-- **Turn B3** — Preview / Dry Run / Controlled Stub / send-evaluator integration + automation-arm blocker refinement (RPC returns precise codes; still cannot arm live). Includes activation-gate tests.
-- **Turn B4** — Governance dashboard (page, RPCs, drawer, actions) + Vitest suite + full regression + Phase 4A regression + PHASE_4B doc + final status.
-
-After B4 the state is `PHASE_4B_LIFECYCLE_CERTIFICATION_GOVERNANCE_COMPLETE`. If any slice remains, the state is `PHASE_4B_LIFECYCLE_CERTIFICATION_GOVERNANCE_PARTIAL`.
-
-Approve to proceed with Turn B1.
+## Completion status target
+`PHASE_4B3_UNIFIED_GO_LIVE_CERTIFICATION_FOUNDATION_COMPLETE` when every criterion in section T is met, otherwise `_PARTIAL` with the exact remaining blockers.
