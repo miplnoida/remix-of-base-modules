@@ -1,107 +1,57 @@
+# CH-GL-02 — Finish Safe Testing & Controlled Stub, lock Manual/Automated Production
 
-# CH-SIMPLE-P3F — Unified Go Live Journey + P3E Status Correction
+You explicitly told me not to return another "spine-only" result. Doing everything you listed in a single turn — new PG functions, migrations, UI rewrite, 20+ new tests, full repo typecheck, live cert against the DB — would force exactly that outcome. So I'm proposing to execute this in **four sequential slices**, each ending with a verifiable artifact, before returning any `GL_NOW_*` marker. I will not send a real email, invoke a provider, or unlock production at any point.
 
-## Part A — P3E status correction (small, mechanical)
+## Slice A — Pure evaluator + genuinely read-only readiness (DB)
 
-Reason: no real provider call ever occurred, so any label implying manual delivery confirmation is invalid. New authoritative status is **P3E_STUB_CERTIFIED**.
+Files / migrations:
+- New migration: create `public._evaluate_comm_hub_send_rules(p_payload jsonb) returns jsonb`. Extracted verbatim from the current core rule body of `_evaluate_comm_hub_send_decision_core`; no `INSERT/UPDATE/DELETE`, no `decision_id` minted as durable evidence.
+- Rewrite `public.evaluate_comm_hub_send_decision` to: call `_evaluate_comm_hub_send_rules`, then persist a row in `communication_hub_send_decision_log` (unchanged shape) and return the persisted id. Keeps the existing structural guard test green (still reads `allowed`, still passes `to/cc/bcc`).
+- Rewrite `public.check_comm_hub_readiness` to call `_evaluate_comm_hub_send_rules` directly for the requested `target_stage`. No log row, no request, no message, no provider.
+- Test `src/__tests__/comm-hub/readinessReadOnly.test.ts`: snapshots row counts across the 7 tables you listed, invokes readiness for each of the five stages, asserts deltas are all `0`.
 
-Files to update:
-- `docs/communication-hub/CH-SIMPLE-P3E-C.md` — replace the top-of-file status and progression note. Add the valid progression list:
-  `P3E_NOT_CERTIFIED → P3E_STUB_CERTIFIED → P3E_PROVIDER_ACCEPTED → …_WITH_MANUAL_DELIVERY_CONFIRMATION → P3E_CONTROLLED_LIVE_CERTIFIED`.
-- `docs/communication-hub/COMMUNICATION_HUB_MASTER_IMPLEMENTATION_REPORT.md` — same correction where P3E is reported.
-- Any status text rendered in `ControlledLivePanel.tsx` that reads "manual delivery confirmation certified" for stub runs — change to "Provider stub certified. Real provider delivery not yet certified." No behavioural change; the certification RPC already only issues records when a real provider run happened.
-- Do NOT delete existing stub-produced rows in `communication_controlled_live_certification`; they were issued only for provider-accepted paths, which is correct. Just make sure no UI/doc labels a stub run as "manual-delivery-confirmed".
+Ends with: `_evaluate_comm_hub_send_rules` proven pure; readiness proven zero-write.
 
-## Part B — Unified Go Live journey
+## Slice B — Stage-aware readiness in Go Live + fast Emergency Stop + server-side production gating
 
-### Route
+Files:
+- `readinessService.ts`: unchanged surface, but callers now request each target stage.
+- `GoLivePage.tsx`: remove the `evaluateCanonicalSendDecision({sendContext:"preview"})` shortcut. Add `useStageReadiness()` that fans out `SAFE_TESTING`, `CONTROLLED_STUB`, `ONE_REAL_EMAIL`, `MANUAL_PRODUCTION`, `AUTOMATED_PRODUCTION` in one coordinated refresh; hook re-runs on focus and after every mode/Fix return.
+- New `ReadinessSummary.tsx` groups: Platform, Event setup, Safe Testing, Controlled Testing, Manual Production, Automated Production. Statuses: Ready / Needs attention / Blocked / Complete / Not applicable. All blockers shown together. Raw codes moved under Advanced Diagnostics.
+- `ReleaseModeCards.tsx`: Manual/Automated cards visibly locked with the exact missing certification reason from readiness; Emergency Stop replaces typed-phrase with a single impact-confirm dialog, default reason `"Emergency Stop activated from Go Live"`, skips readiness precheck, works when readiness itself failed.
+- Migration extending `apply_communication_release_mode`: accept `p_module_code`, `p_event_code`, `p_channel`; when target is `MANUAL_PRODUCTION` or `AUTOMATED_PRODUCTION`, validate corresponding event certification and `live_manual_only` / `live_cron_allowed` eligibility — raise `mode_requires_event_certification` when missing. Safe Testing / Controlled Testing / Emergency Stop paths unchanged.
+- One recommended action: server `availableActions` mapped to a single primary CTA on the page.
+- Tests: stage readiness fan-out; mode-card lock states; server refuses uncertified production mode; Emergency Stop has no typed phrase and succeeds when readiness fails.
 
-- Add route `/admin/communication-hub/go-live` in `src/App.tsx` (or the admin router where Comm Hub routes live), lazy-loaded.
-- Component: `src/pages/admin/communicationHub/goLive/GoLivePage.tsx`.
+## Slice C — Nine-stage journey + Controlled Stub certification path
 
-### Page shape
+Files:
+- `GoLivePage.tsx` steps rewritten to nine stages (Select Event, Check Everything, Preview & Approve, Run Dry Test, Run Controlled Stub, Send One Real Email, Activate Manual Production, Activate Automated Production, Review & Complete). Stages 6–8 render as `Locked — <exact prerequisite>`; never labelled "future" or "coming soon".
+- New `ControlledStubPanel.tsx` (separate from `ControlledLivePanel.tsx`), wired to a new edge function `comm-hub-controlled-stub` (or a `mode: "stub"` fork of the existing controlled-live orchestrator) that:
+  - requires `CONTROLLED_LIVE` mode + valid Preview Approval + valid Dry Test certification + exactly one resolved recipient, no cc/bcc;
+  - does not read `COMM_HUB_PROVIDER_MODE`, `COMM_HUB_REAL_EMAIL_TEST`, or `COMMUNICATION_HUB_EMAIL_LIVE`;
+  - creates exactly one execution / grant / request / recipient / message / delivery attempt / dispatcher revalidation / simulator invocation / certification; zero external provider calls;
+  - records `provider_adapter_invoked=true`, `external_provider_call_attempted=false`, `provider_mode_used='stub'`;
+  - consumes grant, cleans up, restores prior operating mode, rereads durable evidence before certifying;
+  - idempotent replay reuses the row set.
+- Authoritative journey resume: on page mount, focus, and after any Fix, reread current mode, selected event, Preview Approval, Dry Test cert, Controlled Stub execution + cert; sessionStorage holds identifiers only.
+- Business-language blocker catalog extended for every failure surface listed (platform, event, recipient, preview, dry, stub, mode, grant, request, dispatcher, simulator, cleanup, certification). Raw codes only under Advanced Diagnostics.
+- Old direct-mode controls in Safety Switchboard / Control Center become read-only with a "Manage operating mode in Go Live" link.
+- Legacy `COMM_HUB_PROVIDER_MODE` consumers documented in `docs/communication-hub/GL_LEGACY_ENV_DEPENDENCIES.md` (not removed).
 
-Single page with a vertical stepper. Steps:
+Tests: idempotent replay; zero external provider calls; single-row set; grant consumed; mode restored; certification evidence intact; Preview expiry blocks Dry Test; Dry Run expiry blocks Controlled Stub; secrets never returned.
 
-1. **Select Event** — module + event pickers. Auto-resolves channel, template + active version, sender, provider, recipient/send/review policies, operating mode, event live status via `resolveBusinessModuleCommunicationContext` and existing config resolvers. Read-only summary card once selected.
-2. **Check Readiness** — calls `evaluateCanonicalSendDecision({ sendContext: 'preview' })` and re-uses `BlockersList` + `plainLanguageBlockers` for plain-language blockers and Fix-now links. Verdict pill: Ready / Needs Attention / Blocked. Technical codes collapsed behind a `<details>` "Technical details".
-3. **Preview & Approve** — embed existing `PreviewApprovalPanel` with the resolved context.
-4. **Run Dry Test** — embed existing `DryRunPanel` with `previewApproved` and canonical decision passed in.
-5. **Controlled Live Test** — embed existing `ControlledLivePanel`. Default label "Provider Stub Test". Real-email option is shown only when the server-reported gate is on (already handled inside the panel + orchestrator). No local flag can enable it.
-6. **Review & Complete** — new sub-component `GoLiveEvidenceSummary` rendering: event, recipient, preview status/approval id, dry-run status/certification id, controlled-live execution + certification, provider outcome, request/message/attempt/trace ids, operating mode prior/final, cleanup result. Final recommendation label chosen from the fixed set in the brief.
+## Slice D — Full verification and honest report
 
-### Step locking
+- Run full-repo `tsgo` typecheck; list any pre-existing errors separately and diff against baseline to prove no new errors introduced.
+- Run all Communication Hub unit tests + new tests + Go Live UI tests + build.
+- Attempt live cert against connected test DB by issuing a real Preview → Approve → Dry Test → Controlled Stub run through the edge function stack, then rereading `communication_dry_run_certification` and Controlled Stub certification rows.
+- Final report with every section you listed: files changed, migrations, pure vs persistent design, readiness row-count proof, mode safeguards, Emergency Stop behaviour, nine-step UI, Dry Test evidence, Controlled Stub evidence, external provider call count, remaining legacy env deps, test totals, typecheck result, build result, all blockers still standing before One Real Email.
+- Marker returned:
+  - `GL_NOW_SAFE_AND_CONTROLLED_STUB_CERTIFIED` if the connected-environment Dry Test + Controlled Stub certifications were both created and reread successfully.
+  - `GL_NOW_SAFE_AND_CONTROLLED_STUB_READY` if implementation + tests are complete but the connected run could not execute end-to-end.
+  - `NO_GO` otherwise.
 
-Local wizard state machine in `useGoLiveJourney.ts`:
-- Step N+1 locked until step N's authoritative server evidence is present:
-  - readiness step: `decision.allowed === true` for preview context
-  - preview step: `previewApprovalId` present and not expired
-  - dry-run step: valid `dryRunCertificationId` (server-derived `certified` boolean)
-  - controlled-live: enabled only when readiness (controlled_live context) allowed + preview + dry-run valid + emergency stop inactive + exactly one recipient
-- Any invalidation event (policy version change, decision refresh, cert invalidated) unlocks/relocks downstream steps by re-reading server state — no cached authorisation in localStorage.
+## Approval requested
 
-### Session state
-
-`sessionStorage` (not localStorage) key `commHub.goLive.v1` stores only: `{ moduleCode, eventCode, currentStep, previewSnapshotId, previewApprovalId, dryRunExecutionId, controlledLiveExecutionId }`. On mount, re-fetch authoritative status for each id.
-
-### Recipient handling
-
-Recipient displayed comes from `evaluate_comm_hub_recipient_policy` for the selected event only. No hardcoded address or domain. Named-recipient mode presents a single-select of active entries. Controlled Live requires exactly one To, no CC/BCC (already enforced server-side).
-
-### Fix-now routing
-
-Map blocker `fix_route` codes to routes:
-
-```
-recipient_policy    → /admin/communication-hub/settings/recipient-policy
-template_mapping    → /admin/communication-hub/events/templates
-sender_profile      → /admin/communication-hub/settings/senders
-email_provider      → /admin/communication-hub/settings/providers
-send_policy         → /admin/communication-hub/settings/send-policies
-review_policy       → /admin/communication-hub/settings/review-policies
-event_configuration → /admin/communication-hub/events
-emergency_stop      → /admin/communication-hub/settings/operating-mode
-```
-
-Actual route strings taken from existing screens if they differ. On return, readiness auto-refreshes (React Query invalidation on focus).
-
-### Overview dashboard simplification
-
-`CommunicationHubOverviewPage.tsx` (or the current overview file) reworked to show only:
-- Operating mode chip + Emergency Stop status.
-- Counts: events Ready / Blocked / awaiting Preview / awaiting Dry Run / awaiting Controlled Live (queries against send-decision log + certifications).
-- Recent delivery failures (last 10 from `communication_delivery_attempt`).
-- Recent certifications (dry-run + controlled-live).
-- Big primary CTA button linking to `/admin/communication-hub/go-live`.
-
-Existing technical links move under an "Advanced Diagnostics" collapsible section (not removed).
-
-### Manual Production
-
-Show a disabled Step 7-style card "Manual Production approval — Coming after live certification". No wiring.
-
-## Part C — Tests, docs, verification
-
-- New: `src/pages/admin/communicationHub/goLive/__tests__/GoLiveJourney.test.tsx` covering: step locking, blocker fix-route mapping, session restore, recipient auto-load, stub-vs-real label distinction, no localStorage authorisation writes.
-- Extend existing suites where step-lock invariants overlap.
-- New doc: `docs/communication-hub/COMMUNICATION_HUB_GO_LIVE_OPERATOR_GUIDE.md` (plain-language 7-step guide; explicit "do not" list).
-- Update master report + P3 gap register with:
-  - Corrected P3E status `P3E_STUB_CERTIFIED`.
-  - CH-SIMPLE-P3F landed status.
-  - Remaining navigation-consolidation follow-ups.
-
-## Technical details
-
-- No new tables. No new RPCs. All authoritative state comes from existing services: `sendDecisionService`, `previewApprovalService`, `dryRunService`, `controlledLiveTestService`, `controlledLiveCertificationService`, `recipientPolicyService`, `globalSettingsService`.
-- Route added lazily; no breaking route changes.
-- No changes to auto-generated Supabase client or migrations.
-- No real email is sent during this stage; real-email gate remains server-only.
-
-## Out of scope (explicit)
-
-- Manual Production approval logic.
-- Automated Production, cron, bulk, external recipients.
-- Removing legacy Pilots page or other technical screens (kept under Advanced Diagnostics).
-- New DB migrations.
-
-Shall I proceed to build this?
+Confirm you want me to proceed **Slice A → B → C → D in order**, each slice landing as its own reviewable set of changes. I will not advance to the next slice until the prior one typechecks and its targeted tests pass. Reply "go" (or edit the slice list) and I start with Slice A.
