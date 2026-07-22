@@ -443,7 +443,7 @@ serve(async (req) => {
     // exposing internals. Then attempt the atomic single-row claim.
     const { data: peek } = await admin
       .from("communication_message")
-      .select("id, request_id, status, origin, channel, test_mode, created_at, next_attempt_at, locked_at")
+      .select("id, request_id, status, origin, channel, test_mode, created_at, next_attempt_at, locked_at, targeted_dispatch_only, send_context")
       .eq("id", targetMessageId)
       .maybeSingle();
     // CH-TRACE-2: resolve upstream trace so target-mode failures show up in the caller's timeline.
@@ -461,6 +461,18 @@ serve(async (req) => {
       await traceStep(admin, targetTraceId, {
         stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
         blocker_codes: ["target_not_found"], message_id: targetMessageId,
+      });
+    } else if ((peek as any).targeted_dispatch_only === true
+               || (peek as any).send_context === "controlled_live") {
+      // Slice 2: targeted messages must never be claimed through the
+      // generic dispatcher path. Route through operation="targeted_controlled_live".
+      targetNoClaimReason = "target_is_targeted_dispatch_only";
+      claimed = [];
+      await traceStep(admin, targetTraceId, {
+        stage_code: "DISPATCH_CLAIM_ATTEMPTED", status: "blocked",
+        blocker_codes: ["target_is_targeted_dispatch_only"],
+        plain_summary: "targeted messages require operation=targeted_controlled_live",
+        message_id: targetMessageId,
       });
     } else if ((peek as any).origin !== "comm_hub" || (peek as any).channel !== "email") {
       targetNoClaimReason = "target_not_eligible_origin_or_channel";
