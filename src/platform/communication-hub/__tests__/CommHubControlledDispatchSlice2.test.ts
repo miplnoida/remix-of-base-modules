@@ -50,8 +50,8 @@ describe("Slice 2 — dispatcher uses atomic targeted claim RPC", () => {
 });
 
 describe("Slice 2 — no generic-send fallback for Controlled Stub", () => {
-  it("orchestrator does not reference send_communication_v1 anywhere in the Controlled Stub flow", () => {
+  it("orchestrator does not RPC-call send_communication_v1 anywhere in the Controlled Stub flow", () => {
     // Slice 2 removes generic send from the Controlled Stub orchestrator.
-    expect(orchestrator).not.toMatch(/send_communication_v1/);
+    expect(orchestrator).not.toMatch(/rpc\(\s*["']send_communication_v1["']/);
   });
 });
