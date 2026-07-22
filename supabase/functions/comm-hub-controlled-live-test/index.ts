@@ -441,32 +441,29 @@ Deno.serve(async (req) => {
   // operator drives mode transitions explicitly from the Go Live screen.
   const transitioned = false;
 
-  // Everything past this point MUST run through cleanup.
+  // Cleanup is a read-only mode confirmation: this orchestrator never
+  // mutates the operating mode. It only re-reads the current mode as
+  // evidence for the execution record.
   const cleanup = async (): Promise<{ succeeded: boolean; finalMode: string | null; error: string | null }> => {
     try {
-      const { data: r, error: restoreError } = await admin.rpc(
-        "restore_comm_hub_operating_mode_after_controlled_live",
-        { p_execution_id: executionId },
-      );
-      if (restoreError) {
-        return { succeeded: false, finalMode: null, error: errorMessage(restoreError) };
-      }
-      const ok = (r as any)?.ok === true;
       const { data: settingsAfter, error: settingsAfterError } = await admin
         .from("communication_hub_control_settings")
         .select("operating_mode")
         .eq("singleton_guard", "primary")
         .maybeSingle();
+      if (settingsAfterError) {
+        return { succeeded: false, finalMode: null, error: errorMessage(settingsAfterError) };
+      }
       return {
-        succeeded: ok && !settingsAfterError,
+        succeeded: true,
         finalMode: (settingsAfter as any)?.operating_mode ?? null,
-        error: settingsAfterError ? errorMessage(settingsAfterError)
-          : ok ? null : String((r as any)?.code ?? "restore_rpc_refused"),
+        error: null,
       };
     } catch (error) {
       return { succeeded: false, finalMode: null, error: errorMessage(error) };
     }
   };
+
 
   // Server-only grant metadata read. The operator-facing RPC
   // `admin_get_comm_hub_controlled_live_grant` requires an authenticated
