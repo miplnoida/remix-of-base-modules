@@ -791,23 +791,48 @@ Deno.serve(async (req) => {
       clearTimeout(dispatchTimeout);
     }
     const dispatchText = await dispatchRes.text();
+    const dispatchStatus = dispatchRes.status;
+    if (!dispatchText || dispatchText.length === 0) {
+      addBlocker("dispatcher_response_empty", "dispatcher",
+        `Dispatcher returned HTTP ${dispatchStatus} with an empty response body.`);
+      env.status = "DISPATCH_FAILED";
+      env.failure_stage = "dispatcher";
+      throw new Error("dispatcher_response_empty");
+    }
     let dispatchBody: any = null;
     try {
-      dispatchBody = dispatchText ? JSON.parse(dispatchText) : null;
+      dispatchBody = JSON.parse(dispatchText);
     } catch {
       addBlocker("dispatcher_response_not_json", "dispatcher",
-        `Dispatcher returned HTTP ${dispatchRes.status} with a non-JSON response.`);
+        `Dispatcher returned HTTP ${dispatchStatus} with a non-JSON response (${dispatchText.length} bytes).`);
       env.status = "DISPATCH_FAILED";
       env.failure_stage = "dispatcher";
       throw new Error("dispatcher_response_not_json");
     }
-    if (!dispatchRes.ok) {
-      addBlocker("dispatcher_http_error", "dispatcher",
-        `Dispatcher returned HTTP ${dispatchRes.status}: ${String(dispatchBody?.error ?? dispatchBody?.message ?? "request failed").slice(0, 180)}`);
+
+    // Structured envelope detection — a valid dispatcher response carries
+    // the canonical schema tag and blockers/warnings arrays. When the
+    // envelope is valid we always adopt its fields BEFORE inspecting the
+    // HTTP status, so structured 4xx/5xx business blockers survive
+    // intact (this is the fix for HTTP-status-first collapse into
+    // `dispatcher_http_error`).
+    const looksLikeEnvelope =
+      dispatchBody &&
+      typeof dispatchBody === "object" &&
+      dispatchBody.schema_version === "controlled-dispatch.v1" &&
+      dispatchBody.operation === "targeted_controlled_live" &&
+      Array.isArray(dispatchBody.blockers) &&
+      Array.isArray(dispatchBody.warnings);
+
+    if (!looksLikeEnvelope) {
+      addBlocker("dispatcher_response_contract_invalid", "dispatcher",
+        `Dispatcher returned HTTP ${dispatchStatus} with a response that did not satisfy the controlled-dispatch.v1 contract.`);
       env.status = "DISPATCH_FAILED";
       env.failure_stage = "dispatcher";
-      throw new Error("dispatcher_http_error");
+      throw new Error("dispatcher_response_contract_invalid");
     }
+
+    // Adopt structured envelope fields verbatim.
     env.delivery_attempt_id = dispatchBody?.delivery_attempt_id ?? null;
     env.dispatcher_revalidation_decision_id =
       dispatchBody?.revalidation_decision_id ?? null;
@@ -816,8 +841,18 @@ Deno.serve(async (req) => {
     env.provider_message_id = dispatchBody?.provider_message_id ?? null;
     env.provider_status = dispatchBody?.provider_status ?? null;
     env.trace_id = dispatchBody?.trace_id ?? env.trace_id;
+    if (typeof dispatchBody?.grant_status === "string") {
+      env.grant_status = dispatchBody.grant_status;
+    }
     if (Array.isArray(dispatchBody?.warnings)) env.warnings.push(...dispatchBody.warnings);
-    if (Array.isArray(dispatchBody?.blockers)) env.blockers.push(...dispatchBody.blockers);
+    if (Array.isArray(dispatchBody?.blockers)) {
+      for (const b of dispatchBody.blockers) {
+        if (b && typeof b === "object" && typeof (b as any).code === "string") {
+          addBlocker((b as any).code, (b as any).stage ?? "dispatcher", (b as any).message);
+        }
+      }
+    }
+    if (typeof dispatchBody?.retry_safe === "boolean") env.retry_safe = dispatchBody.retry_safe;
 
     const allowedDispatchStatuses = [
       "BLOCKED", "DISPATCH_FAILED", "PROVIDER_REJECTED",
@@ -830,6 +865,14 @@ Deno.serve(async (req) => {
       addBlocker("dispatcher_status_invalid", "dispatcher",
         `Dispatcher returned unsupported status ${String(dispatchBody?.status ?? "missing")}.`);
     }
+    // Retain HTTP status as safe transport metadata only.
+    if (dispatchStatus >= 400) {
+      env.warnings.push({
+        code: "dispatcher_http_status",
+        http_status: dispatchStatus,
+        message: "Structured dispatcher blocker preserved; HTTP status is transport-level metadata.",
+      });
+    }
     env.status = ds as Status;
     const positiveStatus = ds === "PROVIDER_ACCEPTED" || ds === "DELIVERY_PENDING" || ds === "DELIVERED";
     const evidenceComplete = !!env.delivery_attempt_id
@@ -841,6 +884,10 @@ Deno.serve(async (req) => {
       addBlocker("dispatcher_evidence_incomplete", "dispatcher",
         "Dispatcher reported a provider outcome without complete attempt and revalidation evidence.");
     }
+    // Only append a generic "dispatcher failed without blocker" marker
+    // when the dispatcher genuinely returned zero blockers AND we did
+    // not pass. If ANY precise blocker exists (business or transport)
+    // do NOT append the generic one — the operator would see duplicates.
     if (!env.passed && env.blockers.length === 0) {
       addBlocker("dispatcher_failed_without_blocker", dispatchBody?.failure_stage ?? "dispatcher");
     }
@@ -852,6 +899,7 @@ Deno.serve(async (req) => {
       : ds === "BLOCKED" ? "dispatch blocked by canonical revalidation"
       : "dispatch failed";
     env.failure_stage = env.passed ? null : (dispatchBody?.failure_stage ?? "dispatcher");
+
   } catch (error) {
     // Never allow a BLOCKED envelope with an empty blocker list or null stage.
     if (env.status !== "BLOCKED"
