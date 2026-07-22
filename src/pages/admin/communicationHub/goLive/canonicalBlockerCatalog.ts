@@ -244,6 +244,9 @@ const ALIASES: Record<string, string> = {
   // Sender
   sender_not_verified: "sender_not_ready",
   sender_profile_missing: "sender_not_ready",
+  controlled_live_sender_profile_missing: "sender_not_ready",
+  sender_profile_disabled: "sender_not_ready",
+  sender_profile_invalid: "sender_not_ready",
   // Provider
   provider_config_missing: "provider_not_ready",
   no_active_provider: "provider_not_ready",

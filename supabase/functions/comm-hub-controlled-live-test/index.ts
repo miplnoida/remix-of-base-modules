@@ -868,6 +868,14 @@ Deno.serve(async (req) => {
     env.message = env.message
       || "Controlled Live could not proceed before request creation.";
 
+    // Classify retry-safety for any orchestration failure caught here.
+    // Pre-provider failures with successful cleanup remain retry-safe.
+    if (!env.provider_call_attempted) {
+      const primary = env.blockers[0]?.code ?? "";
+      env.retry_safe = env.retry_safe
+        || classifyRetrySafe(env.failure_stage ?? "", primary);
+    }
+
     // Revoke the grant when the failure occurred BEFORE the request was
     // created. Never revoke after a request/message row exists — the grant
     // lifecycle transitions via consume in the dispatcher.
