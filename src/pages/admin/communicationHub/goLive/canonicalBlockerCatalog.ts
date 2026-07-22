@@ -197,6 +197,19 @@ const REVIEW_POLICY_DENIED: CanonicalBlockerEntry = {
   severity: "high",
 };
 
+const LEGACY_STUB_CONFIG: CanonicalBlockerEntry = {
+  code: "controlled_live_provider_mode_inactive",
+  title: "Legacy Controlled Stub configuration detected",
+  explanation:
+    "This older path still expects an environment provider mode. Use the current Go Live Controlled Stub action.",
+  whyItBlocks:
+    "The refreshed Controlled Stub stage selects the deterministic simulator directly from the RUN_CONTROLLED_STUB action, so no environment switch is needed.",
+  fixLabel: "Return to Go Live",
+  fixRoute: FIX_ROUTES.controlledLiveStep,
+  group: "platform",
+  severity: "medium",
+};
+
 const CATALOGUE_LIST: CanonicalBlockerEntry[] = [
   RECIPIENT_POLICY,
   TEST_RECIPIENT_NOT_RESOLVED,
@@ -211,6 +224,7 @@ const CATALOGUE_LIST: CanonicalBlockerEntry[] = [
   EMERGENCY_STOP,
   SEND_POLICY_DENIED,
   REVIEW_POLICY_DENIED,
+  LEGACY_STUB_CONFIG,
 ];
 
 /** Alias table — old / evaluator-specific codes that mean the same thing. */
@@ -250,6 +264,9 @@ const ALIASES: Record<string, string> = {
   // Send / review policy
   policy_not_approved: "send_policy_denied",
   send_policy_not_live: "send_policy_denied",
+  // Legacy Controlled Stub (superseded by explicit RUN_CONTROLLED_STUB action)
+  provider_mode_not_stub: "controlled_live_provider_mode_inactive",
+  legacy_stub_mode_required: "controlled_live_provider_mode_inactive",
 };
 
 const BY_CODE = new Map<string, CanonicalBlockerEntry>(

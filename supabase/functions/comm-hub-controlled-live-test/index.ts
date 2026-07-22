@@ -744,6 +744,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           operation: "targeted_controlled_live",
+          action: action,
           messageId: env.message_id,
           requestId: env.request_id,
           executionId,
