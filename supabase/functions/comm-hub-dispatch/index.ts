@@ -39,6 +39,12 @@ import {
   appendTraceStepSafe as traceStep,
   completeTraceSafe as traceComplete,
 } from "../_shared/commHubTrace.ts";
+import {
+  ACTION_BLOCKER_CODES,
+  CONTROLLED_DISPATCH_ACTIONS,
+  CONTROLLED_DISPATCH_SCHEMA_VERSION,
+  type ControlledDispatchAction,
+} from "../_shared/communication-hub/controlled-dispatch-contract.ts";
 
 // CH-TRACE-2: resolve the upstream trace id from a message row.
 // Traces are linked at enqueue time via link_comm_hub_trace_message (message_id)
