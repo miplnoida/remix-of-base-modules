@@ -59,20 +59,29 @@ describe("dispatcher — targeted_controlled_live action contract", () => {
   it("validates action BEFORE any DB read", () => {
     const idx = dispatcher.indexOf("processTargetedControlledLive");
     const bodyIdx = dispatcher.indexOf(".from(\"communication_message\")", idx);
-    const actionIdx = dispatcher.indexOf(ACTION_BLOCKER_CODES.TARGETED_ACTION_MISSING, idx);
+    const actionIdx = dispatcher.indexOf("ACTION_BLOCKER_CODES.TARGETED_ACTION_MISSING", idx);
     expect(actionIdx).toBeGreaterThan(0);
     expect(actionIdx).toBeLessThan(bodyIdx);
   });
-  it("emits all five action blocker codes", () => {
-    expect(dispatcher).toContain(ACTION_BLOCKER_CODES.TARGETED_ACTION_MISSING);
-    expect(dispatcher).toContain(ACTION_BLOCKER_CODES.TARGETED_ACTION_INVALID);
-    expect(dispatcher).toContain(ACTION_BLOCKER_CODES.REAL_EMAIL_ACTION_NOT_ENABLED);
+  it("references all required action blocker codes via the shared catalogue", () => {
+    expect(dispatcher).toContain("ACTION_BLOCKER_CODES.TARGETED_ACTION_MISSING");
+    expect(dispatcher).toContain("ACTION_BLOCKER_CODES.TARGETED_ACTION_INVALID");
+    expect(dispatcher).toContain("ACTION_BLOCKER_CODES.REAL_EMAIL_ACTION_NOT_ENABLED");
+    // And the catalogue itself exposes the string values operators see.
+    expect(ACTION_BLOCKER_CODES.TARGETED_ACTION_MISSING).toBe("targeted_action_missing");
+    expect(ACTION_BLOCKER_CODES.TARGETED_ACTION_INVALID).toBe("targeted_action_invalid");
+    expect(ACTION_BLOCKER_CODES.REAL_EMAIL_ACTION_NOT_ENABLED).toBe("real_email_action_not_enabled");
   });
   it("body.action is the sole authoritative action source (no payload.action fallback)", () => {
-    // payload.action was the exact undefined reference at HTTP 409. Ensure it
-    // is not reintroduced anywhere in the dispatcher source.
-    expect(dispatcher).not.toMatch(/\(payload as any\)\??\.action/);
-    expect(dispatcher).not.toMatch(/payload\.action/);
+    // Strip line-comments so documentation prose does not trigger the match.
+    const codeOnly = dispatcher
+      .split("\n")
+      .map((line) => line.replace(/\/\/.*$/, ""))
+      .join("\n");
+    expect(codeOnly).not.toMatch(/\(payload as any\)\??\.action/);
+    expect(codeOnly).not.toMatch(/\bpayload\.action\b/);
+    // And body.action is the only source used inside the targeted handler.
+    expect(dispatcher).toContain("body?.action");
   });
   it("does not fall back to COMM_HUB_PROVIDER_MODE for adapter selection", () => {
     // The LEGACY_STUB_INACTIVE branch is removed for targeted requests.
