@@ -38652,6 +38652,7 @@ export type Database = {
       }
       communication_controlled_live_certification: {
         Row: {
+          certification_kind: string
           certification_no: number
           certified_at: string
           certified_by: string | null
@@ -38689,6 +38690,7 @@ export type Database = {
           trace_id: string | null
         }
         Insert: {
+          certification_kind?: string
           certification_no?: number
           certified_at?: string
           certified_by?: string | null
@@ -38726,6 +38728,7 @@ export type Database = {
           trace_id?: string | null
         }
         Update: {
+          certification_kind?: string
           certification_no?: number
           certified_at?: string
           certified_by?: string | null
@@ -96418,6 +96421,7 @@ export type Database = {
       get_controlled_live_certification: {
         Args: { p_certification_id: string }
         Returns: {
+          certification_kind: string
           certification_no: number
           certified_at: string
           certified_by: string | null
@@ -96708,6 +96712,14 @@ export type Database = {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
+        }
+        Returns: boolean
+      }
+      has_valid_controlled_stub_certification: {
+        Args: {
+          p_event_code: string
+          p_module_code: string
+          p_recipient_set_hash: string
         }
         Returns: boolean
       }
