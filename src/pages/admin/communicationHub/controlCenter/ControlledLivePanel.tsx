@@ -290,6 +290,7 @@ export function ControlledLivePanel(props: ControlledLivePanelProps) {
 
     try {
       const r = await runControlledLiveTest({
+        action: "RUN_CONTROLLED_STUB",
         moduleCode,
         eventCode,
         channel,
