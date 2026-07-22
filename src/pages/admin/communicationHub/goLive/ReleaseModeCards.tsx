@@ -250,6 +250,13 @@ export default function ReleaseModeCards({
                   Communication Hub. Historical evidence is preserved. An authorised
                   administrator must select another mode later to resume.
                 </>
+              ) : pending === "AUTOMATED_PRODUCTION" ? (
+                <>
+                  Switching to <strong>Automated Production</strong> places the
+                  platform in <strong>Standby</strong>. No scheduler, automatic
+                  trigger, retry worker, batch or bulk processing will start
+                  until automation is separately armed.
+                </>
               ) : (
                 <>
                   You are about to switch the Communication Hub to{" "}
