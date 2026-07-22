@@ -31,12 +31,13 @@ import {
 interface Props {
   onModeChanged?: (newMode: CommunicationOperatingMode) => void;
   /**
-   * Per-mode lock reason from server-side stage readiness. When `null`
-   * the mode is selectable. Any non-null value locks the card and shows
-   * the reason verbatim (business-language, no raw codes).
+   * Per-mode advisory text from server-side stage readiness. Rendered as
+   * an inline advisory inside the card. Never disables the card. Mode
+   * selection is a platform action; event certification is enforced
+   * separately by the send evaluator.
    */
   modeLockReason?: Partial<Record<CommunicationOperatingMode, string | null>>;
-  /** Currently-selected event scope, required for production modes. */
+  /** Optional audit-only scope. Not required for mode selection. */
   moduleCode?: string | null;
   eventCode?: string | null;
   channel?: string | null;
