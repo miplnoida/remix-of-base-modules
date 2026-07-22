@@ -166,18 +166,12 @@ export default function ReleaseModeCards({
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {MODE_CARDS.map((c) => {
           const isCurrent = currentMode === c.mode;
-          const lockReason = modeLockReason?.[c.mode] ?? null;
-          const isLocked = !isCurrent && !!lockReason;
+          const advisory = modeLockReason?.[c.mode] ?? null;
+          const hasAdvisory = !isCurrent && !!advisory;
           return (
             <Card
               key={c.mode}
-              className={
-                isCurrent
-                  ? "border-primary"
-                  : isLocked
-                    ? "border-muted-foreground/30 opacity-80"
-                    : ""
-              }
+              className={isCurrent ? "border-primary" : ""}
             >
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-base">
@@ -186,36 +180,34 @@ export default function ReleaseModeCards({
                     <Badge variant="secondary" className="text-[10px]">
                       <CheckCircle2 className="mr-1 h-3 w-3" />Active
                     </Badge>
-                  ) : isLocked ? (
-                    <Badge variant="outline" className="text-[10px]">
-                      <ShieldAlert className="mr-1 h-3 w-3" />Locked
-                    </Badge>
-                  ) : null}
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">Available</Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm font-medium">{c.headline}</p>
                 <p className="text-xs text-muted-foreground">{c.detail}</p>
-                {isLocked && (
+                {hasAdvisory && (
                   <div className="rounded-md border border-dashed bg-muted/40 p-2 text-[11px]">
-                    <span className="font-medium">Locked: </span>{lockReason}
+                    <span className="font-medium">Advisory: </span>{advisory}
+                    <div className="mt-1 text-muted-foreground">
+                      The mode can be selected. Individual events must still be certified before they can send.
+                    </div>
                   </div>
                 )}
                 <Button
                   size="sm"
                   variant={c.danger ? "destructive" : (isCurrent ? "outline" : "default")}
-                  disabled={isCurrent || loading || isLocked}
+                  disabled={isCurrent || loading || applying}
                   onClick={() => openMode(c.mode)}
                   className="w-full"
-                  title={isLocked ? lockReason ?? undefined : undefined}
                 >
                   {isCurrent
                     ? "Active"
-                    : isLocked
-                      ? "Locked — certification required"
-                      : c.mode === "EMERGENCY_STOP"
-                        ? "Engage Emergency Stop"
-                        : `Switch to ${c.label}`}
+                    : c.mode === "EMERGENCY_STOP"
+                      ? "Engage Emergency Stop"
+                      : `Switch to ${c.label}`}
                 </Button>
               </CardContent>
             </Card>
