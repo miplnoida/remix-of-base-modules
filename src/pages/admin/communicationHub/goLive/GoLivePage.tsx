@@ -75,6 +75,7 @@ import {
   type EventTestContext,
 } from "./eventTestContextService";
 import ReleaseModeCards from "./ReleaseModeCards";
+import AutomationStandbyPanel from "./AutomationStandbyPanel";
 import { useStageReadiness } from "@/platform/communication-hub/useStageReadiness";
 
 const SESSION_KEY = "commHub.goLive.v1";
@@ -557,6 +558,15 @@ export default function GoLivePage() {
           if (eventChosen) refreshDecision();
         }}
       />
+
+      {settings && settings.operatingMode === "AUTOMATED_PRODUCTION" && (
+        <AutomationStandbyPanel
+          settings={settings}
+          onChanged={() => {
+            fetchGlobalSettings().then(setSettings).catch(() => {});
+          }}
+        />
+      )}
 
       <Separator />
 

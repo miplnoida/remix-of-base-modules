@@ -40,6 +40,8 @@ export const BLOCKED_OPERATING_MODES: readonly CommunicationOperatingMode[] = [
   "AUTOMATED_PRODUCTION",
 ] as const;
 
+export type CommunicationAutomationState = "STANDBY" | "ARMED" | "SUSPENDED";
+
 export interface CommunicationGlobalSettings {
   id: string;
   singletonGuard: "primary";
@@ -57,6 +59,18 @@ export interface CommunicationGlobalSettings {
   whatsappLiveEnabled: boolean;
   printEnabled: boolean;
   letterEnabled: boolean;
+  /** Phase 4A — server-owned automation activation state. */
+  automationState: CommunicationAutomationState;
+  automationArmedAt: string | null;
+  automationArmedBy: string | null;
+  automationArmReason: string | null;
+  automationSuspendedAt: string | null;
+  automationSuspensionReason: string | null;
+  schedulerEnabled: boolean;
+  automaticTriggersEnabled: boolean;
+  retryWorkerEnabled: boolean;
+  batchEnabled: boolean;
+  bulkEnabled: boolean;
   updatedAt: string;
 }
 
@@ -69,33 +83,42 @@ export async function fetchGlobalSettings(): Promise<CommunicationGlobalSettings
   const { data, error } = await supabase
     .from("communication_hub_control_settings")
     .select(
-      "id, singleton_guard, operating_mode, previous_operating_mode, mode_changed_at, mode_changed_by, mode_change_reason, configuration_version, dispatch_enabled, dry_run_only, email_live_enabled, sms_live_enabled, whatsapp_live_enabled, print_enabled, letter_enabled, updated_at"
+      "id, singleton_guard, operating_mode, previous_operating_mode, mode_changed_at, mode_changed_by, mode_change_reason, configuration_version, dispatch_enabled, dry_run_only, email_live_enabled, sms_live_enabled, whatsapp_live_enabled, print_enabled, letter_enabled, scheduler_enabled, automatic_triggers_enabled, retry_worker_enabled, batch_enabled, bulk_enabled, automation_state, automation_armed_at, automation_armed_by, automation_arm_reason, automation_suspended_at, automation_suspension_reason, updated_at"
     )
     .eq("singleton_guard", COMMUNICATION_SETTINGS_SINGLETON_GUARD)
     .maybeSingle();
 
   if (error) throw error;
   if (!data) throw new Error("communication hub settings singleton is missing");
-
+  const row = data as any;
   return {
-    id: data.id as string,
+    id: row.id as string,
     singletonGuard: "primary",
-    operatingMode: (data as any).operating_mode as CommunicationOperatingMode,
-    previousOperatingMode: ((data as any).previous_operating_mode ?? null) as
-      | CommunicationOperatingMode
-      | null,
-    modeChangedAt: (data as any).mode_changed_at as string,
-    modeChangedBy: ((data as any).mode_changed_by ?? null) as string | null,
-    modeChangeReason: ((data as any).mode_change_reason ?? null) as string | null,
-    configurationVersion: Number((data as any).configuration_version ?? 0),
-    dispatchEnabled: Boolean((data as any).dispatch_enabled),
-    dryRunOnly: Boolean((data as any).dry_run_only),
-    emailLiveEnabled: Boolean((data as any).email_live_enabled),
-    smsLiveEnabled: Boolean((data as any).sms_live_enabled),
-    whatsappLiveEnabled: Boolean((data as any).whatsapp_live_enabled),
-    printEnabled: Boolean((data as any).print_enabled),
-    letterEnabled: Boolean((data as any).letter_enabled),
-    updatedAt: (data as any).updated_at as string,
+    operatingMode: row.operating_mode as CommunicationOperatingMode,
+    previousOperatingMode: (row.previous_operating_mode ?? null) as CommunicationOperatingMode | null,
+    modeChangedAt: row.mode_changed_at as string,
+    modeChangedBy: (row.mode_changed_by ?? null) as string | null,
+    modeChangeReason: (row.mode_change_reason ?? null) as string | null,
+    configurationVersion: Number(row.configuration_version ?? 0),
+    dispatchEnabled: Boolean(row.dispatch_enabled),
+    dryRunOnly: Boolean(row.dry_run_only),
+    emailLiveEnabled: Boolean(row.email_live_enabled),
+    smsLiveEnabled: Boolean(row.sms_live_enabled),
+    whatsappLiveEnabled: Boolean(row.whatsapp_live_enabled),
+    printEnabled: Boolean(row.print_enabled),
+    letterEnabled: Boolean(row.letter_enabled),
+    automationState: (row.automation_state ?? "STANDBY") as CommunicationAutomationState,
+    automationArmedAt: (row.automation_armed_at ?? null) as string | null,
+    automationArmedBy: (row.automation_armed_by ?? null) as string | null,
+    automationArmReason: (row.automation_arm_reason ?? null) as string | null,
+    automationSuspendedAt: (row.automation_suspended_at ?? null) as string | null,
+    automationSuspensionReason: (row.automation_suspension_reason ?? null) as string | null,
+    schedulerEnabled: Boolean(row.scheduler_enabled),
+    automaticTriggersEnabled: Boolean(row.automatic_triggers_enabled),
+    retryWorkerEnabled: Boolean(row.retry_worker_enabled),
+    batchEnabled: Boolean(row.batch_enabled),
+    bulkEnabled: Boolean(row.bulk_enabled),
+    updatedAt: row.updated_at as string,
   };
 }
 
