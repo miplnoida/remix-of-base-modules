@@ -303,21 +303,33 @@ Deno.serve(async (req) => {
   }
   env.dispatch_secret_source = DISPATCH_SECRET_SOURCE;
 
-  // Provider-mode preflight (fail-closed).
-  // Real email requires the real-email gate above; stub mode is the safe
-  // controlled-live default. Anything else (including missing) is blocked
-  // before any execution or grant is created.
-  {
+  // Provider-adapter selection.
+  //
+  // RUN_CONTROLLED_STUB is the Go Live Controlled Stub stage and is
+  // ALWAYS routed to the deterministic simulator via the explicit
+  // `action` parameter — it never reads COMM_HUB_PROVIDER_MODE and
+  // never requires an environment switch. This is the root-cause fix
+  // for `controlled_live_provider_mode_inactive` — the blocker is
+  // no longer emitted for RUN_CONTROLLED_STUB.
+  //
+  // SEND_ONE_REAL_EMAIL keeps its real-email gate above and uses the
+  // real provider transport.
+  if (action === "RUN_CONTROLLED_STUB") {
+    env.provider_mode = "stub";
+  } else {
     const rawMode = (Deno.env.get("COMM_HUB_PROVIDER_MODE") ?? "").trim().toLowerCase();
     const resolvedMode = env.real_email_authorised ? "real" : rawMode;
     env.provider_mode = resolvedMode || "inactive";
+    // For SEND_ONE_REAL_EMAIL we already required the real-email gate.
+    // Legacy callers may still set stub via env; anything else is blocked.
     if (!env.real_email_authorised && resolvedMode !== "stub") {
+      env.retry_safe = true;
       return fail(
         "BLOCKED",
         "preflight",
         "controlled_live_provider_mode_inactive",
-        "Controlled Live provider mode is not active. Set COMM_HUB_PROVIDER_MODE=stub before retrying.",
-        {},
+        "Legacy Controlled Stub configuration detected. This older path still expects an environment provider mode. Use the current Go Live Controlled Stub action.",
+        { retry_safe: true },
         503,
       );
     }
