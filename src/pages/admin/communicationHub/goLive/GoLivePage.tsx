@@ -747,14 +747,14 @@ export default function GoLivePage() {
       <span id="go-live-step-controlled-live" aria-hidden />
       <CommunicationHubSectionCard
         title={<StepHeader index={5} title="Run Controlled Stub" status={stepStatus.s5} /> as any}
-        description="Runs exactly one controlled-live send against the provider — stub by default. Real-email delivery is only permitted when the server-side gate is enabled by platform administrators."
+        description="Runs exactly one certified send against the deterministic provider stub. No real email leaves the platform at this stage."
       >
         {!dryRunCertified ? (
           <div className="text-sm text-muted-foreground">
             Locked. A DRY_RUN_PASSED certification is required.
           </div>
         ) : (
-          <ControlledLivePanel
+          <ControlledStubPanel
             moduleCode={session.moduleCode}
             eventCode={session.eventCode}
             channel="email"
@@ -810,16 +810,10 @@ export default function GoLivePage() {
         }
         description="Reserved single real send with a one-use server grant. Enabled only when platform administrators explicitly unlock the real-provider gate."
       >
-        <Alert>
-          <Lock className="h-4 w-4" />
-          <AlertTitle>Locked</AlertTitle>
-          <AlertDescription>
-            {controlledLiveDone
-              ? (stageReadiness.stageLockReason.ONE_REAL_EMAIL ??
-                 "Prerequisites not satisfied for a real email send.")
-              : "Complete the Controlled Stub certification first. The real-provider gate is not opened from this page."}
-          </AlertDescription>
-        </Alert>
+        <OneRealEmailPanel
+          controlledStubCertified={controlledLiveDone}
+          lockReason={stageReadiness.stageLockReason.ONE_REAL_EMAIL ?? null}
+        />
       </CommunicationHubSectionCard>
 
       <Separator />
