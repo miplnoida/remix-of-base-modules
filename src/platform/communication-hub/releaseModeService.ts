@@ -124,14 +124,30 @@ export async function applyReleaseMode(params: {
     },
   );
   if (error) {
-    // Bubble up structured error codes ("not_authorised",
-    // "configuration_version_conflict", "unknown_operating_mode",
-    // "mode_derived_field_direct_write", "mode_requires_event_certification")
-    // without swallowing message.
-    throw new Error(error.message ?? "apply_communication_release_mode failed");
+    // Map the structured server-side codes surfaced by the canonical
+    // transition core + wrapper to human-readable operator guidance.
+    // Never swallow the underlying message.
+    const raw = String(error.message ?? "");
+    const map: Record<string, string> = {
+      authentication_required: "You must sign in again to change the operating mode.",
+      not_authorised: "You don't have permission to change the operating mode.",
+      unknown_operating_mode: "That operating mode is not recognised.",
+      MODE_PROFILE_MISSING: "Operating-mode profile is missing on the server. Contact platform admin.",
+      MODE_SETTINGS_SINGLETON_MISSING: "Communication Hub settings row is missing. Contact platform admin.",
+      MODE_CONFIGURATION_VERSION_INVALID: "Configuration version is invalid on the server.",
+      MODE_CHANGE_REASON_REQUIRED: "A reason is required to change the operating mode.",
+      MODE_CHANGE_REASON_TOO_LONG: "Reason is too long (max 2000 characters).",
+      CONFIGURATION_VERSION_CONFLICT:
+        "Another operator changed the mode just now. Refresh and try again.",
+      MODE_AUDIT_SCHEMA_MISMATCH:
+        "Operating-mode audit table is out of sync with the transition contract. Contact platform admin — do not retry until schema is repaired.",
+    };
+    const matched = Object.keys(map).find((k) => raw.includes(k));
+    throw new Error(matched ? map[matched] : (raw || "apply_communication_release_mode failed"));
   }
   return data as ApplyReleaseModeResult;
 }
+
 
 /**
  * Which modes require a typed confirmation phrase. Emergency Stop deliberately
