@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
 
   // 0. Input validation.
   const required = ["moduleCode", "eventCode", "recipient", "previewApprovalId",
-    "dryRunCertificationId", "idempotencyKey", "reason", "confirmation"];
+    "dryRunCertificationId", "idempotencyKey", "reason", "confirmation", "action"];
   for (const k of required) {
     if (typeof body?.[k] !== "string" || body[k].length === 0) {
       return fail("BLOCKED", "input_validation", "missing_" + k,
@@ -259,13 +259,23 @@ Deno.serve(async (req) => {
       "confirmation phrase does not match", {}, 400);
   }
 
-  // 0.a Real-email gate (CH-SIMPLE-P3E-C step 7).
-  // Any real send requires: explicit body flag, exact panel phrase, and
-  // server-side environment allowance. Anything less falls back to the
-  // provider stub — the default P3E-B behaviour.
+  // 0.a Explicit action gate. Controlled Stub and One Real Email are two
+  // separate, first-class actions with different safety envelopes.
+  const action = body.action as string;
+  if (action !== "RUN_CONTROLLED_STUB" && action !== "SEND_ONE_REAL_EMAIL") {
+    return fail("BLOCKED", "input_validation", "action_invalid",
+      "action must be RUN_CONTROLLED_STUB or SEND_ONE_REAL_EMAIL", {}, 400);
+  }
+  env.action = action as Envelope["action"];
+  env.certification_kind = action === "RUN_CONTROLLED_STUB"
+    ? "CONTROLLED_STUB"
+    : "ONE_REAL_EMAIL";
+
+  // 0.b Real-email gate applies ONLY to SEND_ONE_REAL_EMAIL. Controlled Stub
+  // always runs against the deterministic provider stub and NEVER touches a
+  // real provider, regardless of environment configuration.
   const PANEL_PHRASE = "SEND ONE CONTROLLED LIVE EMAIL";
-  const realEmailRequested = body.allowRealEmail === true;
-  if (realEmailRequested) {
+  if (action === "SEND_ONE_REAL_EMAIL") {
     if (Deno.env.get("COMM_HUB_REAL_EMAIL_TEST") !== "true") {
       return fail("BLOCKED", "real_email_gate", "real_email_disabled",
         "COMM_HUB_REAL_EMAIL_TEST is not enabled on this environment", {}, 400);
