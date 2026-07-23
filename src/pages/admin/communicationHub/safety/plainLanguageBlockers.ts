@@ -310,6 +310,58 @@ const DICT: Record<string, BlockerExplanation> = {
   body_missing: { code: "body_missing", headline: "Message body is missing", message: "The rendered message has no body content, so it cannot be sent.", fixHint: "Ensure the template renders content for this event.", severity: "high" },
   target_not_eligible_origin_or_channel: { code: "target_not_eligible_origin_or_channel", headline: "Message is not comm_hub email", message: "The dispatcher only handles origin='comm_hub' + channel='email' messages.", fixHint: "This message came from a legacy path; use the correct enqueue helper.", severity: "medium" },
   dispatch_invoke_failed: { code: "dispatch_invoke_failed", headline: "Dispatcher could not be invoked", message: "The upstream layer could not reach comm-hub-dispatch.", fixHint: "Check edge function health and network connectivity.", severity: "high" },
+
+  // -------------------------------------------------------------------------
+  // Phase 4B3 — Dry Run correlation-hotfix operator-facing catalogue.
+  // These codes come from `inspect_comm_hub_dry_run_preflight` and
+  // `begin_comm_hub_dry_run_v1`. They MUST NOT show the generic
+  // "Contact Hub administrator" fallback.
+  // -------------------------------------------------------------------------
+  CORRELATION_ID_MISMATCH: {
+    code: "CORRELATION_ID_MISMATCH",
+    headline: "Approved Preview reference mismatch",
+    message:
+      "The Dry Run was not linked to the same correlation reference as the selected Preview and approval. No runtime records or provider calls were created.",
+    fixHint: "Refresh Preview Evidence",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  PREVIEW_CORRELATION_MISSING: {
+    code: "PREVIEW_CORRELATION_MISSING",
+    headline: "Preview has no correlation reference",
+    message:
+      "The selected Preview does not carry a correlation reference, so it cannot be paired with an approval or a Dry Run.",
+    fixHint: "Refresh Preview Evidence",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  APPROVAL_CORRELATION_MISSING: {
+    code: "APPROVAL_CORRELATION_MISSING",
+    headline: "Approval has no correlation reference",
+    message:
+      "The selected approval did not record a correlation reference at approval time, so it cannot be paired with this Preview.",
+    fixHint: "Refresh Preview Evidence",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  APPROVAL_PREVIEW_CORRELATION_MISMATCH: {
+    code: "APPROVAL_PREVIEW_CORRELATION_MISMATCH",
+    headline: "Approval and Preview references disagree",
+    message:
+      "The selected approval was captured against a different Preview correlation than the one you are trying to run. No runtime records or provider calls were created.",
+    fixHint: "Refresh Preview Evidence",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  CALLER_EXPECTED_CORRELATION_MISMATCH: {
+    code: "CALLER_EXPECTED_CORRELATION_MISMATCH",
+    headline: "Session expected a different Preview reference",
+    message:
+      "Your session was still holding a previous Preview reference. The server refused to start with an out-of-date correlation. No runtime records or provider calls were created.",
+    fixHint: "Refresh Preview Evidence",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
 };
 
 
