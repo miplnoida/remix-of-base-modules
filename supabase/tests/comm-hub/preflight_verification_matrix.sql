@@ -26,7 +26,7 @@
 -- current_setting instead of relying on psql variable substitution inside
 -- dollar-quoted blocks (which does not work).
 \if :{?env}
-  \set _env :'env'
+  \set _env :env
 \else
   \set _env ''
 \endif
