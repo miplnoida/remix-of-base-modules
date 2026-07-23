@@ -160,6 +160,27 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
+  // Fallback due date derived from the most recent linked notice's response
+  // deadline. `ce_violations.due_date` is often null until a notice is issued,
+  // so surface the notice deadline so Violation Details always show an
+  // actionable due date when one exists.
+  const { data: latestNoticeDue } = useQuery({
+    queryKey: ['ce_notices_latest_due', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_notices')
+        .select('due_response_date, sent_at, created_at, status')
+        .eq('violation_id', id!)
+        .not('due_response_date', 'is', null)
+        .order('due_response_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!id,
+  });
+
   const { data: assignmentHistory = [] } = useQuery({
     queryKey: ['ce_violation_assignments', id],
     queryFn: async () => {
