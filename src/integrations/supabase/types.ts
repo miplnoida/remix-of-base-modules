@@ -98229,6 +98229,10 @@ export type Database = {
         Args: { p_stage: string }
         Returns: string
       }
+      normalize_comm_hub_go_live_stage_for_action: {
+        Args: { p_action: string; p_stage: string }
+        Returns: string
+      }
       normalize_comm_hub_go_live_stage_strict: {
         Args: { p_stage: string }
         Returns: string
