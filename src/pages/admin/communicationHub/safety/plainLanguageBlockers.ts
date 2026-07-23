@@ -362,6 +362,93 @@ const DICT: Record<string, BlockerExplanation> = {
     fixHref: "/admin/communication-hub/control-center",
     severity: "high",
   },
+
+  // -------------------------------------------------------------------------
+  // Phase 4B3 — Preview / Approval evidence closure blockers.
+  // Emitted by inspect_comm_hub_dry_run_preflight, prepare_comm_hub_preview,
+  // and approve_comm_hub_preview. All route back to the Preview step.
+  // -------------------------------------------------------------------------
+  CONFIGURATION_HASH_MISSING: {
+    code: "CONFIGURATION_HASH_MISSING",
+    headline: "Preview configuration evidence is missing",
+    message:
+      "The selected Preview was created without the dependency/configuration hash required to prove that its template and governance settings are unchanged.",
+    fixHint: "Create a Fresh Preview",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  APPROVAL_EVIDENCE_MISSING_OR_LEGACY: {
+    code: "APPROVAL_EVIDENCE_MISSING_OR_LEGACY",
+    headline: "Preview approval evidence is incomplete",
+    message:
+      "The approval did not freeze every evidence value required for a Dry Test. In this case, the configuration hash was missing from the Preview when it was approved.",
+    fixHint: "Create and Approve a Fresh Preview",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  MALFORMED_BRACE_EVIDENCE_MISSING: {
+    code: "MALFORMED_BRACE_EVIDENCE_MISSING",
+    headline: "Template syntax evidence is missing",
+    message:
+      "The selected Preview does not contain the scanner evidence proving that the rendered subject and message body have no malformed template braces.",
+    fixHint: "Create a Fresh Preview",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  PREVIEW_CONFIGURATION_HASH_MISSING: {
+    code: "PREVIEW_CONFIGURATION_HASH_MISSING",
+    headline: "Preview is missing its configuration hash",
+    message:
+      "This Preview cannot be approved because it was created without an authoritative configuration/dependency hash.",
+    fixHint: "Create a Fresh Preview",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  PREVIEW_DEPENDENCY_HASH_UNAVAILABLE: {
+    code: "PREVIEW_DEPENDENCY_HASH_UNAVAILABLE",
+    headline: "Dependency hash could not be built",
+    message:
+      "The authoritative dependency-hash builder returned no value for this template version, so a valid Preview could not be created.",
+    fixHint: "Certify the template version, then create a fresh Preview.",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  PREVIEW_DEPENDENCY_HASH_DRIFT: {
+    code: "PREVIEW_DEPENDENCY_HASH_DRIFT",
+    headline: "Preview configuration has drifted",
+    message:
+      "The Preview's certified and current dependency hashes no longer match. The underlying template or configuration changed after the Preview was created.",
+    fixHint: "Create a Fresh Preview",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  PREVIEW_GOVERNANCE_EVIDENCE_INCOMPLETE: {
+    code: "PREVIEW_GOVERNANCE_EVIDENCE_INCOMPLETE",
+    headline: "Preview governance evidence is incomplete",
+    message:
+      "The Preview does not carry a complete governance evidence bag (raw placeholders, malformed braces, renderer, resolver, and dependency).",
+    fixHint: "Create a Fresh Preview",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  MALFORMED_BRACE_EVIDENCE_INVALID: {
+    code: "MALFORMED_BRACE_EVIDENCE_INVALID",
+    headline: "Template syntax evidence is malformed",
+    message:
+      "The malformed-brace evidence on this Preview is not shaped as a valid counted result, so it cannot be trusted.",
+    fixHint: "Create a Fresh Preview",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
+  MALFORMED_BRACES_PRESENT: {
+    code: "MALFORMED_BRACES_PRESENT",
+    headline: "Template contains malformed braces",
+    message:
+      "The rendered subject or body contains malformed template braces. Fix the template syntax and generate a new Preview.",
+    fixHint: "Edit the template, then create a Fresh Preview.",
+    fixHref: "/admin/communication-hub/design/templates",
+    severity: "high",
+  },
 };
 
 
