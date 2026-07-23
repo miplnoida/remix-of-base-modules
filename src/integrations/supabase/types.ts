@@ -99440,10 +99440,15 @@ export type Database = {
         | "ENFORCED"
         | "RETIRED"
       comm_hub_sender_readiness_state:
+        | "NOT_CHECKED"
+        | "CHECKING"
+        | "BLOCKED_CONFIGURATION"
+        | "BLOCKED_VERIFICATION"
         | "BLOCKED"
         | "TEST_READY"
         | "REAL_EMAIL_READY"
         | "STALE"
+        | "SUSPENDED"
       comm_hub_template_lifecycle:
         | "DRAFT"
         | "DISCOVERED"
@@ -100096,10 +100101,15 @@ export const Constants = {
         "RETIRED",
       ],
       comm_hub_sender_readiness_state: [
+        "NOT_CHECKED",
+        "CHECKING",
+        "BLOCKED_CONFIGURATION",
+        "BLOCKED_VERIFICATION",
         "BLOCKED",
         "TEST_READY",
         "REAL_EMAIL_READY",
         "STALE",
+        "SUSPENDED",
       ],
       comm_hub_template_lifecycle: [
         "DRAFT",
