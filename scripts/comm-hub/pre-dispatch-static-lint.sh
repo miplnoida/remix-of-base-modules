@@ -61,8 +61,8 @@ if awk '/BEGIN A: freeze/{p=1} /END A: freeze/{p=0} p' "$MATRIX" \
 fi
 pass "canonical hash inputs reused (frozen vars)"
 
-# 3. No ALTER TABLE ... DISABLE TRIGGER anywhere in the matrix.
-if grep -nE 'ALTER[[:space:]]+TABLE.*DISABLE[[:space:]]+TRIGGER' "$MATRIX"; then
+# 3. No ALTER TABLE ... DISABLE TRIGGER anywhere in the matrix (skip -- comment lines).
+if grep -nE 'ALTER[[:space:]]+TABLE.*DISABLE[[:space:]]+TRIGGER' "$MATRIX" | grep -vE '^[0-9]+:--'; then
   fail "matrix contains ALTER TABLE DISABLE TRIGGER (item D forbids this)"
 fi
 pass "no ALTER TABLE DISABLE TRIGGER in matrix"
