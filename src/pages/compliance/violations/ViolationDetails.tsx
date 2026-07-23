@@ -585,8 +585,16 @@ export default function ViolationDetails() {
               </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Due Date</div>
-                <div className="text-base">{v.due_date ? formatDate(v.due_date) : 'N/A'}</div>
-              </div>
+                <div className="text-base">
+                  {v.due_date
+                    ? formatDate(v.due_date)
+                    : latestNoticeDue?.due_response_date
+                      ? `${formatDate(latestNoticeDue.due_response_date)}`
+                      : 'N/A'}
+                </div>
+                {!v.due_date && latestNoticeDue?.due_response_date && (
+                  <div className="text-xs text-muted-foreground mt-0.5">From latest notice</div>
+                )}
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Period</div>
                 <div className="text-base">{v.period_from ?? '-'}{v.period_to ? ` to ${v.period_to}` : ''}</div>
