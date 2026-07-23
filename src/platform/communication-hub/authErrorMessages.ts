@@ -1,25 +1,85 @@
 import { CommHubAuthError } from "./authSession";
 
 /**
- * Canonical, operator-friendly messages for Communication Hub authentication
- * blocker codes. The server returns machine codes on the stable envelope; the
- * client renders these strings so the UI never shows the raw code.
+ * Communication Hub — authentication error catalogue.
+ *
+ * The server returns machine codes on the stable envelope (or on a thrown
+ * CommHubAuthError). The UI never renders raw codes; it renders structured
+ * operator-friendly details from this catalogue.
+ *
+ * Phase 4B3 — Authentication and retry-safety correction: authentication
+ * failures are strictly separated from business send-decision blockers.
+ * They MUST NOT be rendered as configuration / recipient / provider issues,
+ * MUST NOT surface Send Decision log guidance, and MUST NOT trigger the
+ * generic "Outcome not retry-safe" screen.
  */
-const AUTH_MESSAGES: Record<string, string> = {
-  authentication_header_missing:
-    "Your login session was not sent with the request. Please refresh and sign in again.",
-  authentication_token_expired:
-    "Your login session has expired. Please sign in again to continue.",
-  authentication_token_invalid:
-    "Your login session could not be verified. Please sign in again.",
-  authentication_user_missing:
-    "We could not identify your account. Please sign in again.",
-  authentication_service_unavailable:
-    "The authentication service is temporarily unavailable. Please retry in a moment.",
-  authentication_required:
-    "You must be signed in to run this test. Please sign in and try again.",
-  session_lookup_failed:
-    "We could not read your current session. Please refresh and try again.",
+
+export interface AuthErrorDetails {
+  code: string;
+  title: string;
+  message: string;
+  fix: string;
+  severity: "low" | "medium" | "high" | "critical";
+  /** When the code represents a pre-mutation auth failure, retry is safe. */
+  retrySafe: boolean;
+}
+
+const SESSION_EXPIRED: AuthErrorDetails = {
+  code: "session_expired",
+  title: "Your session has expired",
+  message:
+    "Your authenticated session is no longer available. No Dry Run was started.",
+  fix: "Refresh your session or sign in again, then retry.",
+  severity: "medium",
+  retrySafe: true,
+};
+
+const AUTH_CATALOGUE: Record<string, AuthErrorDetails> = {
+  not_authenticated: SESSION_EXPIRED,
+  UNAUTHENTICATED: SESSION_EXPIRED,
+  UNAUTHENTICATED_TRANSITION: {
+    ...SESSION_EXPIRED,
+    code: "UNAUTHENTICATED_TRANSITION",
+    message:
+      "Your session expired between checks. No Dry Run runtime rows were created.",
+  },
+  authentication_required: SESSION_EXPIRED,
+  session_expired: SESSION_EXPIRED,
+  invalid_or_expired_jwt: {
+    ...SESSION_EXPIRED,
+    code: "invalid_or_expired_jwt",
+    message:
+      "Your access token has expired or is no longer valid. No Dry Run was started.",
+  },
+  authentication_header_missing: {
+    ...SESSION_EXPIRED,
+    code: "authentication_header_missing",
+    message:
+      "Your login session was not sent with the request. No Dry Run was started.",
+  },
+  authentication_token_expired: SESSION_EXPIRED,
+  authentication_token_invalid: SESSION_EXPIRED,
+  authentication_user_missing: {
+    ...SESSION_EXPIRED,
+    code: "authentication_user_missing",
+    message:
+      "We could not identify your account for this request. No Dry Run was started.",
+  },
+  authentication_service_unavailable: {
+    ...SESSION_EXPIRED,
+    code: "authentication_service_unavailable",
+    title: "Authentication service unavailable",
+    message:
+      "The authentication service is temporarily unavailable. No Dry Run was started.",
+    fix: "Wait a moment and retry. If the problem persists, sign in again.",
+  },
+  session_lookup_failed: {
+    ...SESSION_EXPIRED,
+    code: "session_lookup_failed",
+    message:
+      "We could not read your current session. No Dry Run was started.",
+    fix: "Refresh the page. If the problem persists, sign in again.",
+  },
 };
 
 export interface EnvelopeLike {
@@ -27,27 +87,51 @@ export interface EnvelopeLike {
   failure_stage?: string | null;
   failureStage?: string | null;
   message?: string | null;
+  retry_reason?: string | null;
   blockers?: Array<{ code?: string; stage?: string; message?: string }>;
   retry_safe?: boolean;
 }
 
-/**
- * Resolve an auth blocker (either a thrown `CommHubAuthError` from the client
- * helper or an envelope returned by the edge function) to a friendly message.
- * Returns `null` when the input is not an auth failure.
- */
-export function resolveAuthErrorMessage(input: unknown): string | null {
-  if (input instanceof CommHubAuthError) {
-    return AUTH_MESSAGES[input.code] ?? AUTH_MESSAGES.authentication_required;
+/** Known auth codes — a stable predicate for envelope classification. */
+export function isKnownAuthCode(code: string | null | undefined): boolean {
+  if (!code) return false;
+  return Object.prototype.hasOwnProperty.call(AUTH_CATALOGUE, code);
+}
+
+/** Extract a canonical auth code from a thrown error or an envelope. */
+export function extractAuthCode(input: unknown): string | null {
+  if (input instanceof CommHubAuthError) return input.code;
+  if (!input || typeof input !== "object") return null;
+  const env = input as EnvelopeLike;
+  const stage = env.failure_stage ?? env.failureStage ?? null;
+  if (stage === "auth" || env.retry_reason === "AUTHENTICATION_REQUIRED") {
+    const b = (env.blockers ?? []).find((x) => x?.code && isKnownAuthCode(x.code));
+    if (b?.code) return b.code;
   }
-  if (input && typeof input === "object") {
-    const env = input as EnvelopeLike;
-    const stage = env.failure_stage ?? env.failureStage ?? null;
-    if (stage === "auth" && Array.isArray(env.blockers)) {
-      const b = env.blockers.find((x) => x?.stage === "auth" && x?.code);
-      if (b?.code && AUTH_MESSAGES[b.code]) return AUTH_MESSAGES[b.code];
-      if (b?.message) return b.message;
-    }
+  if (Array.isArray(env.blockers)) {
+    const b = env.blockers.find((x) => x?.code && isKnownAuthCode(x.code));
+    if (b?.code) return b.code;
   }
   return null;
+}
+
+/** Structured operator-facing details for an auth failure. */
+export function getAuthErrorDetails(input: unknown): AuthErrorDetails | null {
+  const code = extractAuthCode(input);
+  if (!code) return null;
+  return AUTH_CATALOGUE[code] ?? SESSION_EXPIRED;
+}
+
+/** True when the input represents an authentication failure. */
+export function isAuthFailure(input: unknown): boolean {
+  return getAuthErrorDetails(input) !== null;
+}
+
+/**
+ * Legacy string-only helper retained for existing toast call sites.
+ * New UI must prefer {@link getAuthErrorDetails} for the full structure.
+ */
+export function resolveAuthErrorMessage(input: unknown): string | null {
+  const d = getAuthErrorDetails(input);
+  return d ? `${d.title} — ${d.message}` : null;
 }
