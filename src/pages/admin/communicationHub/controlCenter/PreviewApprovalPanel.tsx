@@ -144,6 +144,7 @@ export default function PreviewApprovalPanel({
     if (!snapshot) return [] as string[];
     const list: string[] = [];
     if (!snapshotIsPrepared) list.push(`Snapshot status is ${snapshot.status}; refresh the preview.`);
+    if (previewExpired) list.push("This Preview or approval has expired. Create and approve a new Preview.");
     if (unresolvedRequiredVariables.length > 0) {
       list.push(
         `Preview has ${unresolvedRequiredVariables.length} unresolved required variable${unresolvedRequiredVariables.length === 1 ? "" : "s"}: ${unresolvedRequiredVariables.join(", ")}.`
