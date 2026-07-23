@@ -49,9 +49,27 @@ export interface DryRunEnvelope {
   provider_call_attempted: boolean;
   provider_message_id: string | null;
   final_operating_mode: string | null;
-  /** Server-authoritative safety gate: true when it is safe to mint a
-   *  fresh idempotency key and re-run without operator investigation. */
-  retry_safe: boolean;
+  /**
+   * Server-authoritative retry safety contract (Phase 4B3).
+   * Missing fields MUST fail closed to UNKNOWN — not to `false`.
+   */
+  retry_safe: boolean | "UNKNOWN";
+  retry_reason:
+    | "AUTHENTICATION_REQUIRED"
+    | "CONFIGURATION_CORRECTION_REQUIRED"
+    | "BEGIN_ROLLED_BACK"
+    | "AMBIGUOUS_RUNTIME_OUTCOME"
+    | "SAFE_TO_RETRY"
+    | "UNKNOWN"
+    | string;
+  mutation_started: boolean;
+  execution_created: boolean;
+  request_created: boolean;
+  message_created: boolean;
+  simulator_call_attempted: boolean;
+  ambiguous_outcome: boolean;
+  can_retry_after_reauthentication: boolean;
+  transition_log_id: string | null;
 }
 
 export interface RunDryTestInput {
