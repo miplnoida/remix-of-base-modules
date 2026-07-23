@@ -38753,6 +38753,39 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_hub_service_operation_allowlist: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          operation: string
+          reason: string
+          service_account: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          operation: string
+          reason: string
+          service_account: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          operation?: string
+          reason?: string
+          service_account?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       comm_layout_block: {
         Row: {
           advanced_html: string | null
@@ -95122,6 +95155,10 @@ export type Database = {
         Args: { p_action: string; p_context: Json }
         Returns: Json
       }
+      assert_comm_hub_service_operation: {
+        Args: { p_operation: string; p_service_account: string }
+        Returns: Json
+      }
       assess_comm_hub_template_version_manifests: {
         Args: never
         Returns: {
@@ -95944,6 +95981,23 @@ export type Database = {
         }
         Returns: Json
       }
+      check_comm_hub_preview_approval_binding: {
+        Args: {
+          p_approval_id: string
+          p_dry_run_certification_id: string
+          p_execution_id: string
+        }
+        Returns: Json
+      }
+      check_comm_hub_preview_runtime_evidence: {
+        Args: {
+          p_approval_id: string
+          p_event_code: string
+          p_module_code: string
+          p_snapshot_id: string
+        }
+        Returns: Json
+      }
       check_comm_hub_readiness: { Args: { p_payload: Json }; Returns: Json }
       check_comm_hub_runtime_governance: {
         Args: {
@@ -95955,6 +96009,10 @@ export type Database = {
           p_preview_snapshot_id?: string
           p_target_stage?: string
         }
+        Returns: Json
+      }
+      check_comm_hub_runtime_transition_safe: {
+        Args: { p_action: string; p_context: Json }
         Returns: Json
       }
       check_dms_transfer_eligibility: { Args: { p_ssn: string }; Returns: Json }
@@ -96331,14 +96389,23 @@ export type Database = {
         Args: { p_readiness_kind?: string; p_sender_profile_id: string }
         Returns: Json
       }
-      consume_comm_hub_controlled_live_grant: {
-        Args: {
-          p_execution_id: string
-          p_grant_id: string
-          p_provider_invocation_key: string
-        }
-        Returns: Json
-      }
+      consume_comm_hub_controlled_live_grant:
+        | {
+            Args: {
+              p_consumed_by: string
+              p_grant_id: string
+              p_message_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_execution_id: string
+              p_grant_id: string
+              p_provider_invocation_key: string
+            }
+            Returns: Json
+          }
       consume_comm_hub_preview_approval: {
         Args: { p_payload: Json }
         Returns: Json
@@ -99065,16 +99132,18 @@ export type Database = {
           status_value: string
         }[]
       }
-      reserve_comm_hub_controlled_live_grant: {
-        Args: {
-          p_body_hash: string
-          p_execution_id: string
-          p_grant_id: string
-          p_recipient_set_hash: string
-          p_subject_hash: string
-        }
-        Returns: Json
-      }
+      reserve_comm_hub_controlled_live_grant:
+        | {
+            Args: {
+              p_body_hash: string
+              p_execution_id: string
+              p_grant_id: string
+              p_recipient_set_hash: string
+              p_subject_hash: string
+            }
+            Returns: Json
+          }
+        | { Args: { p_grant_id: string; p_reserved_by: string }; Returns: Json }
       reserve_comm_hub_preview_approval: {
         Args: { p_payload: Json }
         Returns: Json
@@ -99218,7 +99287,7 @@ export type Database = {
         Returns: Json
       }
       revoke_comm_hub_controlled_live_grant: {
-        Args: { p_execution_id: string; p_grant_id: string; p_reason: string }
+        Args: { p_grant_id: string; p_reason: string; p_revoked_by: string }
         Returns: Json
       }
       revoke_comm_hub_dry_run_certification: {
