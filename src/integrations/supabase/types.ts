@@ -95353,6 +95353,12 @@ export type Database = {
           workbasket_id: string
         }[]
       }
+      build_comm_hub_certification_dependency_hash: {
+        Args: { p_template_version_id: string }
+        Returns: {
+          dependency_hash: string
+        }[]
+      }
       build_comm_hub_dependency_manifest: {
         Args: {
           p_entity_id: string
