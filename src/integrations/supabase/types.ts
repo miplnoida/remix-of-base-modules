@@ -42139,6 +42139,7 @@ export type Database = {
           content_hash: string
           context_data: Json
           context_hash: string
+          correlation_id: string | null
           created_at: string
           created_by: string | null
           current_dependency_hash: string | null
@@ -42153,12 +42154,16 @@ export type Database = {
           manifest_schema_version: string | null
           metadata: Json
           module_code: string
+          placeholder_scanner_version: string | null
+          raw_placeholder_count: number
+          raw_placeholders: Json
           recipient_context_ref: string | null
           recipient_policy_version: number | null
           recipient_set_hash: string
           rendered_body_html: string | null
           rendered_body_text: string | null
           rendered_subject: string | null
+          renderer_unresolved_variables: Json | null
           request_context_values: Json | null
           resolved_token_bundle: Json | null
           resolver_version: string | null
@@ -42190,6 +42195,7 @@ export type Database = {
           content_hash: string
           context_data?: Json
           context_hash: string
+          correlation_id?: string | null
           created_at?: string
           created_by?: string | null
           current_dependency_hash?: string | null
@@ -42204,12 +42210,16 @@ export type Database = {
           manifest_schema_version?: string | null
           metadata?: Json
           module_code: string
+          placeholder_scanner_version?: string | null
+          raw_placeholder_count?: number
+          raw_placeholders?: Json
           recipient_context_ref?: string | null
           recipient_policy_version?: number | null
           recipient_set_hash: string
           rendered_body_html?: string | null
           rendered_body_text?: string | null
           rendered_subject?: string | null
+          renderer_unresolved_variables?: Json | null
           request_context_values?: Json | null
           resolved_token_bundle?: Json | null
           resolver_version?: string | null
@@ -42241,6 +42251,7 @@ export type Database = {
           content_hash?: string
           context_data?: Json
           context_hash?: string
+          correlation_id?: string | null
           created_at?: string
           created_by?: string | null
           current_dependency_hash?: string | null
@@ -42255,12 +42266,16 @@ export type Database = {
           manifest_schema_version?: string | null
           metadata?: Json
           module_code?: string
+          placeholder_scanner_version?: string | null
+          raw_placeholder_count?: number
+          raw_placeholders?: Json
           recipient_context_ref?: string | null
           recipient_policy_version?: number | null
           recipient_set_hash?: string
           rendered_body_html?: string | null
           rendered_body_text?: string | null
           rendered_subject?: string | null
+          renderer_unresolved_variables?: Json | null
           request_context_values?: Json | null
           resolved_token_bundle?: Json | null
           resolver_version?: string | null
@@ -94307,6 +94322,51 @@ export type Database = {
         }
         Relationships: []
       }
+      v_comm_hub_transition_log_safe: {
+        Row: {
+          action: string | null
+          actor_id: string | null
+          actor_type: string | null
+          allowed: boolean | null
+          channel: string | null
+          correlation_id: string | null
+          created_at: string | null
+          denied_reasons: Json | null
+          event_code: string | null
+          id: string | null
+          module_code: string | null
+          safe_context: Json | null
+        }
+        Insert: {
+          action?: string | null
+          actor_id?: string | null
+          actor_type?: never
+          allowed?: boolean | null
+          channel?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          denied_reasons?: Json | null
+          event_code?: string | null
+          id?: string | null
+          module_code?: string | null
+          safe_context?: never
+        }
+        Update: {
+          action?: string | null
+          actor_id?: string | null
+          actor_type?: never
+          allowed?: boolean | null
+          channel?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          denied_reasons?: Json | null
+          event_code?: string | null
+          id?: string | null
+          module_code?: string | null
+          safe_context?: never
+        }
+        Relationships: []
+      }
       v_communication_message_full: {
         Row: {
           attempt_count: number | null
@@ -99176,6 +99236,10 @@ export type Database = {
           p_transactions: Json
           p_user_code: string
         }
+        Returns: Json
+      }
+      scan_comm_hub_raw_placeholders: {
+        Args: { p_body_html: string; p_body_text: string; p_subject: string }
         Returns: Json
       }
       schedule_meeting: {
