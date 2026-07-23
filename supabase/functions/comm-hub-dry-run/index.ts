@@ -199,6 +199,15 @@ serve(async (req) => {
   }
 
   // ---------- Step 1: begin_comm_hub_dry_run (JWT-scoped) ----------------
+  // begin_comm_hub_dry_run requires a correlation_id (uuid) in payload. If the
+  // caller did not supply one, mint a fresh uuid here so the RPC never blocks
+  // on `correlation_id_required`.
+  const incomingCorrelationId = (payload as any).correlation_id as string | undefined;
+  const correlationIdIn =
+    incomingCorrelationId && incomingCorrelationId.trim().length > 0
+      ? incomingCorrelationId
+      : crypto.randomUUID();
+
   const beginPayload: Json = {
     module_code: moduleCode,
     event_code: eventCode,
@@ -207,6 +216,7 @@ serve(async (req) => {
     preview_approval_id: previewApprovalId,
     operator_reason: operatorReason,
     idempotency_key: idempotencyKey,
+    correlation_id: correlationIdIn,
   };
   if (expectedRecipientSetHash) {
     // Passed only for defence-in-depth comparison inside begin RPC.
