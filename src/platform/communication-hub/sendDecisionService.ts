@@ -6,6 +6,7 @@
  * module only forwards the payload and returns the stable envelope.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getFreshAuthenticatedSession, CommHubAuthError } from "./authSession";
 
 export type SendDecisionContext =
   | "preview"
