@@ -196,6 +196,10 @@ export default function GoLivePage() {
   const [settings, setSettings] = useState<CommunicationGlobalSettings | null>(null);
   const [recipientPolicy, setRecipientPolicy] = useState<RecipientPolicy | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Phase 4B3 — auth state is tracked independently of business readiness.
+  // A `not_authenticated` failure MUST NOT be stored as a send-policy blocker.
+  const [authError, setAuthError] = useState<AuthErrorDetails | null>(null);
+  const [refreshingAuth, setRefreshingAuth] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => () => { mountedRef.current = false; }, []);
