@@ -97236,6 +97236,10 @@ export type Database = {
         Args: { window_minutes?: number }
         Returns: Json
       }
+      get_comm_hub_stage_requirements: {
+        Args: { p_stage: string }
+        Returns: Json
+      }
       get_communication_operating_mode: {
         Args: never
         Returns: {
@@ -98190,6 +98194,14 @@ export type Database = {
           reference_number: string
           sequence_id: string
         }[]
+      }
+      normalize_comm_hub_go_live_stage: {
+        Args: { p_stage: string }
+        Returns: string
+      }
+      normalize_comm_hub_go_live_stage_strict: {
+        Args: { p_stage: string }
+        Returns: string
       }
       open_comm_hub_live_window: {
         Args: {
