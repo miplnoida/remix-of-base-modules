@@ -568,7 +568,7 @@ BEGIN
   -- Prefer an existing Admin; else insert one (synthetic auth.users +
   -- user_roles row). Both are unwound before we leave this DO block.
   SELECT user_id INTO v_uid FROM public.user_roles
-    WHERE role='Admin'::public.app_role LIMIT 1;
+    WHERE role='Admin' LIMIT 1;
   IF v_uid IS NULL THEN
     v_uid := gen_random_uuid();
     INSERT INTO auth.users(id, instance_id, aud, role, email, email_confirmed_at,
@@ -577,7 +577,7 @@ BEGIN
               'authenticated', 'matrix-operator-'||v_uid::text||'@example.invalid',
               now(), now(), now(), false);
     v_inserted_user := true;
-    INSERT INTO public.user_roles(user_id, role) VALUES (v_uid, 'Admin'::public.app_role);
+    INSERT INTO public.user_roles(user_id, role) VALUES (v_uid, 'Admin');
     v_inserted_role := true;
   END IF;
 
@@ -615,7 +615,7 @@ BEGIN
 
   -- Unwind temp identity.
   IF v_inserted_role THEN
-    DELETE FROM public.user_roles WHERE user_id = v_uid AND role='Admin'::public.app_role;
+    DELETE FROM public.user_roles WHERE user_id = v_uid AND role='Admin';
   END IF;
   IF v_inserted_user THEN
     DELETE FROM auth.users WHERE id = v_uid;
