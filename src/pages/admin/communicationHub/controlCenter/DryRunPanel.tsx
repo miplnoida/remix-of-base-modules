@@ -28,9 +28,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ShieldCheck, AlertTriangle, XCircle, Loader2, ChevronDown } from "lucide-react";
+import { ShieldCheck, AlertTriangle, XCircle, Loader2, ChevronDown, KeyRound } from "lucide-react";
 import { toast } from "sonner";
-import { resolveAuthErrorMessage } from "@/platform/communication-hub/authErrorMessages";
+import {
+  resolveAuthErrorMessage,
+  getAuthErrorDetails,
+  isAuthFailure,
+  type AuthErrorDetails,
+} from "@/platform/communication-hub/authErrorMessages";
+import { getFreshAuthenticatedSession, CommHubAuthError } from "@/platform/communication-hub/authSession";
 import BlockersList from "@/pages/admin/communicationHub/safety/BlockersList";
 import {
   runDryTest,
