@@ -342,6 +342,15 @@ export function assertDryRunContractV1(
   if (status === "CERTIFIED" && !e.terminal) {
     throw new Error("envelope: CERTIFIED must be terminal");
   }
+  if (status === "BLOCKED" && !e.terminal) {
+    throw new Error("envelope: BLOCKED must be terminal for the current invocation");
+  }
+  if (status === "BLOCKED" && e.stage_succeeded !== false) {
+    throw new Error("envelope: BLOCKED must have stage_succeeded=false");
+  }
+  if (status === "BLOCKED" && e.passed !== false) {
+    throw new Error("envelope: BLOCKED must have passed=false");
+  }
 
   const tri = (v: unknown, field: string) => {
     if (v !== true && v !== false && v !== "UNKNOWN") {
@@ -352,11 +361,15 @@ export function assertDryRunContractV1(
   tri(e.execution_created, "execution_created");
   tri(e.request_created, "request_created");
   tri(e.message_created, "message_created");
+  tri(e.created_this_call, "created_this_call");
   tri(e.cleanup_proven, "cleanup_proven");
   tri(e.provider_call_attempted, "provider_call_attempted");
   tri(e.simulator_call_attempted, "simulator_call_attempted");
   tri(e.ambiguous_outcome, "ambiguous_outcome");
   tri(e.retry_safe, "retry_safe");
+  if (!e.evidence || typeof e.evidence !== "object" || Array.isArray(e.evidence)) {
+    throw new Error("envelope: evidence must be a plain object (never undefined)");
+  }
   if (!Array.isArray(e.blockers)) throw new Error("envelope: blockers must be array");
   if (!Array.isArray(e.warnings)) throw new Error("envelope: warnings must be array");
   if (!Array.isArray(e.transition_log_ids)) {
