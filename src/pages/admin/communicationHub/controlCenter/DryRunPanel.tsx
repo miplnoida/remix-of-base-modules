@@ -17,7 +17,8 @@
  * Designed for embedding inside the future unified Go Live workflow —
  * this panel is intentionally NOT registered as a top-level route.
  */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,6 +113,49 @@ export function DryRunPanel(props: DryRunPanelProps) {
   const [authError, setAuthError] = useState<AuthErrorDetails | null>(null);
   const [refreshingAuth, setRefreshingAuth] = useState(false);
 
+  // Phase 4B3 — resolver readiness of the currently selected Preview.
+  // Fetched read-only from the frozen snapshot. If a required unresolved
+  // variable is present, the Dry Test button is disabled and the operator
+  // is told exactly which variables are missing and where they come from.
+  const [snapshotMeta, setSnapshotMeta] = useState<{
+    createdAt: string | null;
+    resolverVersion: string | null;
+    requiredUnresolved: Array<{ variable: string; source_type: string | null; canonical_path: string | null; reason_code: string | null }>;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!previewSnapshotId) { setSnapshotMeta(null); return; }
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from("communication_preview_snapshot")
+        .select("created_at, resolver_version, unresolved_variables_normalised")
+        .eq("id", previewSnapshotId)
+        .maybeSingle();
+      if (cancelled || error || !data) return;
+      const list = Array.isArray(data.unresolved_variables_normalised)
+        ? data.unresolved_variables_normalised
+        : [];
+      const required = list
+        .filter((v: any) => v && v.required === true)
+        .map((v: any) => ({
+          variable: String(v.variable ?? ""),
+          source_type: v.source_type ?? null,
+          canonical_path: v.canonical_path ?? null,
+          reason_code: v.reason_code ?? null,
+        }));
+      setSnapshotMeta({
+        createdAt: data.created_at ?? null,
+        resolverVersion: data.resolver_version ?? null,
+        requiredUnresolved: required,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [previewSnapshotId]);
+
+  const resolverBlocking = (snapshotMeta?.requiredUnresolved.length ?? 0) > 0;
+
+
   const readinessStatus: "Ready" | "Needs Attention" | "Blocked" = useMemo(() => {
     if (!canonicalDecision) return "Blocked";
     if (canonicalDecision.ready) return "Ready";
@@ -131,7 +175,8 @@ export function DryRunPanel(props: DryRunPanelProps) {
     !!previewSnapshotId &&
     previewApproved &&
     reasonValid &&
-    readinessStatus === "Ready";
+    readinessStatus === "Ready" &&
+    !resolverBlocking;
 
 
   async function handleRun() {
@@ -296,6 +341,50 @@ export function DryRunPanel(props: DryRunPanelProps) {
           The dry-run runs against the locked, server-verified preview. Refresh or approve the
           preview above before running the dry test.
         </div>
+        {previewSnapshotId && (
+          <div className="text-xs text-muted-foreground font-mono">
+            Preview ID: {previewSnapshotId}
+            {snapshotMeta?.createdAt && (
+              <> · Created {new Date(snapshotMeta.createdAt).toLocaleString()}</>
+            )}
+            {snapshotMeta?.resolverVersion && (
+              <> · Resolver {snapshotMeta.resolverVersion}</>
+            )}
+          </div>
+        )}
+        {resolverBlocking && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Required Preview information is missing</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <div>
+                This Preview carries required template values that could not be resolved. The Dry
+                Test is disabled until you create a Fresh Preview whose resolver reports zero
+                required unresolved variables.
+              </div>
+              <ul className="text-xs list-disc pl-5">
+                {snapshotMeta!.requiredUnresolved.map((u) => (
+                  <li key={u.variable}>
+                    <span className="font-mono">{u.variable}</span>
+                    {u.source_type && (
+                      <> — expected from <span className="font-mono">{u.source_type}</span>
+                        {u.canonical_path && (
+                          <> at <span className="font-mono">{u.canonical_path}</span></>
+                        )}
+                      </>
+                    )}
+                    {u.reason_code && <> · {u.reason_code}</>}
+                  </li>
+                ))}
+              </ul>
+              <div className="text-xs">
+                Fix the missing source (scenario payload, recipient display name, or server
+                context), then create a Fresh Preview above. Do not use Run Again on the current
+                pair.
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
       </section>
 
       {/* B. Readiness */}

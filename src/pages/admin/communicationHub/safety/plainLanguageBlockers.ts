@@ -449,6 +449,15 @@ const DICT: Record<string, BlockerExplanation> = {
     fixHref: "/admin/communication-hub/design/templates",
     severity: "high",
   },
+  RESOLVER_REQUIRED_UNRESOLVED: {
+    code: "RESOLVER_REQUIRED_UNRESOLVED",
+    headline: "Required Preview information is missing",
+    message:
+      "One or more mandatory template values could not be resolved when this Preview was created. The Dry Test cannot continue using incomplete frozen content.",
+    fixHint: "Create a Fresh Preview",
+    fixHref: "/admin/communication-hub/control-center",
+    severity: "high",
+  },
 };
 
 
