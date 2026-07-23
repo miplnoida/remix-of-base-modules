@@ -129,6 +129,15 @@ serve(async (req) => {
       blockers: [{ code: "UNAUTHENTICATED", stage: "AUTH" }],
     }, 401);
   }
+  const accessToken = authHeader.slice(7).trim();
+  if (!accessToken) {
+    return envelope({
+      status: "BLOCKED",
+      message: "Sign in as an authorised operator to run a Dry Test.",
+      failure_stage: "AUTH",
+      blockers: [{ code: "UNAUTHENTICATED", stage: "AUTH" }],
+    }, 401);
+  }
 
   let payload: Json = {};
   try {
@@ -169,7 +178,10 @@ serve(async (req) => {
   });
 
   // Verify caller identity server-side.
-  const { data: claimsData, error: claimsError } = await userClient.auth.getUser();
+  // Stateless function clients have no in-memory auth session. Passing the
+  // bearer token explicitly is required; global Authorization headers cover
+  // RPC/PostgREST calls but do not hydrate the GoTrue client's session.
+  const { data: claimsData, error: claimsError } = await userClient.auth.getUser(accessToken);
   if (claimsError || !claimsData?.user?.id) {
     return envelope({
       status: "BLOCKED",

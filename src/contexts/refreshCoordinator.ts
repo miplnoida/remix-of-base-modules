@@ -11,6 +11,7 @@
  *   - Errors are surfaced (no silent swallow).
  */
 import { supabase } from '@/integrations/supabase/client';
+import { getPersistedSessionSnapshot } from '@/platform/communication-hub/authSession';
 import type { Session } from '@supabase/supabase-js';
 
 export interface RefreshResult {
@@ -25,6 +26,22 @@ let inflight: Promise<RefreshResult> | null = null;
 
 async function performRefresh(): Promise<RefreshResult> {
   try {
+    // Never refresh destructively while the Auth server still accepts the
+    // current access token. In restored tabs/preview iframes the refresh token
+    // can be unavailable even though the access token remains valid; calling
+    // refreshSession in that state may emit SIGNED_OUT and clear the session.
+    let currentSession = getPersistedSessionSnapshot();
+    if (!currentSession) {
+      const current = await supabase.auth.getSession();
+      currentSession = current.data.session;
+    }
+    if (currentSession?.access_token) {
+      const validated = await supabase.auth.getUser(currentSession.access_token);
+      if (!validated.error && validated.data.user) {
+        return { session: currentSession };
+      }
+    }
+
     const { data, error } = await supabase.auth.refreshSession();
     if (error) {
       const msg = error.message || 'refresh_failed';

@@ -8,6 +8,8 @@
  *   - the auth error catalogue maps every canonical code to structured details.
  */
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   getAuthErrorDetails,
   isAuthFailure,
@@ -77,5 +79,33 @@ describe("Dry Run envelope — retry safety normalization", () => {
     // Sanity — the shape is a TypeScript type; runtime just needs runDryTest.
     expect(typeof svc.runDryTest).toBe("function");
     expect(typeof svc.generateIdempotencyKey).toBe("function");
+  });
+});
+
+describe("Comm Hub authentication race regression", () => {
+  const authSource = readFileSync(
+    resolve(process.cwd(), "src/platform/communication-hub/authSession.ts"),
+    "utf8",
+  );
+  const dryRunSource = readFileSync(
+    resolve(process.cwd(), "src/platform/communication-hub/dryRunService.ts"),
+    "utf8",
+  );
+
+  it("validates the current access token before any refresh attempt", () => {
+    const runtime = authSource.slice(
+      authSource.indexOf("export async function getFreshAuthenticatedSession"),
+    );
+    expect(runtime.indexOf("getPersistedSessionSnapshot()"))
+      .toBeLessThan(runtime.indexOf("auth.getSession()"));
+    expect(runtime.indexOf("auth.getUser(current.access_token)")).toBeGreaterThan(-1);
+    expect(runtime.indexOf("auth.refreshSession()"))
+      .toBeGreaterThan(runtime.indexOf("auth.getUser(current.access_token)"));
+  });
+
+  it("pins the validated JWT onto the Dry Run invocation", () => {
+    expect(dryRunSource).toContain(
+      "Authorization: `Bearer ${authenticatedSession.access_token}`",
+    );
   });
 });

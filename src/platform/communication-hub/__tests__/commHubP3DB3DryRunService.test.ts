@@ -149,10 +149,21 @@ describe("DryRunPanel — governance & UX contract", () => {
 vi.mock("@/integrations/supabase/client", () => {
   const invoke = vi.fn();
   const rpc = vi.fn();
+  const session = {
+    access_token: "validated-operator-token",
+    refresh_token: "refresh-token",
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    user: { id: "operator-1" },
+  };
   return {
     supabase: {
       functions: { invoke },
       rpc,
+      auth: {
+        getSession: vi.fn().mockResolvedValue({ data: { session }, error: null }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: session.user }, error: null }),
+        refreshSession: vi.fn(),
+      },
       from: () => ({
         select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
       }),
@@ -235,11 +246,12 @@ describe("runDryTest — runtime behaviour", () => {
     expect(mod.__invoke).toHaveBeenCalledTimes(1);
     const [fnName, opts] = mod.__invoke.mock.calls[0];
     expect(fnName).toBe("comm-hub-dry-run");
+    expect(opts.headers).toEqual({ Authorization: "Bearer validated-operator-token" });
     expect(opts.body).toMatchObject({
       module_code: "BENEFITS",
       event_code: "AWARD_ISSUED",
       channel: "email",
-      recipients: ["ops@example.gov"],
+      to_recipients: ["ops@example.gov"],
       preview_snapshot_id: "snap-1",
       preview_approval_id: "appr-1",
       idempotency_key: "dry-abc",

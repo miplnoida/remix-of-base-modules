@@ -9,8 +9,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock the supabase client used by the coordinator.
 const refreshSessionMock = vi.fn();
+const getSessionMock = vi.fn();
+const getUserMock = vi.fn();
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { auth: { refreshSession: (...args: unknown[]) => refreshSessionMock(...args) } },
+  supabase: { auth: {
+    refreshSession: (...args: unknown[]) => refreshSessionMock(...args),
+    getSession: (...args: unknown[]) => getSessionMock(...args),
+    getUser: (...args: unknown[]) => getUserMock(...args),
+  } },
 }));
 
 import { runRefreshOnce, __resetRefreshCoordinatorForTests } from '@/contexts/refreshCoordinator';
@@ -21,6 +27,21 @@ describe('refreshCoordinator', () => {
   beforeEach(() => {
     __resetRefreshCoordinatorForTests();
     refreshSessionMock.mockReset();
+    getSessionMock.mockReset();
+    getUserMock.mockReset();
+    getSessionMock.mockResolvedValue({ data: { session: null }, error: null });
+    getUserMock.mockResolvedValue({ data: { user: null }, error: null });
+  });
+
+  it('preserves a server-valid current token without destructive refresh', async () => {
+    const session = okSession();
+    getSessionMock.mockResolvedValueOnce({ data: { session }, error: null });
+    getUserMock.mockResolvedValueOnce({ data: { user: session.user }, error: null });
+
+    const result = await runRefreshOnce();
+
+    expect(result.session).toBe(session);
+    expect(refreshSessionMock).not.toHaveBeenCalled();
   });
 
   it('single caller — one refresh request produces one supabase call', async () => {
@@ -40,6 +61,9 @@ describe('refreshCoordinator', () => {
     const p2 = runRefreshOnce();
     const p3 = runRefreshOnce();
 
+    // performRefresh first awaits the non-destructive current-token check.
+    await Promise.resolve();
+    await Promise.resolve();
     expect(refreshSessionMock).toHaveBeenCalledTimes(1);
     resolveInner({ data: { session: okSession() }, error: null });
 
