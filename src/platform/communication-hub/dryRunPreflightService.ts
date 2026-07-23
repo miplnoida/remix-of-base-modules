@@ -90,8 +90,10 @@ export async function inspectDryRunPreflight(
 
   const envelope = raw as DryRunContractV1Envelope;
 
-  // (K) Strict readiness invariant matrix.
+  // (K) Strict readiness invariant matrix — Checkpoint 2B Final Closure.
+  // Truthful evidence flags (server recomputes canonical hashes cryptographically).
   const blockers = Array.isArray(envelope.blockers) ? envelope.blockers : [];
+  const ev = (envelope as any).evidence ?? {};
   const ready =
     envelope.status === "PREFLIGHT_READY" &&
     envelope.state === "PREFLIGHT" &&
@@ -104,7 +106,11 @@ export async function inspectDryRunPreflight(
     envelope.request_created === false &&
     envelope.message_created === false &&
     envelope.provider_call_attempted === false &&
-    envelope.simulator_call_attempted === false;
+    envelope.simulator_call_attempted === false &&
+    ev.approval_canonical_hash_valid === true &&
+    ev.recipient_snapshot_hash_match === true &&
+    ev.recipient_snapshot_valid === true &&
+    ev.frozen_recipient_snapshot_available === true;
 
   if (!ready && envelope.status === "PREFLIGHT_READY") {
     // Server claims ready but invariants contradict — fail closed.
