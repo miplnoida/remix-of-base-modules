@@ -38262,6 +38262,77 @@ export type Database = {
           },
         ]
       }
+      comm_hub_fixture_compatibility_evidence: {
+        Row: {
+          blockers: Json
+          channel: string
+          compatibility_hash: string
+          computed_at: string
+          computed_by: string | null
+          event_code: string
+          id: string
+          manifest: Json
+          module_code: string
+          platform_test_context_id: string
+          scenario_id: string
+          schema_id: string | null
+          schema_version: number | null
+          status: string
+          template_version_id: string
+          validator_name: string
+          validator_version: string
+          warnings: Json
+        }
+        Insert: {
+          blockers?: Json
+          channel: string
+          compatibility_hash: string
+          computed_at?: string
+          computed_by?: string | null
+          event_code: string
+          id?: string
+          manifest: Json
+          module_code: string
+          platform_test_context_id: string
+          scenario_id: string
+          schema_id?: string | null
+          schema_version?: number | null
+          status?: string
+          template_version_id: string
+          validator_name?: string
+          validator_version?: string
+          warnings?: Json
+        }
+        Update: {
+          blockers?: Json
+          channel?: string
+          compatibility_hash?: string
+          computed_at?: string
+          computed_by?: string | null
+          event_code?: string
+          id?: string
+          manifest?: Json
+          module_code?: string
+          platform_test_context_id?: string
+          scenario_id?: string
+          schema_id?: string | null
+          schema_version?: number | null
+          status?: string
+          template_version_id?: string
+          validator_name?: string
+          validator_version?: string
+          warnings?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comm_hub_fixture_compatibility_ev_platform_test_context_id_fkey"
+            columns: ["platform_test_context_id"]
+            isOneToOne: false
+            referencedRelation: "comm_hub_platform_test_context"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comm_hub_governance_audit: {
         Row: {
           action: Database["public"]["Enums"]["comm_hub_governance_action"]
@@ -38421,6 +38492,54 @@ export type Database = {
           updated_by?: string | null
           validated_by?: string | null
           validation_status?: string | null
+        }
+        Relationships: []
+      }
+      comm_hub_platform_test_context: {
+        Row: {
+          context_code: string
+          context_hash: string
+          created_at: string
+          description: string | null
+          id: string
+          ownership_contract_version: string
+          recipient_context: Json
+          request_context: Json
+          sender_context: Json
+          status: string
+          system_context: Json
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          context_code: string
+          context_hash: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          ownership_contract_version?: string
+          recipient_context: Json
+          request_context: Json
+          sender_context: Json
+          status?: string
+          system_context: Json
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          context_code?: string
+          context_hash?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          ownership_contract_version?: string
+          recipient_context?: Json
+          request_context?: Json
+          sender_context?: Json
+          status?: string
+          system_context?: Json
+          updated_at?: string
+          version?: number
         }
         Relationships: []
       }
@@ -40636,7 +40755,11 @@ export type Database = {
           is_active: boolean
           label: string
           module_code: string
+          scenario_hash: string | null
           scenario_key: string
+          scenario_status: string
+          scenario_version: number | null
+          supersedes_scenario_id: string | null
           tokens: Json
           updated_at: string
         }
@@ -40650,7 +40773,11 @@ export type Database = {
           is_active?: boolean
           label: string
           module_code: string
+          scenario_hash?: string | null
           scenario_key?: string
+          scenario_status?: string
+          scenario_version?: number | null
+          supersedes_scenario_id?: string | null
           tokens?: Json
           updated_at?: string
         }
@@ -40664,11 +40791,23 @@ export type Database = {
           is_active?: boolean
           label?: string
           module_code?: string
+          scenario_hash?: string | null
           scenario_key?: string
+          scenario_status?: string
+          scenario_version?: number | null
+          supersedes_scenario_id?: string | null
           tokens?: Json
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "communication_hub_event_test_scenar_supersedes_scenario_id_fkey"
+            columns: ["supersedes_scenario_id"]
+            isOneToOne: false
+            referencedRelation: "communication_hub_event_test_scenario"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       communication_hub_gate_catalog: {
         Row: {
@@ -94712,6 +94851,15 @@ export type Database = {
         Returns: Json
       }
       _comm_hub_hash_manifest: { Args: { p_manifest: Json }; Returns: string }
+      _comm_hub_jval_format: {
+        Args: { p_format: string; p_value: string }
+        Returns: boolean
+      }
+      _comm_hub_jval_type: { Args: { p_val: Json }; Returns: string }
+      _comm_hub_jval_walk: {
+        Args: { p_ipath: string; p_sch: Json; p_spath: string; p_val: Json }
+        Returns: Json
+      }
       _comm_hub_reject_reserved_targeted_fields: {
         Args: { payload: Json }
         Returns: undefined
@@ -95657,6 +95805,17 @@ export type Database = {
         Args: { p_event_code: string; p_module_code: string }
         Returns: Json
       }
+      check_comm_hub_event_fixture_compatibility_v2: {
+        Args: {
+          p_channel?: string
+          p_event_code: string
+          p_module_code: string
+          p_platform_test_context_id?: string
+          p_scenario_id?: string
+          p_template_version_id?: string
+        }
+        Returns: Json
+      }
       check_comm_hub_readiness: { Args: { p_payload: Json }; Returns: Json }
       check_comm_hub_runtime_governance: {
         Args: {
@@ -95947,6 +96106,10 @@ export type Database = {
         Args: { p_template_id: string }
         Returns: string
       }
+      comm_hub_compute_scenario_hash: {
+        Args: { p_scenario_id: string }
+        Returns: string
+      }
       comm_hub_controlled_live_scope_hash: {
         Args: {
           p_channel: string
@@ -96010,6 +96173,10 @@ export type Database = {
         Returns: Json
       }
       comm_hub_html_escape: { Args: { p_in: string }; Returns: string }
+      comm_hub_json_schema_subset_scan_keywords: {
+        Args: { p_schema: Json }
+        Returns: Json
+      }
       comm_hub_normalize_recipient_set: {
         Args: { p_bcc: Json; p_cc: Json; p_to: Json }
         Returns: Json
@@ -98646,6 +98813,17 @@ export type Database = {
         }
         Returns: Json
       }
+      record_comm_hub_fixture_compatibility_evidence: {
+        Args: {
+          p_channel?: string
+          p_event_code: string
+          p_module_code: string
+          p_platform_test_context_id?: string
+          p_scenario_id?: string
+          p_template_version_id?: string
+        }
+        Returns: Json
+      }
       record_comm_hub_template_version_certification: {
         Args: { p_reason?: string; p_template_version_id: string }
         Returns: Json
@@ -99276,6 +99454,20 @@ export type Database = {
       }
       validate_comm_hub_dry_run_certification: {
         Args: { p_payload: Json }
+        Returns: Json
+      }
+      validate_comm_hub_event_payload: {
+        Args: {
+          p_event_code: string
+          p_event_payload?: Json
+          p_module_code: string
+          p_payload_schema_version?: number
+          p_require_enforced?: boolean
+        }
+        Returns: Json
+      }
+      validate_comm_hub_event_payload_pure: {
+        Args: { p_payload: Json; p_schema: Json }
         Returns: Json
       }
       validate_comm_hub_preview_approval: {
