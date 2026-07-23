@@ -154,7 +154,7 @@ export function DryRunPanel(props: DryRunPanelProps) {
         recipients,
         previewSnapshotId: previewSnapshotId ?? null,
         previewApprovalId: previewApprovalId ?? null,
-        operatorReason: reason || null,
+        operatorReason: trimmedReason,
         idempotencyKey: idempotencyRef.current!,
       });
       clearInterval(timer);
