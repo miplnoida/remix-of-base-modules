@@ -222,8 +222,8 @@ SELECT pg_temp.assert_preflight(
 DO $$
 DECLARE r jsonb; codes text[];
 BEGIN
-  -- Clear JWT to simulate unauthenticated caller
-  PERFORM set_config('request.jwt.claims', '', true);
+  -- Simulate unauthenticated caller: JWT with anon role and no sub
+  PERFORM set_config('request.jwt.claims', json_build_object('role','anon')::text, true);
   r := public.inspect_comm_hub_dry_run_preflight(NULL,NULL,'APPEALS','APPEAL_RECEIVED_NOTICE','email');
   SELECT coalesce(array_agg(x->>'code'),ARRAY[]::text[]) INTO codes
     FROM jsonb_array_elements(coalesce(r->'blockers','[]'::jsonb)) x;
