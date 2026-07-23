@@ -21,23 +21,32 @@
 \set ON_ERROR_STOP on
 \timing off
 
--- Client-supplied environment ack (from -v env=...). Empty string if absent.
-\set env_ack '\'' :env '\''
+-- Client-supplied environment ack; defaults to empty when the caller did not
+-- pass `-v env=...`. We record it as a GUC so PL/pgSQL can read it via
+-- current_setting instead of relying on psql variable substitution inside
+-- dollar-quoted blocks (which does not work).
+\if :{?env}
+  \set _env :'env'
+\else
+  \set _env ''
+\endif
 
 BEGIN;
+
+SELECT set_config('app.matrix_cli_env', :'_env', true);
 
 -- ---------------------------------------------------------------------------
 -- 0. Safety: production refusal + explicit non-production environment marker.
 --    * Reject database names matching /prod/i unconditionally.
 --    * Require server-side app.environment IN ('test','staging') OR the
---      psql-provided :env variable to equal test/staging.
+--      client-provided GUC app.matrix_cli_env IN ('test','staging').
 --    * No COMM_HUB_ALLOW_PROD override exists anywhere.
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE
-  v_db       text := current_database();
-  v_srv_env  text := coalesce(current_setting('app.environment', true), '');
-  v_cli_env  text := coalesce(:env_ack, '');
+  v_db      text := current_database();
+  v_srv_env text := coalesce(current_setting('app.environment', true), '');
+  v_cli_env text := coalesce(current_setting('app.matrix_cli_env', true), '');
 BEGIN
   IF v_db ~* 'prod' THEN
     RAISE EXCEPTION 'PRODUCTION_DATABASE_REFUSED: current_database()=% matches /prod/i', v_db;
