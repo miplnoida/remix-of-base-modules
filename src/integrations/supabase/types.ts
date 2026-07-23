@@ -38035,7 +38035,9 @@ export type Database = {
       }
       comm_hub_certification: {
         Row: {
+          canonicalization_version: string | null
           certification_kind: string
+          certification_layer: string | null
           certification_reason: string
           certified_at: string
           certified_by: string | null
@@ -38043,17 +38045,25 @@ export type Database = {
           correlation_id: string | null
           dependency_hash: string
           dependency_manifest: Json
+          diagnostic_function: string | null
+          diagnostic_version: string | null
           entity_id: string
           entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
           entity_version: string
           error_count: number
           governance_record_id: string
+          hash_algorithm: string | null
           id: string
           is_stale: boolean
+          manifest_hash: string | null
+          producer_function: string | null
+          producer_version: string | null
+          provenance_state: string | null
           renderer_version: string | null
           result: string
           stale_detected_at: string | null
           stale_reason: string | null
+          superseded_at: string | null
           superseded_by: string | null
           template_purpose: string | null
           template_type: string | null
@@ -38061,7 +38071,9 @@ export type Database = {
           warning_count: number
         }
         Insert: {
+          canonicalization_version?: string | null
           certification_kind: string
+          certification_layer?: string | null
           certification_reason: string
           certified_at?: string
           certified_by?: string | null
@@ -38069,17 +38081,25 @@ export type Database = {
           correlation_id?: string | null
           dependency_hash: string
           dependency_manifest: Json
+          diagnostic_function?: string | null
+          diagnostic_version?: string | null
           entity_id: string
           entity_type: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
           entity_version: string
           error_count?: number
           governance_record_id: string
+          hash_algorithm?: string | null
           id?: string
           is_stale?: boolean
+          manifest_hash?: string | null
+          producer_function?: string | null
+          producer_version?: string | null
+          provenance_state?: string | null
           renderer_version?: string | null
           result: string
           stale_detected_at?: string | null
           stale_reason?: string | null
+          superseded_at?: string | null
           superseded_by?: string | null
           template_purpose?: string | null
           template_type?: string | null
@@ -38087,7 +38107,9 @@ export type Database = {
           warning_count?: number
         }
         Update: {
+          canonicalization_version?: string | null
           certification_kind?: string
+          certification_layer?: string | null
           certification_reason?: string
           certified_at?: string
           certified_by?: string | null
@@ -38095,17 +38117,25 @@ export type Database = {
           correlation_id?: string | null
           dependency_hash?: string
           dependency_manifest?: Json
+          diagnostic_function?: string | null
+          diagnostic_version?: string | null
           entity_id?: string
           entity_type?: Database["public"]["Enums"]["comm_hub_governance_entity_type"]
           entity_version?: string
           error_count?: number
           governance_record_id?: string
+          hash_algorithm?: string | null
           id?: string
           is_stale?: boolean
+          manifest_hash?: string | null
+          producer_function?: string | null
+          producer_version?: string | null
+          provenance_state?: string | null
           renderer_version?: string | null
           result?: string
           stale_detected_at?: string | null
           stale_reason?: string | null
+          superseded_at?: string | null
           superseded_by?: string | null
           template_purpose?: string | null
           template_type?: string | null
@@ -95801,6 +95831,8 @@ export type Database = {
       }
       comm_hub_backfill_governance_assessment: { Args: never; Returns: Json }
       comm_hub_canonical_jsonb: { Args: { p: Json }; Returns: Json }
+      comm_hub_canonicalization_version: { Args: never; Returns: string }
+      comm_hub_canonicalize_jsonb: { Args: { p_value: Json }; Returns: string }
       comm_hub_classify_template_purpose: {
         Args: { p_template_id: string }
         Returns: string
@@ -95830,6 +95862,10 @@ export type Database = {
           p_recipient_hash: string
           p_snapshot: string
         }
+        Returns: string
+      }
+      comm_hub_evidence_hash: {
+        Args: { p_domain: string; p_value: Json }
         Returns: string
       }
       comm_hub_flatten_tokens: {
@@ -95873,6 +95909,7 @@ export type Database = {
         Returns: Json
       }
       comm_hub_scrub_protected_keys: { Args: { p_bundle: Json }; Returns: Json }
+      comm_hub_sha256_hex: { Args: { p_text: string }; Returns: string }
       complete_comm_hub_trace: {
         Args: { p_payload: Json; p_status: string; p_trace_id: string }
         Returns: Json
@@ -98493,6 +98530,10 @@ export type Database = {
           p_provider_status: string
           p_warnings?: Json
         }
+        Returns: Json
+      }
+      record_comm_hub_template_version_certification: {
+        Args: { p_reason?: string; p_template_version_id: string }
         Returns: Json
       }
       record_controlled_live_certification: {
