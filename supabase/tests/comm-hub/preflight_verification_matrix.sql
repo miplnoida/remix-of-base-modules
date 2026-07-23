@@ -31,9 +31,10 @@ BEGIN
   END IF;
 END $$;
 
--- Run everything as service_role so preflight AUTH gate is bypassed for the
--- fixture-mutation portion. Auth cases explicitly SET LOCAL role.
-SET LOCAL ROLE service_role;
+-- Preflight checks auth via auth.role() (JWT claims). We bypass the auth gate
+-- for the fixture-mutation portion by setting the JWT role claim to
+-- 'service_role'. Auth cases override this claim explicitly.
+SELECT set_config('request.jwt.claims', json_build_object('role','service_role')::text, true);
 
 -- ---------------------------------------------------------------------------
 -- 1. Zero-row-delta ledger — capture before/after counts for every table that
