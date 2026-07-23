@@ -34,30 +34,50 @@ export async function getFreshAuthenticatedSession(): Promise<Session> {
 
   const current = data?.session ?? null;
   const expiresAtMs = (current?.expires_at ?? 0) * 1000;
-  const isNearExpiry = !expiresAtMs || expiresAtMs - Date.now() < 60_000;
+  const msUntilExpiry = expiresAtMs ? expiresAtMs - Date.now() : 0;
+  const isNearExpiry = !expiresAtMs || msUntilExpiry < 60_000;
 
-  // If we have a non-expiring token, validate it against the Auth server.
-  // The local session can look valid while the server-side session was
-  // invalidated (key rotation, sign-out elsewhere, session pruning) — in
-  // that case getUser() returns an error and we must refresh before
-  // handing the token to any edge function.
+  // Fast path: token is not near expiry AND passes server-side validation.
+  // We validate against the Auth server because a local session can look
+  // valid while the server-side session was invalidated (key rotation,
+  // sign-out elsewhere, session pruning).
   if (current?.access_token && !isNearExpiry) {
+    const { data: userData, error: userErr } = await supabase.auth.getUser(current.access_token);
+    if (!userErr && userData?.user?.id) {
+      return current;
+    }
+    // getUser failed — fall through to refresh attempt below.
+  }
+
+  // Try to refresh. If the refresh token is missing/invalid but the current
+  // access token is still valid on the server, we MUST NOT sign the user
+  // out — that's what previously destroyed a working session and produced
+  // the misleading "Your session has expired" screen while the user was
+  // actively using the app. Refresh-token loss is common in preview iframes
+  // and multi-tab environments; the access token can still have many
+  // minutes of life left, which is enough for a dry run.
+  const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+  if (!refreshError && refreshed?.session?.access_token) {
+    return refreshed.session;
+  }
+
+  // Refresh failed. Last-chance fallback: if we still hold an access token
+  // that the Auth server accepts, use it. Only when the server rejects the
+  // token do we treat the session as truly gone.
+  if (current?.access_token) {
     const { data: userData, error: userErr } = await supabase.auth.getUser(current.access_token);
     if (!userErr && userData?.user?.id) {
       return current;
     }
   }
 
-  const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-  if (refreshError || !refreshed?.session?.access_token) {
-    // Clear the stale local session so the app stops replaying an
-    // invalid token on subsequent calls and the user is prompted to
-    // sign in again.
-    try { await supabase.auth.signOut({ scope: "local" } as any); } catch { /* noop */ }
-    throw new CommHubAuthError(
-      "authentication_required",
-      refreshError?.message ?? "no active session",
-    );
-  }
-  return refreshed.session;
+  // Do NOT call signOut here. Leave the local session untouched so other
+  // parts of the app that can still function (or a subsequent refresh
+  // attempt after the user pastes a link, changes network, etc.) are not
+  // torn down by our helper. The caller surfaces a "Refresh Session"
+  // action that will retry this path.
+  throw new CommHubAuthError(
+    "authentication_required",
+    refreshError?.message ?? "no active session",
+  );
 }
