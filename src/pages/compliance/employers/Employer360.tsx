@@ -483,30 +483,107 @@ export default function Employer360() {
               </Button>
             </CardHeader>
             <CardContent>
-              {ledgerStatement.length === 0 ? <div className="text-center py-8 text-muted-foreground">No ledger entries</div> : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead><TableHead>Period</TableHead><TableHead>Fund</TableHead>
-                      <TableHead>Type</TableHead><TableHead className="text-right">Debit</TableHead>
-                      <TableHead className="text-right">Credit</TableHead><TableHead className="text-right">Balance</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ledgerStatement.slice(0, 20).map((e) => (
-                      <TableRow key={e.entry_id}>
-                        <TableCell className="text-xs">{formatDate(e.posted_at)}</TableCell>
-                        <TableCell className="font-mono text-xs">{e.period}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-[10px]">{e.fund_type}</Badge></TableCell>
-                        <TableCell className="text-xs">{e.entry_type.replace(/_/g, ' ')}</TableCell>
-                        <TableCell className="text-right font-mono text-xs text-destructive">{e.debit_amount > 0 ? formatCurrency(e.debit_amount) : '—'}</TableCell>
-                        <TableCell className="text-right font-mono text-xs text-green-600">{e.credit_amount > 0 ? formatCurrency(e.credit_amount) : '—'}</TableCell>
-                        <TableCell className="text-right font-mono text-xs font-medium">{formatCurrency(e.running_balance)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              {(() => {
+                // Prefer posted ledger entries. Fall back to cashier receipts +
+                // outstanding arrears when the formal ledger has not been
+                // materialised yet, so the Statement view always reflects real
+                // financial activity captured elsewhere in the system.
+                type StatementRow = {
+                  key: string;
+                  posted_at: string | null;
+                  period: string | null;
+                  fund_type: string | null;
+                  entry_type: string;
+                  debit: number;
+                  credit: number;
+                  balance: number | null;
+                  source: 'LEDGER' | 'CASHIER' | 'ARREARS';
+                };
+
+                let rows: StatementRow[] = [];
+                if (ledgerStatement.length > 0) {
+                  rows = ledgerStatement.slice(0, 20).map((e) => ({
+                    key: e.entry_id,
+                    posted_at: e.posted_at,
+                    period: e.period,
+                    fund_type: e.fund_type,
+                    entry_type: e.entry_type.replace(/_/g, ' '),
+                    debit: e.debit_amount || 0,
+                    credit: e.credit_amount || 0,
+                    balance: e.running_balance,
+                    source: 'LEDGER',
+                  }));
+                } else {
+                  const receiptRows: StatementRow[] = (paymentHistory as any[])
+                    .filter((p) => (p.credit_amount || 0) > 0)
+                    .slice(0, 20)
+                    .map((p) => ({
+                      key: p.id,
+                      posted_at: p.posted_at,
+                      period: p.period ? String(p.period).slice(0, 10) : null,
+                      fund_type: p.fund_type,
+                      entry_type: `PAYMENT · ${p.source}`,
+                      debit: 0,
+                      credit: p.credit_amount || 0,
+                      balance: null,
+                      source: p.source === 'CASHIER' ? 'CASHIER' : 'LEDGER',
+                    }));
+                  const arrearsRows: StatementRow[] = (ledgerArrears as any[])
+                    .filter((a) => (a.net_balance || 0) > 0)
+                    .map((a, idx) => ({
+                      key: `AR-${a.fund_type}-${idx}`,
+                      posted_at: null,
+                      period: null,
+                      fund_type: a.fund_type,
+                      entry_type: `OUTSTANDING BALANCE (${a.period_count} periods)`,
+                      debit: a.net_balance || 0,
+                      credit: 0,
+                      balance: a.net_balance || 0,
+                      source: 'ARREARS',
+                    }));
+                  rows = [...receiptRows, ...arrearsRows];
+                }
+
+                if (rows.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No ledger, cashier, or outstanding balance activity recorded for this employer.
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    {ledgerStatement.length === 0 && (
+                      <div className="mb-3 text-xs text-muted-foreground italic">
+                        Ledger not yet posted — showing cashier receipts and outstanding balances as a preview.
+                      </div>
+                    )}
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead><TableHead>Period</TableHead><TableHead>Fund</TableHead>
+                          <TableHead>Type</TableHead><TableHead className="text-right">Debit</TableHead>
+                          <TableHead className="text-right">Credit</TableHead><TableHead className="text-right">Balance</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map((r) => (
+                          <TableRow key={r.key}>
+                            <TableCell className="text-xs">{r.posted_at ? formatDate(r.posted_at) : '—'}</TableCell>
+                            <TableCell className="font-mono text-xs">{r.period || '—'}</TableCell>
+                            <TableCell>{r.fund_type ? <Badge variant="outline" className="text-[10px]">{r.fund_type}</Badge> : '—'}</TableCell>
+                            <TableCell className="text-xs">{r.entry_type}</TableCell>
+                            <TableCell className="text-right font-mono text-xs text-destructive">{r.debit > 0 ? formatCurrency(r.debit) : '—'}</TableCell>
+                            <TableCell className="text-right font-mono text-xs text-green-600">{r.credit > 0 ? formatCurrency(r.credit) : '—'}</TableCell>
+                            <TableCell className="text-right font-mono text-xs font-medium">{r.balance != null ? formatCurrency(r.balance) : '—'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
