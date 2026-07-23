@@ -98561,6 +98561,21 @@ export type Database = {
         Args: { p_request_id: string; p_request_no: string; p_trace_id: string }
         Returns: Json
       }
+      list_comm_hub_transition_log: {
+        Args: { p_correlation_id?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          action: string
+          actor_id: string
+          allowed: boolean
+          channel: string
+          correlation_id: string
+          created_at: string
+          denied_reasons: Json
+          event_code: string
+          id: string
+          module_code: string
+        }[]
+      }
       log_audit_event: {
         Args: {
           _action_type: string
