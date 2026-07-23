@@ -279,12 +279,14 @@ export function emptyDryRunEnvelope(
     execution_created: "UNKNOWN",
     request_created: "UNKNOWN",
     message_created: "UNKNOWN",
+    created_this_call: "UNKNOWN",
     cleanup_proven: "UNKNOWN",
     provider_call_attempted: "UNKNOWN",
     simulator_call_attempted: "UNKNOWN",
     ambiguous_outcome: "UNKNOWN",
     retry_safe: "UNKNOWN",
     retry_reason: "UNKNOWN",
+    evidence: {},
     ...overrides,
   };
 }
