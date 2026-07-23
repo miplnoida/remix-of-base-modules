@@ -44,7 +44,13 @@ export interface PreviewSnapshot {
   unresolved_variables: string[];
   configuration_version: number | null;
   recipient_policy_version: number | null;
+  /** Authoritative server-side creation timestamp (ISO). Required. */
+  created_at: string;
+  /** Optional server-side update timestamp (ISO). */
+  updated_at?: string | null;
   expires_at: string;
+  /** Optional server clock at response time (ISO). Used to compare against expires_at. */
+  server_time?: string | null;
   status: PreviewSnapshotStatus;
 }
 
@@ -52,6 +58,8 @@ export interface PreviewApprovalRecord {
   approval_id: string;
   snapshot_id: string;
   status: PreviewApprovalStatus;
+  /** Authoritative server-side approval creation timestamp (ISO). */
+  created_at?: string | null;
   expires_at: string;
   content_hash: string;
   recipient_set_hash: string;
@@ -101,10 +109,21 @@ function normalizeSnapshot(raw: unknown): PreviewSnapshot {
   if (!resolvedSnapshotId) {
     throw new Error("preview_snapshot_id_missing");
   }
+  // Phase 4B3 — Preview evidence must carry authoritative server timestamps.
+  const createdAt = typeof value.created_at === "string" ? (value.created_at as string) : null;
+  const expiresAt = typeof value.expires_at === "string" ? (value.expires_at as string) : null;
+  if (!createdAt || Number.isNaN(new Date(createdAt).getTime())) {
+    throw new Error("preview_snapshot_created_at_missing");
+  }
+  if (!expiresAt || Number.isNaN(new Date(expiresAt).getTime())) {
+    throw new Error("preview_snapshot_expires_at_missing");
+  }
   return {
     ...value,
     id: id ?? resolvedSnapshotId,
     snapshot_id: resolvedSnapshotId,
+    created_at: createdAt,
+    expires_at: expiresAt,
   } as unknown as PreviewSnapshot;
 }
 

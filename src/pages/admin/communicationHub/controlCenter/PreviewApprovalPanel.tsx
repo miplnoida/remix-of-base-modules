@@ -23,6 +23,13 @@ import {
   type PreviewSnapshot, type PreviewApprovalRecord,
 } from "@/platform/communication-hub/previewApprovalService";
 import { maskEmail } from "../utils/mask";
+import {
+  formatEvidenceTimestamp,
+  computeRemaining,
+  formatTtl,
+  browserTimeZone,
+  UNAVAILABLE_LABEL,
+} from "../utils/evidenceTimestamps";
 
 export type PreviewRecipientSource =
   | "single_configured_recipient"
@@ -109,9 +116,24 @@ export default function PreviewApprovalPanel({
   const unresolvedRequiredVariables = snapshot?.unresolved_variables ?? [];
   const approvalInProgress = busy === "approve";
   const snapshotIsPrepared = snapshot?.status === "PREPARED";
+  // Phase 4B3 — lifecycle from server evidence (client-side is for display/button locking only).
+  const previewRemaining = computeRemaining(snapshot?.expires_at ?? null);
+  const approvalRemaining = computeRemaining(approval?.expires_at ?? null);
+  const previewExpired = !!snapshot && (snapshot.status === "EXPIRED" || previewRemaining.expired);
+  const approvalExpired = !!approval && (approval.status === "EXPIRED" || approvalRemaining.expired);
+  const lifecycleBadge: { label: string; variant: "default" | "secondary" | "destructive" } = !snapshot
+    ? { label: "—", variant: "secondary" }
+    : snapshot.status === "SUPERSEDED"
+      ? { label: "SUPERSEDED", variant: "destructive" }
+      : snapshot.status === "REVOKED"
+        ? { label: "REVOKED", variant: "destructive" }
+        : previewExpired
+          ? { label: "EXPIRED", variant: "destructive" }
+          : { label: "ACTIVE", variant: "default" };
   const canApprovePreview =
     !!snapshot &&
     snapshotIsPrepared &&
+    !previewExpired &&
     unresolvedRequiredVariables.length === 0 &&
     contentIsComplete &&
     !approvalInProgress &&
@@ -122,6 +144,7 @@ export default function PreviewApprovalPanel({
     if (!snapshot) return [] as string[];
     const list: string[] = [];
     if (!snapshotIsPrepared) list.push(`Snapshot status is ${snapshot.status}; refresh the preview.`);
+    if (previewExpired) list.push("This Preview or approval has expired. Create and approve a new Preview.");
     if (unresolvedRequiredVariables.length > 0) {
       list.push(
         `Preview has ${unresolvedRequiredVariables.length} unresolved required variable${unresolvedRequiredVariables.length === 1 ? "" : "s"}: ${unresolvedRequiredVariables.join(", ")}.`
@@ -135,7 +158,7 @@ export default function PreviewApprovalPanel({
     }
     if (reason.trim().length === 0) list.push("Approval reason is required.");
     return list;
-  }, [snapshot, snapshotIsPrepared, unresolvedRequiredVariables, contentIsComplete, locked, recipientDivergesFromSnapshot, reason]);
+  }, [snapshot, snapshotIsPrepared, previewExpired, unresolvedRequiredVariables, contentIsComplete, locked, recipientDivergesFromSnapshot, reason]);
 
 
   async function handlePrepare() {
@@ -317,14 +340,40 @@ export default function PreviewApprovalPanel({
 
       {snapshot && (
         <div className="border rounded-md p-3 space-y-2 bg-muted/30">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary">Snapshot</Badge>
-            <span className="text-xs font-mono">{snapshot.snapshot_id}</span>
-            <Badge>{snapshot.status}</Badge>
-            <span className="text-xs text-muted-foreground">
-              generated {new Date().toLocaleTimeString()} · expires {new Date(snapshot.expires_at).toLocaleTimeString()}
-            </span>
-          </div>
+          {(() => {
+            const created = formatEvidenceTimestamp(snapshot.created_at, UNAVAILABLE_LABEL);
+            const expires = formatEvidenceTimestamp(snapshot.expires_at, "—");
+            const ttl = formatTtl(snapshot.created_at, snapshot.expires_at);
+            return (
+              <>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="secondary">Snapshot</Badge>
+                  <span className="text-xs font-mono">{snapshot.snapshot_id}</span>
+                  <Badge variant={lifecycleBadge.variant} data-testid="preview-lifecycle-badge">
+                    {lifecycleBadge.label}
+                  </Badge>
+                  <Badge variant="outline">Server: {snapshot.status}</Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                  <div data-testid="preview-generated">
+                    <strong>Generated:</strong>{" "}
+                    <span className={created.ok ? "" : "text-destructive"}>{created.display}</span>
+                  </div>
+                  <div data-testid="preview-expires">
+                    <strong>Expires:</strong>{" "}
+                    <span className={expires.ok ? "" : "text-destructive"}>{expires.display}</span>
+                  </div>
+                  <div><strong>Valid for:</strong> {ttl}</div>
+                  <div>
+                    <strong>Remaining:</strong>{" "}
+                    <span className={previewRemaining.expired ? "text-destructive" : ""}>
+                      {previewRemaining.display}
+                    </span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
           <div className="text-sm space-y-0.5">
             <div>
               <strong>Recipient:</strong>{" "}
@@ -343,6 +392,15 @@ export default function PreviewApprovalPanel({
               <div><strong>Test-data source:</strong> {lockedContext.testDataSource}</div>
             )}
           </div>
+          {previewExpired && (
+            <Alert variant="destructive" data-testid="preview-expired-alert">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Preview expired</AlertTitle>
+              <AlertDescription>
+                This Preview or approval has expired. Create and approve a new Preview.
+              </AlertDescription>
+            </Alert>
+          )}
           {(snapshot.unresolved_variables ?? []).length > 0 && (
             <Alert variant="destructive" data-testid="preview-unresolved-alert">
               <AlertTriangle className="h-4 w-4" />
@@ -391,25 +449,71 @@ export default function PreviewApprovalPanel({
         </div>
       )}
 
-      {approval && (
-        <div className="border rounded-md p-3 bg-muted/30">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary">Approval</Badge>
-            <span className="text-xs font-mono">{approval.approval_id}</span>
-            <Badge variant={approval.status === "ACTIVE" ? "default" : "destructive"}>
-              {approval.status}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              expires {new Date(approval.expires_at).toLocaleTimeString()}
-            </span>
-            {locked && effRecipient && (
-              <span className="text-xs text-muted-foreground">
-                · bound to {maskEmail(effRecipient)}
-              </span>
+      {approval && (() => {
+        const aCreated = formatEvidenceTimestamp(approval.created_at ?? null, UNAVAILABLE_LABEL);
+        const aExpires = formatEvidenceTimestamp(approval.expires_at, "—");
+        const aBadge = approval.status === "ACTIVE" && !approvalExpired
+          ? { label: "ACTIVE", variant: "default" as const }
+          : approvalExpired
+            ? { label: "EXPIRED", variant: "destructive" as const }
+            : { label: approval.status, variant: "destructive" as const };
+        return (
+          <div className="border rounded-md p-3 bg-muted/30 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary">Approval</Badge>
+              <span className="text-xs font-mono">{approval.approval_id}</span>
+              <Badge variant={aBadge.variant} data-testid="approval-lifecycle-badge">{aBadge.label}</Badge>
+              <Badge variant="outline">Server: {approval.status}</Badge>
+              {locked && effRecipient && (
+                <span className="text-xs text-muted-foreground">
+                  · bound to {maskEmail(effRecipient)}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+              <div data-testid="approval-created">
+                <strong>Approval created:</strong>{" "}
+                <span className={aCreated.ok ? "" : "text-destructive"}>{aCreated.display}</span>
+              </div>
+              <div data-testid="approval-expires">
+                <strong>Approval expires:</strong>{" "}
+                <span className={aExpires.ok ? "" : "text-destructive"}>{aExpires.display}</span>
+              </div>
+              <div>
+                <strong>Remaining:</strong>{" "}
+                <span className={approvalRemaining.expired ? "text-destructive" : ""}>
+                  {approvalRemaining.display}
+                </span>
+              </div>
+            </div>
+            {approvalExpired && (
+              <Alert variant="destructive" data-testid="approval-expired-alert">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Approval expired</AlertTitle>
+                <AlertDescription>
+                  This Preview or approval has expired. Create and approve a new Preview.
+                </AlertDescription>
+              </Alert>
             )}
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+              <pre className="mt-1 p-2 bg-background border rounded overflow-auto">
+{JSON.stringify({
+  preview_created_at: snapshot?.created_at ?? null,
+  preview_expires_at: snapshot?.expires_at ?? null,
+  approval_created_at: approval.created_at ?? null,
+  approval_expires_at: approval.expires_at,
+  server_validated_at: snapshot?.server_time ?? null,
+  browser_display_timezone: browserTimeZone(),
+  preview_remaining_seconds: previewRemaining.totalSeconds,
+  preview_expired: previewExpired,
+  approval_expired: approvalExpired,
+}, null, 2)}
+              </pre>
+            </details>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
