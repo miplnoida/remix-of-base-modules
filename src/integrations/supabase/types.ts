@@ -94986,6 +94986,10 @@ export type Database = {
         Returns: Json
       }
       _chub_assert_admin: { Args: never; Returns: undefined }
+      _comm_hub_assert_bound_service_operation: {
+        Args: { p_operation: string; p_service: string }
+        Returns: Json
+      }
       _comm_hub_build_event_manifest: {
         Args: {
           p_channel?: string

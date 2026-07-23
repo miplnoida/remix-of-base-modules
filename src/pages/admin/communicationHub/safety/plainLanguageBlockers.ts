@@ -458,6 +458,24 @@ const DICT: Record<string, BlockerExplanation> = {
     fixHref: "/admin/communication-hub/control-center",
     severity: "high",
   },
+  SERVICE_OPERATION_UNKNOWN: {
+    code: "SERVICE_OPERATION_UNKNOWN",
+    headline: "Platform service operation not on the allowlist",
+    message:
+      "The Dry Run processor tried to run a service operation that is not registered on the platform allowlist. This is a deploy-time configuration gap — not a user or template problem — and no runtime rows or provider calls were made.",
+    fixHint:
+      "Ask a Communication Hub platform admin to add the (service, operation) pair to comm_hub_service_operation_allowlist and redeploy the Dry Run function.",
+    severity: "high",
+  },
+  SERVICE_ROLE_REQUIRED: {
+    code: "SERVICE_ROLE_REQUIRED",
+    headline: "Operation requires the platform service role",
+    message:
+      "This Dry Run step must be invoked by the platform service role. It was reached through an unauthorised path. No runtime rows or provider calls were made.",
+    fixHint:
+      "Retry the Dry Run from the operator console; if the error repeats, escalate to a Communication Hub platform admin.",
+    severity: "high",
+  },
 };
 
 
