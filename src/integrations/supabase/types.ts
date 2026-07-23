@@ -94544,6 +94544,18 @@ export type Database = {
         Args: { p_target: string }
         Returns: string
       }
+      _check_comm_hub_runtime_governance_impl: {
+        Args: {
+          p_channel?: string
+          p_dry_run_certification_id?: string
+          p_event_code: string
+          p_module_code: string
+          p_preview_approval_id?: string
+          p_preview_snapshot_id?: string
+          p_target_stage?: string
+        }
+        Returns: Json
+      }
       _chub_assert_admin: { Args: never; Returns: undefined }
       _comm_hub_build_event_manifest: {
         Args: {
@@ -96705,6 +96717,16 @@ export type Database = {
       }
       evaluate_comm_hub_send_decision: {
         Args: { p_payload: Json }
+        Returns: Json
+      }
+      evaluate_comm_hub_stage_readiness: {
+        Args: {
+          p_auto_compute_sender_readiness?: boolean
+          p_channel?: string
+          p_event_code: string
+          p_module_code: string
+          p_target_stage?: string
+        }
         Returns: Json
       }
       evaluate_levy_amounts: {
