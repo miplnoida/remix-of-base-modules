@@ -38424,6 +38424,102 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_hub_provider_capability_evidence: {
+        Row: {
+          adapter_contract_version: string | null
+          adapter_deployed_version: string | null
+          advisories: Json
+          blockers: Json
+          computed_by: string | null
+          connectivity_check_status: string
+          connectivity_check_type: string | null
+          credential_reference_version: string | null
+          credentials_present: boolean
+          dispatch_secret_canonical_name: string
+          dispatch_secret_status: string
+          environment_code: string | null
+          environment_version: string | null
+          evidence_at: string
+          evidence_hash: string | null
+          expires_at: string | null
+          external_send_gate_enabled: boolean
+          id: string
+          legacy_dispatch_secret_present: boolean
+          live_adapter_available: boolean
+          live_adapter_enabled: boolean
+          producer_function: string
+          producer_version: string
+          provider_code: string
+          provider_configuration_version: string | null
+          state: string
+          test_adapter_available: boolean
+          test_adapter_enabled: boolean
+          warnings: Json
+        }
+        Insert: {
+          adapter_contract_version?: string | null
+          adapter_deployed_version?: string | null
+          advisories?: Json
+          blockers?: Json
+          computed_by?: string | null
+          connectivity_check_status?: string
+          connectivity_check_type?: string | null
+          credential_reference_version?: string | null
+          credentials_present?: boolean
+          dispatch_secret_canonical_name?: string
+          dispatch_secret_status?: string
+          environment_code?: string | null
+          environment_version?: string | null
+          evidence_at?: string
+          evidence_hash?: string | null
+          expires_at?: string | null
+          external_send_gate_enabled?: boolean
+          id?: string
+          legacy_dispatch_secret_present?: boolean
+          live_adapter_available?: boolean
+          live_adapter_enabled?: boolean
+          producer_function?: string
+          producer_version?: string
+          provider_code: string
+          provider_configuration_version?: string | null
+          state?: string
+          test_adapter_available?: boolean
+          test_adapter_enabled?: boolean
+          warnings?: Json
+        }
+        Update: {
+          adapter_contract_version?: string | null
+          adapter_deployed_version?: string | null
+          advisories?: Json
+          blockers?: Json
+          computed_by?: string | null
+          connectivity_check_status?: string
+          connectivity_check_type?: string | null
+          credential_reference_version?: string | null
+          credentials_present?: boolean
+          dispatch_secret_canonical_name?: string
+          dispatch_secret_status?: string
+          environment_code?: string | null
+          environment_version?: string | null
+          evidence_at?: string
+          evidence_hash?: string | null
+          expires_at?: string | null
+          external_send_gate_enabled?: boolean
+          id?: string
+          legacy_dispatch_secret_present?: boolean
+          live_adapter_available?: boolean
+          live_adapter_enabled?: boolean
+          producer_function?: string
+          producer_version?: string
+          provider_code?: string
+          provider_configuration_version?: string | null
+          state?: string
+          test_adapter_available?: boolean
+          test_adapter_enabled?: boolean
+          warnings?: Json
+        }
+        Relationships: []
+      }
       comm_hub_sender_readiness: {
         Row: {
           advisories: Json
@@ -94643,6 +94739,10 @@ export type Database = {
         Args: { p_records: Json; p_table_name: string }
         Returns: Json
       }
+      admin_compute_comm_hub_sender_readiness: {
+        Args: { p_readiness_kind?: string; p_sender_profile_id: string }
+        Returns: Json
+      }
       admin_create_enum_if_not_exists: {
         Args: { p_enum_name: string; p_values: string[] }
         Returns: Json
@@ -95104,6 +95204,10 @@ export type Database = {
         }
         Returns: Json
       }
+      build_comm_hub_template_dependency_manifest: {
+        Args: { p_template_version_id: string }
+        Returns: Json
+      }
       c3_config_period_deletability: {
         Args: { p_period_id: string }
         Returns: Json
@@ -95543,6 +95647,10 @@ export type Database = {
         Args: { p_certification_id: string }
         Returns: Json
       }
+      check_comm_hub_dispatch_secret_compatibility: {
+        Args: { p_canonical_present: boolean; p_legacy_present: boolean }
+        Returns: Json
+      }
       check_comm_hub_event_fixture_compatibility: {
         Args: { p_event_code: string; p_module_code: string }
         Returns: Json
@@ -95917,6 +96025,10 @@ export type Database = {
       compute_comm_hub_dependency_hash: {
         Args: { p_manifest: Json }
         Returns: string
+      }
+      compute_comm_hub_provider_capability_evidence: {
+        Args: { p_provider_code: string }
+        Returns: Json
       }
       compute_comm_hub_sender_readiness: {
         Args: { p_readiness_kind?: string; p_sender_profile_id: string }
