@@ -38396,34 +38396,73 @@ export type Database = {
       }
       comm_hub_sender_readiness: {
         Row: {
+          advisories: Json
+          blockers: Json
           computed_at: string
+          computed_by: string | null
+          environment_code: string | null
+          environment_version: string | null
+          evidence_hash: string | null
+          expires_at: string | null
           id: string
           is_stale: boolean
+          provider_code: string | null
+          provider_version: string | null
           readiness_details: Json
+          readiness_kind: string
           readiness_state: Database["public"]["Enums"]["comm_hub_sender_readiness_state"]
+          reason: string | null
           sender_profile_id: string
           sender_version: string
           stale_reason: string | null
+          verification_evidence_version: string | null
+          warnings: Json
         }
         Insert: {
+          advisories?: Json
+          blockers?: Json
           computed_at?: string
+          computed_by?: string | null
+          environment_code?: string | null
+          environment_version?: string | null
+          evidence_hash?: string | null
+          expires_at?: string | null
           id?: string
           is_stale?: boolean
+          provider_code?: string | null
+          provider_version?: string | null
           readiness_details?: Json
+          readiness_kind?: string
           readiness_state: Database["public"]["Enums"]["comm_hub_sender_readiness_state"]
+          reason?: string | null
           sender_profile_id: string
           sender_version?: string
           stale_reason?: string | null
+          verification_evidence_version?: string | null
+          warnings?: Json
         }
         Update: {
+          advisories?: Json
+          blockers?: Json
           computed_at?: string
+          computed_by?: string | null
+          environment_code?: string | null
+          environment_version?: string | null
+          evidence_hash?: string | null
+          expires_at?: string | null
           id?: string
           is_stale?: boolean
+          provider_code?: string | null
+          provider_version?: string | null
           readiness_details?: Json
+          readiness_kind?: string
           readiness_state?: Database["public"]["Enums"]["comm_hub_sender_readiness_state"]
+          reason?: string | null
           sender_profile_id?: string
           sender_version?: string
           stale_reason?: string | null
+          verification_evidence_version?: string | null
+          warnings?: Json
         }
         Relationships: []
       }
