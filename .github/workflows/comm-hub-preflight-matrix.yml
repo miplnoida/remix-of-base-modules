@@ -1,0 +1,111 @@
+name: Comm Hub — Preflight Verification Matrix
+
+# Phase 4B3 — Checkpoint 2B (item M).
+#
+# Manual-dispatch only. Runs against an APPROVED test/staging database via a
+# GitHub Environment ("comm-hub-preflight-test") whose reviewers must approve
+# each run. The DB URL secret is scoped to that environment.
+#
+# Never runs on push/PR. Never runs against production. The secret value is
+# not written to any file and is never echoed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target non-production environment'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - staging
+
+concurrency:
+  group: comm-hub-preflight-matrix-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  preflight-matrix:
+    name: Preflight Verification Matrix (${{ github.event.inputs.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Reviewer approval required. Secret COMM_HUB_TEST_DB_URL lives here.
+    environment:
+      name: comm-hub-preflight-${{ github.event.inputs.environment }}
+
+    env:
+      COMM_HUB_TEST_ENVIRONMENT: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Refuse production input
+        run: |
+          case "${{ github.event.inputs.environment }}" in
+            test|staging) ;;
+            *) echo "environment must be test or staging" >&2; exit 1 ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Install project dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          psql --version
+
+      - name: TypeScript contract tests
+        run: |
+          bunx vitest run \
+            src/platform/communication-hub/__tests__/dryRunPreflightService.test.ts \
+            --reporter=verbose \
+            2>&1 | tee /tmp/ts-contract-tests.log
+
+      - name: Service / readiness tests
+        run: |
+          bunx vitest run \
+            src/__tests__/comm-hub/readinessReadOnly.test.ts \
+            --reporter=verbose \
+            2>&1 | tee /tmp/service-tests.log
+
+      - name: Preflight Verification Matrix (SQL, service-role)
+        env:
+          COMM_HUB_TEST_DB_URL: ${{ secrets.COMM_HUB_TEST_DB_URL }}
+        run: |
+          if [ -z "${COMM_HUB_TEST_DB_URL:-}" ]; then
+            echo "secret COMM_HUB_TEST_DB_URL not configured for this environment" >&2
+            exit 1
+          fi
+          bun run test:comm-hub-preflight-matrix 2>&1 | tee /tmp/preflight-matrix.log
+
+      - name: Sanitize logs before upload
+        if: always()
+        run: |
+          # Belt-and-braces: even though the runner already redacts, strip any
+          # accidental postgres URL from the artifact.
+          for f in /tmp/ts-contract-tests.log /tmp/service-tests.log /tmp/preflight-matrix.log; do
+            if [ -f "$f" ]; then
+              sed -i -E 's#postgres(ql)?://[^ ]*#postgres://<redacted>#g' "$f"
+            fi
+          done
+
+      - name: Upload sanitized test-result artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comm-hub-preflight-matrix-${{ github.event.inputs.environment }}
+          path: |
+            /tmp/ts-contract-tests.log
+            /tmp/service-tests.log
+            /tmp/preflight-matrix.log
+          retention-days: 30
+          if-no-files-found: warn
