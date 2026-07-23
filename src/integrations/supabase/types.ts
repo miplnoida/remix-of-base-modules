@@ -95501,6 +95501,10 @@ export type Database = {
         Args: { p_certification_id: string }
         Returns: Json
       }
+      check_comm_hub_event_fixture_compatibility: {
+        Args: { p_event_code: string; p_module_code: string }
+        Returns: Json
+      }
       check_comm_hub_readiness: { Args: { p_payload: Json }; Returns: Json }
       check_comm_hub_runtime_governance: {
         Args: {
@@ -95864,6 +95868,10 @@ export type Database = {
       compute_comm_hub_dependency_hash: {
         Args: { p_manifest: Json }
         Returns: string
+      }
+      compute_comm_hub_sender_readiness: {
+        Args: { p_readiness_kind?: string; p_sender_profile_id: string }
+        Returns: Json
       }
       consume_comm_hub_controlled_live_grant: {
         Args: {
