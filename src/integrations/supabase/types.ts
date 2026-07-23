@@ -38639,6 +38639,48 @@ export type Database = {
         }
         Relationships: []
       }
+      comm_hub_runtime_transition_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          allowed: boolean
+          channel: string | null
+          context: Json
+          correlation_id: string | null
+          created_at: string
+          denied_reasons: Json
+          event_code: string | null
+          id: string
+          module_code: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          allowed: boolean
+          channel?: string | null
+          context?: Json
+          correlation_id?: string | null
+          created_at?: string
+          denied_reasons?: Json
+          event_code?: string | null
+          id?: string
+          module_code?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          allowed?: boolean
+          channel?: string | null
+          context?: Json
+          correlation_id?: string | null
+          created_at?: string
+          denied_reasons?: Json
+          event_code?: string | null
+          id?: string
+          module_code?: string | null
+        }
+        Relationships: []
+      }
       comm_hub_sender_readiness: {
         Row: {
           advisories: Json
@@ -95014,6 +95056,10 @@ export type Database = {
           p_module_code: string
           p_target_stage: string
         }
+        Returns: Json
+      }
+      assert_comm_hub_runtime_transition: {
+        Args: { p_action: string; p_context: Json }
         Returns: Json
       }
       assess_comm_hub_template_version_manifests: {
