@@ -123,6 +123,13 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [rolesStatus, setRolesStatus] = useState<DataLoadStatus>('pending');
   const [profileStatus, setProfileStatus] = useState<DataLoadStatus>('pending');
 
+  // The provider owns refresh scheduling through runRefreshOnce. Disable the
+  // auth client's second, implicit scheduler: its proactive refresh can remove
+  // a still-valid access token when only the refresh token is unavailable.
+  useEffect(() => {
+    supabase.auth.stopAutoRefresh();
+  }, []);
+
   // BN-MORT-UI-RECOVERY-2F §1 — Canonical stale-identity ref set.
   // These refs are the single source of truth used by ALL late-arriving
   // async work (profile/role loaders, timeout callbacks, refresh handlers).

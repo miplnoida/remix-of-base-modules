@@ -26,49 +26,63 @@ export class CommHubAuthError extends Error {
   }
 }
 
+/**
+ * Read the persisted auth session without invoking auth-js refresh logic.
+ * auth.getSession() may proactively refresh inside its expiry margin; on an
+ * invalid refresh token that path can remove a still-valid access token and
+ * emit SIGNED_OUT. The persisted token is untrusted until getUser(token)
+ * validates it below.
+ */
+export function getPersistedSessionSnapshot(): Session | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const configuredKey = (supabase.auth as typeof supabase.auth & { storageKey?: string }).storageKey;
+    const backendUrl = import.meta.env.VITE_SUPABASE_URL;
+    const backendRef = backendUrl ? new URL(backendUrl).hostname.split(".")[0] : null;
+    const storageKey = configuredKey ?? (backendRef ? `sb-${backendRef}-auth-token` : null);
+    if (!storageKey) return null;
+
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Session | { currentSession?: Session; session?: Session };
+    const candidate = "access_token" in parsed
+      ? parsed
+      : parsed.currentSession ?? parsed.session ?? null;
+    return candidate?.access_token ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getFreshAuthenticatedSession(): Promise<Session> {
-  const { data, error } = await supabase.auth.getSession();
-  if (error) {
-    throw new CommHubAuthError("session_lookup_failed", error.message);
-  }
-
-  const current = data?.session ?? null;
-  const expiresAtMs = (current?.expires_at ?? 0) * 1000;
-  const msUntilExpiry = expiresAtMs ? expiresAtMs - Date.now() : 0;
-  const isNearExpiry = !expiresAtMs || msUntilExpiry < 60_000;
-
-  // Fast path: token is not near expiry AND passes server-side validation.
-  // We validate against the Auth server because a local session can look
-  // valid while the server-side session was invalidated (key rotation,
-  // sign-out elsewhere, session pruning).
-  if (current?.access_token && !isNearExpiry) {
-    const { data: userData, error: userErr } = await supabase.auth.getUser(current.access_token);
-    if (!userErr && userData?.user?.id) {
-      return current;
+  let current = getPersistedSessionSnapshot();
+  if (!current) {
+    // No persisted token exists to preserve, so the regular lookup cannot
+    // destroy the valid-token case this helper protects.
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      throw new CommHubAuthError("session_lookup_failed", error.message);
     }
-    // getUser failed — fall through to refresh attempt below.
+    current = data?.session ?? null;
   }
 
-  // Try to refresh. If the refresh token is missing/invalid but the current
-  // access token is still valid on the server, we MUST NOT sign the user
-  // out — that's what previously destroyed a working session and produced
-  // the misleading "Your session has expired" screen while the user was
-  // actively using the app. Refresh-token loss is common in preview iframes
-  // and multi-tab environments; the access token can still have many
-  // minutes of life left, which is enough for a dry run.
-  const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-  if (!refreshError && refreshed?.session?.access_token) {
-    return refreshed.session;
-  }
-
-  // Refresh failed. Last-chance fallback: if we still hold an access token
-  // that the Auth server accepts, use it. Only when the server rejects the
-  // token do we treat the session as truly gone.
+  // Validate the current token before attempting a refresh, even when it is
+  // near its nominal expiry. refreshSession() may emit SIGNED_OUT and clear a
+  // still-usable local session when a restored/embedded browser has lost only
+  // its refresh token. That caused readiness to pass and the immediately
+  // following Dry Run to report a false "session expired" error.
   if (current?.access_token) {
     const { data: userData, error: userErr } = await supabase.auth.getUser(current.access_token);
     if (!userErr && userData?.user?.id) {
       return current;
     }
+    // The Auth server rejected the current token; only now is refresh safe.
+  }
+
+  // The current token is absent or server-rejected. Try the refresh token.
+  const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+  if (!refreshError && refreshed?.session?.access_token) {
+    return refreshed.session;
   }
 
   // Do NOT call signOut here. Leave the local session untouched so other

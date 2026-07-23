@@ -168,13 +168,18 @@ export async function runDryTest(input: RunDryTestInput): Promise<DryRunEnvelope
   }
   // Guarantee a fresh JWT before invoking the edge function; expired tokens
   // manifest as a generic "Failed to send a request to the Edge Function".
+  let authenticatedSession;
   try {
-    await getFreshAuthenticatedSession();
+    authenticatedSession = await getFreshAuthenticatedSession();
   } catch (err) {
     if (err instanceof CommHubAuthError) throw err;
     throw new CommHubAuthError("authentication_required", (err as Error)?.message);
   }
   const { data, error } = await (supabase as any).functions.invoke("comm-hub-dry-run", {
+    // Pin the exact server-validated JWT to this privileged invocation. Using
+    // the Functions client's implicit session lookup allowed an auth event to
+    // replace or omit the bearer token between validation and transmission.
+    headers: { Authorization: `Bearer ${authenticatedSession.access_token}` },
     body: {
       module_code: input.moduleCode,
       event_code: input.eventCode,
