@@ -438,9 +438,10 @@ function FinalResult({
       {s === "BLOCKED" && (
         <Alert variant="destructive">
           <XCircle className="h-4 w-4" />
-          <AlertTitle>Blocked before dispatch</AlertTitle>
+          <AlertTitle>Blocked before processing</AlertTitle>
           <AlertDescription>
-            Configuration or policy prevented the run. No provider call was attempted.
+            A pre-mutation gate stopped the run before any provider or simulator
+            call. Review the blockers below to see which gate reported the issue.
           </AlertDescription>
         </Alert>
       )}
