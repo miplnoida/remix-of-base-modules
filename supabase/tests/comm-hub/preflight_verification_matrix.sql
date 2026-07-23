@@ -222,14 +222,14 @@ SELECT pg_temp.assert_preflight(
 DO $$
 DECLARE r jsonb; codes text[];
 BEGIN
-  SET LOCAL ROLE anon;
+  -- Clear JWT to simulate unauthenticated caller
+  PERFORM set_config('request.jwt.claims', '', true);
   r := public.inspect_comm_hub_dry_run_preflight(NULL,NULL,'APPEALS','APPEAL_RECEIVED_NOTICE','email');
   SELECT coalesce(array_agg(x->>'code'),ARRAY[]::text[]) INTO codes
     FROM jsonb_array_elements(coalesce(r->'blockers','[]'::jsonb)) x;
   IF (r->>'status') <> 'BLOCKED' OR NOT 'PREFLIGHT_AUTHENTICATION_REQUIRED' = ANY(codes) THEN
     RAISE EXCEPTION 'AUTH-1 unauthenticated caller: expected BLOCKED+PREFLIGHT_AUTHENTICATION_REQUIRED, got % / %', r->>'status', codes;
   END IF;
-  -- Anti-leak: no preview id, no approval id, no correlation, no hashes surfaced.
   IF (r->>'preview_snapshot_id') IS NOT NULL OR (r->>'preview_approval_id') IS NOT NULL
      OR (r->>'correlation_id') IS NOT NULL OR r ? 'canonical_approval_evidence_hash' THEN
     RAISE EXCEPTION 'AUTH-1 leaked identifiers in unauthenticated response';
@@ -237,16 +237,12 @@ BEGIN
   INSERT INTO _matrix_report VALUES('AUTH_1_unauthenticated', '{"expected":"PREFLIGHT_AUTHENTICATION_REQUIRED"}'::jsonb, to_jsonb(codes), true, NULL);
 END $$;
 
-RESET ROLE;
-SET LOCAL ROLE service_role;
-
 DO $$
 DECLARE r jsonb; codes text[]; v_uid uuid := gen_random_uuid();
 BEGIN
-  -- Simulate authenticated-but-not-authorized: create a real user, set jwt claims.
+  -- Authenticated but not an operator admin
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', v_uid::text, 'role','authenticated')::text, true);
-  SET LOCAL ROLE authenticated;
   r := public.inspect_comm_hub_dry_run_preflight(NULL,NULL,'APPEALS','APPEAL_RECEIVED_NOTICE','email');
   SELECT coalesce(array_agg(x->>'code'),ARRAY[]::text[]) INTO codes
     FROM jsonb_array_elements(coalesce(r->'blockers','[]'::jsonb)) x;
@@ -259,9 +255,8 @@ BEGIN
   INSERT INTO _matrix_report VALUES('AUTH_2_authenticated_no_privilege', '{"expected":"PREFLIGHT_PERMISSION_REQUIRED"}'::jsonb, to_jsonb(codes), true, NULL);
 END $$;
 
-RESET ROLE;
-SET LOCAL ROLE service_role;
-SELECT set_config('request.jwt.claims','', true);
+-- Restore service_role JWT for remaining fixture-mutation matrix.
+SELECT set_config('request.jwt.claims', json_build_object('role','service_role')::text, true);
 
 -- AUTH_3 (operator) and AUTH_4 (service_role) are proven implicitly by every
 -- subsequent case (this whole file runs under service_role, and the fixture
