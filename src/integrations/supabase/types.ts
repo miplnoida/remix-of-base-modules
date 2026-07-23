@@ -92685,8 +92685,10 @@ export type Database = {
       }
       ce_v_employer_filing_status: {
         Row: {
+          compliance_start_period: string | null
           employer_name: string | null
           employer_status: string | null
+          expected_filings_12m: number | null
           is_current: boolean | null
           last_filing_date: string | null
           last_filing_period: string | null
