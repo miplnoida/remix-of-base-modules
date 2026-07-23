@@ -38396,34 +38396,73 @@ export type Database = {
       }
       comm_hub_sender_readiness: {
         Row: {
+          advisories: Json
+          blockers: Json
           computed_at: string
+          computed_by: string | null
+          environment_code: string | null
+          environment_version: string | null
+          evidence_hash: string | null
+          expires_at: string | null
           id: string
           is_stale: boolean
+          provider_code: string | null
+          provider_version: string | null
           readiness_details: Json
+          readiness_kind: string
           readiness_state: Database["public"]["Enums"]["comm_hub_sender_readiness_state"]
+          reason: string | null
           sender_profile_id: string
           sender_version: string
           stale_reason: string | null
+          verification_evidence_version: string | null
+          warnings: Json
         }
         Insert: {
+          advisories?: Json
+          blockers?: Json
           computed_at?: string
+          computed_by?: string | null
+          environment_code?: string | null
+          environment_version?: string | null
+          evidence_hash?: string | null
+          expires_at?: string | null
           id?: string
           is_stale?: boolean
+          provider_code?: string | null
+          provider_version?: string | null
           readiness_details?: Json
+          readiness_kind?: string
           readiness_state: Database["public"]["Enums"]["comm_hub_sender_readiness_state"]
+          reason?: string | null
           sender_profile_id: string
           sender_version?: string
           stale_reason?: string | null
+          verification_evidence_version?: string | null
+          warnings?: Json
         }
         Update: {
+          advisories?: Json
+          blockers?: Json
           computed_at?: string
+          computed_by?: string | null
+          environment_code?: string | null
+          environment_version?: string | null
+          evidence_hash?: string | null
+          expires_at?: string | null
           id?: string
           is_stale?: boolean
+          provider_code?: string | null
+          provider_version?: string | null
           readiness_details?: Json
+          readiness_kind?: string
           readiness_state?: Database["public"]["Enums"]["comm_hub_sender_readiness_state"]
+          reason?: string | null
           sender_profile_id?: string
           sender_version?: string
           stale_reason?: string | null
+          verification_evidence_version?: string | null
+          warnings?: Json
         }
         Relationships: []
       }
@@ -94505,6 +94544,18 @@ export type Database = {
         Args: { p_target: string }
         Returns: string
       }
+      _check_comm_hub_runtime_governance_impl: {
+        Args: {
+          p_channel?: string
+          p_dry_run_certification_id?: string
+          p_event_code: string
+          p_module_code: string
+          p_preview_approval_id?: string
+          p_preview_snapshot_id?: string
+          p_target_stage?: string
+        }
+        Returns: Json
+      }
       _chub_assert_admin: { Args: never; Returns: undefined }
       _comm_hub_build_event_manifest: {
         Args: {
@@ -95462,6 +95513,10 @@ export type Database = {
         Args: { p_certification_id: string }
         Returns: Json
       }
+      check_comm_hub_event_fixture_compatibility: {
+        Args: { p_event_code: string; p_module_code: string }
+        Returns: Json
+      }
       check_comm_hub_readiness: { Args: { p_payload: Json }; Returns: Json }
       check_comm_hub_runtime_governance: {
         Args: {
@@ -95825,6 +95880,10 @@ export type Database = {
       compute_comm_hub_dependency_hash: {
         Args: { p_manifest: Json }
         Returns: string
+      }
+      compute_comm_hub_sender_readiness: {
+        Args: { p_readiness_kind?: string; p_sender_profile_id: string }
+        Returns: Json
       }
       consume_comm_hub_controlled_live_grant: {
         Args: {
@@ -96660,6 +96719,16 @@ export type Database = {
         Args: { p_payload: Json }
         Returns: Json
       }
+      evaluate_comm_hub_stage_readiness: {
+        Args: {
+          p_auto_compute_sender_readiness?: boolean
+          p_channel?: string
+          p_event_code: string
+          p_module_code: string
+          p_target_stage?: string
+        }
+        Returns: Json
+      }
       evaluate_levy_amounts: {
         Args: {
           p_amounts: number[]
@@ -97195,6 +97264,10 @@ export type Database = {
       }
       get_comm_hub_safety_counts: {
         Args: { window_minutes?: number }
+        Returns: Json
+      }
+      get_comm_hub_stage_requirements: {
+        Args: { p_stage: string }
         Returns: Json
       }
       get_communication_operating_mode: {
@@ -98151,6 +98224,14 @@ export type Database = {
           reference_number: string
           sequence_id: string
         }[]
+      }
+      normalize_comm_hub_go_live_stage: {
+        Args: { p_stage: string }
+        Returns: string
+      }
+      normalize_comm_hub_go_live_stage_strict: {
+        Args: { p_stage: string }
+        Returns: string
       }
       open_comm_hub_live_window: {
         Args: {
@@ -99440,10 +99521,15 @@ export type Database = {
         | "ENFORCED"
         | "RETIRED"
       comm_hub_sender_readiness_state:
+        | "NOT_CHECKED"
+        | "CHECKING"
+        | "BLOCKED_CONFIGURATION"
+        | "BLOCKED_VERIFICATION"
         | "BLOCKED"
         | "TEST_READY"
         | "REAL_EMAIL_READY"
         | "STALE"
+        | "SUSPENDED"
       comm_hub_template_lifecycle:
         | "DRAFT"
         | "DISCOVERED"
@@ -100096,10 +100182,15 @@ export const Constants = {
         "RETIRED",
       ],
       comm_hub_sender_readiness_state: [
+        "NOT_CHECKED",
+        "CHECKING",
+        "BLOCKED_CONFIGURATION",
+        "BLOCKED_VERIFICATION",
         "BLOCKED",
         "TEST_READY",
         "REAL_EMAIL_READY",
         "STALE",
+        "SUSPENDED",
       ],
       comm_hub_template_lifecycle: [
         "DRAFT",
