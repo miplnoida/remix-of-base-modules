@@ -95353,6 +95353,12 @@ export type Database = {
           workbasket_id: string
         }[]
       }
+      build_comm_hub_certification_dependency_hash: {
+        Args: { p_template_version_id: string }
+        Returns: {
+          dependency_hash: string
+        }[]
+      }
       build_comm_hub_dependency_manifest: {
         Args: {
           p_entity_id: string
@@ -95361,6 +95367,15 @@ export type Database = {
         }
         Returns: Json
       }
+      build_comm_hub_recipient_context: {
+        Args: { p_recipient_policy_id: string }
+        Returns: Json
+      }
+      build_comm_hub_request_context: {
+        Args: { p_source?: string }
+        Returns: Json
+      }
+      build_comm_hub_system_context: { Args: never; Returns: Json }
       build_comm_hub_template_dependency_manifest: {
         Args: { p_template_version_id: string }
         Returns: Json
