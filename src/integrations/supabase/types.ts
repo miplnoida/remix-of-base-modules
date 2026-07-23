@@ -95247,6 +95247,7 @@ export type Database = {
         Returns: Json
       }
       begin_comm_hub_dry_run: { Args: { p_payload: Json }; Returns: Json }
+      begin_comm_hub_dry_run_v1: { Args: { p_payload: Json }; Returns: Json }
       bn_actor_has_capability: {
         Args: { p_capability: string; p_user_id: string }
         Returns: boolean
@@ -98471,6 +98472,16 @@ export type Database = {
           p_ssn: string
           p_term_end_date?: string
           p_term_start_date?: string
+        }
+        Returns: Json
+      }
+      inspect_comm_hub_dry_run_preflight: {
+        Args: {
+          p_channel?: string
+          p_event_code: string
+          p_module_code: string
+          p_preview_approval_id: string
+          p_preview_snapshot_id: string
         }
         Returns: Json
       }
