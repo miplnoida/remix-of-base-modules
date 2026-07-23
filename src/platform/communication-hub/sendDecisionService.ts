@@ -6,6 +6,7 @@
  * module only forwards the payload and returns the stable envelope.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { getFreshAuthenticatedSession, CommHubAuthError } from "./authSession";
 
 export type SendDecisionContext =
   | "preview"
@@ -91,6 +92,17 @@ export interface EvaluateSendDecisionInput {
 export async function evaluateCanonicalSendDecision(
   input: EvaluateSendDecisionInput,
 ): Promise<SendDecisionEnvelope> {
+  // Phase 4B3 auth-and-retry-UI correction: readiness evaluation MUST run
+  // under a fresh authenticated session. An expired token here previously
+  // surfaced as a fake `not_authenticated` business blocker; instead we
+  // throw a typed CommHubAuthError that callers separate from readiness.
+  try {
+    await getFreshAuthenticatedSession();
+  } catch (err) {
+    if (err instanceof CommHubAuthError) throw err;
+    throw new CommHubAuthError("authentication_required", (err as Error)?.message);
+  }
+
   const payload: Record<string, unknown> = {
     module_code: input.moduleCode,
     event_code: input.eventCode,
@@ -116,7 +128,15 @@ export async function evaluateCanonicalSendDecision(
     "evaluate_comm_hub_send_decision",
     { p_payload: payload },
   );
-  if (error) throw new Error(error.message ?? "evaluate_comm_hub_send_decision failed");
+  if (error) {
+    const msg = error.message ?? "evaluate_comm_hub_send_decision failed";
+    // Server-side JWT rejection during the readiness RPC must be re-raised
+    // as an auth error so the UI does NOT paint it as a business blocker.
+    if (/jwt|token|not[_ ]?authenticated|unauthorized|401/i.test(msg)) {
+      throw new CommHubAuthError("authentication_required", msg);
+    }
+    throw new Error(msg);
+  }
   return data as SendDecisionEnvelope;
 }
 

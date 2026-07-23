@@ -28,9 +28,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ShieldCheck, AlertTriangle, XCircle, Loader2, ChevronDown } from "lucide-react";
+import { ShieldCheck, AlertTriangle, XCircle, Loader2, ChevronDown, KeyRound } from "lucide-react";
 import { toast } from "sonner";
-import { resolveAuthErrorMessage } from "@/platform/communication-hub/authErrorMessages";
+import {
+  resolveAuthErrorMessage,
+  getAuthErrorDetails,
+  isAuthFailure,
+  type AuthErrorDetails,
+} from "@/platform/communication-hub/authErrorMessages";
+import { getFreshAuthenticatedSession, CommHubAuthError } from "@/platform/communication-hub/authSession";
 import BlockersList from "@/pages/admin/communicationHub/safety/BlockersList";
 import {
   runDryTest,
@@ -101,6 +107,10 @@ export function DryRunPanel(props: DryRunPanelProps) {
   const [certValidation, setCertValidation] =
     useState<DryRunCertificationValidation | null>(null);
   const [technicalOpen, setTechnicalOpen] = useState(false);
+  // Phase 4B3 — authentication is tracked independently of the runtime
+  // execution envelope. An auth failure must not populate a "final result".
+  const [authError, setAuthError] = useState<AuthErrorDetails | null>(null);
+  const [refreshingAuth, setRefreshingAuth] = useState(false);
 
   const readinessStatus: "Ready" | "Needs Attention" | "Blocked" = useMemo(() => {
     if (!canonicalDecision) return "Blocked";
@@ -113,6 +123,7 @@ export function DryRunPanel(props: DryRunPanelProps) {
 
   const canRun =
     phase === "idle" &&
+    !authError &&
     recipients.length > 0 &&
     !!previewSnapshotId &&
     previewApproved &&
@@ -123,10 +134,9 @@ export function DryRunPanel(props: DryRunPanelProps) {
     setPhase("running");
     setEnvelope(null);
     setCertValidation(null);
+    setAuthError(null);
     setProgressStep(0);
 
-    // Best-effort visual progress. The server remains authoritative; these
-    // labels are display-only and never gate the result.
     const timer = setInterval(() => {
       setProgressStep((s) => Math.min(s + 1, DRY_RUN_PROGRESS_STEPS.length - 2));
     }, 550);
@@ -143,15 +153,22 @@ export function DryRunPanel(props: DryRunPanelProps) {
         idempotencyKey: idempotencyRef.current!,
       });
       clearInterval(timer);
+
+      // Auth failure inside the envelope: DO NOT paint as a final Dry Run
+      // result. Show the dedicated authentication alert instead. The server
+      // guarantees no runtime rows were created (retry_safe = true).
+      const authDetails = getAuthErrorDetails(env);
+      if (authDetails) {
+        setAuthError(authDetails);
+        setPhase("idle");
+        setProgressStep(0);
+        toast.error(`${authDetails.title} — ${authDetails.message}`);
+        return;
+      }
+
       setProgressStep(DRY_RUN_PROGRESS_STEPS.length - 1);
       setEnvelope(env);
       setPhase("final");
-
-      // Auth failures come back as a structured BLOCKED envelope with
-      // failure_stage === "auth". Surface them with a friendly, action-oriented
-      // message instead of the generic "please retry" toast.
-      const authMsg = resolveAuthErrorMessage(env);
-      if (authMsg) toast.error(authMsg);
 
       let v: DryRunCertificationValidation | null = null;
       if (env.status === "DRY_RUN_PASSED" && env.dry_run_certification_id) {
@@ -170,20 +187,50 @@ export function DryRunPanel(props: DryRunPanelProps) {
       onFinal?.(env, v);
     } catch (e: any) {
       clearInterval(timer);
-      // Client-side auth (CommHubAuthError) or network failures land here;
-      // server business failures come back as an envelope above.
-      const authMsg = resolveAuthErrorMessage(e);
-      toast.error(authMsg ?? e?.message ?? "Dry-run request failed");
+      // Client-side auth (CommHubAuthError) and network failures land here.
+      // Auth failures must not fall through to the generic error toast.
+      if (isAuthFailure(e) || e instanceof CommHubAuthError) {
+        const d = getAuthErrorDetails(e) ?? getAuthErrorDetails({ blockers: [{ code: "authentication_required" }] })!;
+        setAuthError(d);
+        setPhase("idle");
+        setProgressStep(0);
+        return;
+      }
+      toast.error(e?.message ?? "Dry-run request failed");
       setPhase("idle");
     }
   }
 
+  async function handleRefreshSession() {
+    setRefreshingAuth(true);
+    try {
+      await getFreshAuthenticatedSession();
+      setAuthError(null);
+      toast.success("Session refreshed. You can retry the Dry Run.");
+    } catch (err) {
+      const d = getAuthErrorDetails(err) ?? {
+        code: "session_lookup_failed",
+        title: "Session could not be restored",
+        message: "Your session could not be restored. Please sign in again.",
+        fix: "Sign out and sign in again.",
+        severity: "medium" as const,
+        retrySafe: true,
+      };
+      setAuthError(d);
+      toast.error(d.message);
+    } finally {
+      setRefreshingAuth(false);
+    }
+  }
+
   function handleRunAgain() {
-    // Mint a fresh key ONLY after the prior result is final AND the server
-    // marked it retry-safe (or the run passed). Never regenerate over an
-    // ambiguous / unsafe outcome — operator must investigate first.
-    if (phase !== "final") return;
-    if (envelope && envelope.retry_safe === false && !envelope.passed) return;
+    // Retry-safe contract (Phase 4B3):
+    //   Block "Run Again" ONLY when the server EXPLICITLY set retry_safe=false
+    //   AND the outcome is ambiguous or mutation cleanup is unproven.
+    //   Missing retry_safe (=== "UNKNOWN") also blocks a fresh key mint.
+    if (phase !== "final" || !envelope) return;
+    if (envelope.retry_safe === false && envelope.ambiguous_outcome) return;
+    if (envelope.retry_safe === "UNKNOWN" && envelope.mutation_started) return;
     idempotencyRef.current = generateIdempotencyKey();
     setEnvelope(null);
     setCertValidation(null);
@@ -192,11 +239,41 @@ export function DryRunPanel(props: DryRunPanelProps) {
   }
 
   const runAgainBlocked =
-    phase === "final" && !!envelope && envelope.retry_safe === false && !envelope.passed;
+    phase === "final" &&
+    !!envelope &&
+    ((envelope.retry_safe === false && envelope.ambiguous_outcome) ||
+      (envelope.retry_safe === "UNKNOWN" && envelope.mutation_started));
 
   return (
     <div className="space-y-4">
-      {/* A. Preview status */}
+      {/* Authentication alert — strictly separate from readiness / dispatch. */}
+      {authError && (
+        <Alert>
+          <KeyRound className="h-4 w-4" />
+          <AlertTitle>{authError.title}</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div>{authError.message}</div>
+            <div className="text-xs text-muted-foreground">{authError.fix}</div>
+            <div className="text-xs">
+              Evidence: No Dry Run runtime rows were created · Provider called: No · Simulator called: No · Safe to retry after sign-in: Yes
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" onClick={handleRefreshSession} disabled={refreshingAuth}>
+                {refreshingAuth ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Refreshing…
+                  </>
+                ) : (
+                  "Refresh Session"
+                )}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+
       <section className="rounded-md border p-3 space-y-2">
         <div className="flex items-center justify-between">
           <div className="text-sm font-medium">Preview status</div>
@@ -281,9 +358,9 @@ export function DryRunPanel(props: DryRunPanelProps) {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Outcome not retry-safe</AlertTitle>
             <AlertDescription>
-              The server marked this result as unsafe to re-run automatically.
-              Investigate the blockers, correct the underlying configuration,
-              then reload this page to start a new attempt.
+              The server could not confirm whether runtime state was created
+              or safely cleaned up. Investigate the execution evidence below
+              before running again.
             </AlertDescription>
           </Alert>
         )}
@@ -361,9 +438,10 @@ function FinalResult({
       {s === "BLOCKED" && (
         <Alert variant="destructive">
           <XCircle className="h-4 w-4" />
-          <AlertTitle>Blocked before dispatch</AlertTitle>
+          <AlertTitle>Blocked before processing</AlertTitle>
           <AlertDescription>
-            Configuration or policy prevented the run. No provider call was attempted.
+            A pre-mutation gate stopped the run before any provider or simulator
+            call. Review the blockers below to see which gate reported the issue.
           </AlertDescription>
         </Alert>
       )}
@@ -411,7 +489,12 @@ function EvidenceCard({
         <Row label="Provider call attempted" value={providerCallLabel} />
         <Row label="Provider message ID" value={providerMsgLabel} />
         <Row label="Operating mode" value={envelope.final_operating_mode} />
-        <Row label="Retry-safe" value={envelope.retry_safe ? "Yes" : "No"} />
+        <Row label="Retry-safe" value={envelope.retry_safe === "UNKNOWN" ? "Unknown" : envelope.retry_safe ? "Yes" : "No"} />
+        <Row label="Retry reason" value={envelope.retry_reason} />
+        <Row label="Mutation started" value={envelope.mutation_started ? "Yes" : "No"} />
+        <Row label="Ambiguous outcome" value={envelope.ambiguous_outcome ? "Yes" : "No"} />
+        <Row label="Simulator call attempted" value={envelope.simulator_call_attempted ? "Yes" : "No"} />
+        <Row label="Transition log ID" value={envelope.transition_log_id} mono />
       </dl>
       <Collapsible>
         <CollapsibleTrigger asChild>

@@ -46,6 +46,15 @@ import {
   type SendDecisionEnvelope,
 } from "@/platform/communication-hub/sendDecisionService";
 import {
+  CommHubAuthError,
+  getFreshAuthenticatedSession,
+} from "@/platform/communication-hub/authSession";
+import {
+  getAuthErrorDetails,
+  type AuthErrorDetails,
+} from "@/platform/communication-hub/authErrorMessages";
+import { KeyRound, Loader2 } from "lucide-react";
+import {
   fetchGlobalSettings,
   type CommunicationGlobalSettings,
 } from "@/platform/communication-hub/globalSettingsService";
@@ -187,6 +196,10 @@ export default function GoLivePage() {
   const [settings, setSettings] = useState<CommunicationGlobalSettings | null>(null);
   const [recipientPolicy, setRecipientPolicy] = useState<RecipientPolicy | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Phase 4B3 — auth state is tracked independently of business readiness.
+  // A `not_authenticated` failure MUST NOT be stored as a send-policy blocker.
+  const [authError, setAuthError] = useState<AuthErrorDetails | null>(null);
+  const [refreshingAuth, setRefreshingAuth] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -235,6 +248,8 @@ export default function GoLivePage() {
   async function refreshDecision(overrideRecipient?: string | null) {
     if (!eventChosen) return;
     setDecisionLoading(true);
+    // Clear any stale authentication alert while we re-evaluate.
+    setAuthError(null);
     try {
       // Reload authoritative recipient policy first — never trust cached state.
       const policy = await fetchRecipientPolicy();
@@ -245,10 +260,6 @@ export default function GoLivePage() {
       setRecipientResolution(resolution);
 
       if (!resolution.resolved) {
-        // UX.5: do NOT synthesise a canonical decision envelope. Leave the
-        // canonical decision null and let RecipientResolutionPanel render
-        // the blocker directly. The canonical evaluator is called only
-        // once we have an authoritative recipient to test against.
         setDecision(null);
         setRecipientCtx(buildRecipientContext(policy, null));
         return;
@@ -264,9 +275,47 @@ export default function GoLivePage() {
       setDecision(env);
       setRecipientCtx(buildRecipientContext(policy, resolution.recipient));
     } catch (e: any) {
+      // Auth failure: track as a dedicated state; DO NOT populate canonical
+      // readiness with a fake `not_authenticated` business blocker.
+      if (e instanceof CommHubAuthError || getAuthErrorDetails(e)) {
+        const d = getAuthErrorDetails(e) ?? {
+          code: "authentication_required",
+          title: "Your session has expired",
+          message: "Your authenticated session is no longer available. No Dry Run was started.",
+          fix: "Refresh your session or sign in again, then retry.",
+          severity: "medium" as const,
+          retrySafe: true,
+        };
+        setAuthError(d);
+        setDecision(null);
+        return;
+      }
       toast.error(e?.message ?? "Readiness check failed");
     } finally {
       setDecisionLoading(false);
+    }
+  }
+
+  async function handleRefreshSession() {
+    setRefreshingAuth(true);
+    try {
+      await getFreshAuthenticatedSession();
+      setAuthError(null);
+      toast.success("Session refreshed.");
+      if (eventChosen) await refreshDecision();
+    } catch (err) {
+      const d = getAuthErrorDetails(err) ?? {
+        code: "session_lookup_failed",
+        title: "Session could not be restored",
+        message: "Your session could not be restored. Please sign in again.",
+        fix: "Sign out and sign in again.",
+        severity: "medium" as const,
+        retrySafe: true,
+      };
+      setAuthError(d);
+      toast.error(d.message);
+    } finally {
+      setRefreshingAuth(false);
     }
   }
 
@@ -541,6 +590,35 @@ export default function GoLivePage() {
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Hub settings unavailable</AlertTitle>
           <AlertDescription>{loadError}</AlertDescription>
+        </Alert>
+      )}
+
+      {authError && (
+        <Alert>
+          <KeyRound className="h-4 w-4" />
+          <AlertTitle>Authentication required</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div>
+              Your session expired before the Dry Run started. No runtime
+              records or provider calls were created.
+            </div>
+            <div className="text-xs text-muted-foreground">{authError.fix}</div>
+            <div className="text-xs">
+              Readiness completed: No · Dry Run started: No · Execution created: No · Provider called: No · Simulator called: No · Safe to retry after sign-in: Yes
+            </div>
+            <div className="pt-1">
+              <Button size="sm" onClick={handleRefreshSession} disabled={refreshingAuth}>
+                {refreshingAuth ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Refreshing…
+                  </>
+                ) : (
+                  "Refresh Session"
+                )}
+              </Button>
+            </div>
+          </AlertDescription>
         </Alert>
       )}
 
