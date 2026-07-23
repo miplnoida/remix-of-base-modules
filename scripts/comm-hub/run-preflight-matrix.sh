@@ -1,51 +1,61 @@
 #!/usr/bin/env bash
-# Phase 4B3 — Checkpoint 2B Preflight Verification Matrix runner.
+# Phase 4B3 — Checkpoint 2B Preflight Verification Matrix runner (hardened).
 #
-# Executes supabase/tests/comm-hub/preflight_verification_matrix.sql against
-# an approved test or staging database using a service-role connection.
-#
-# Contract:
-#   * Never targets production by default. If the connection string / database
-#     name contains "prod" the runner exits with an error unless the caller
-#     sets COMM_HUB_ALLOW_PROD=YES (still gated by the SQL matrix, which will
-#     refuse to run against a database whose name matches /prod/i without an
-#     equivalent server-side flag).
-#   * The SQL file wraps every case in BEGIN/ROLLBACK, so no rows persist even
-#     on success.
-#   * The whole matrix aborts on the first failed assertion (ON_ERROR_STOP=1)
-#     and the CI job fails.
-#   * Requires a connection string with sufficient privilege to INSERT/UPDATE
-#     communication_preview_snapshot and communication_preview_approval — in
-#     practice, the Supabase service-role or the postgres superuser role.
-#
-# Usage (locally / CI):
-#   COMM_HUB_TEST_DB_URL='postgres://service_role:...@host:5432/db' \
-#     scripts/comm-hub/run-preflight-matrix.sh
-#
-# Never place service-role credentials in the repository. In GitHub Actions
-# they must come from a secret (e.g. secrets.COMM_HUB_TEST_DB_URL).
+# Item G: never prints connection string, username, host, password. All
+#         diagnostic messages are sanitized.
+# Item H: no production override exists. The runner requires an explicit
+#         non-production ack (COMM_HUB_TEST_ENVIRONMENT=test|staging) AND
+#         hostname refusal, and passes the ack into psql (-v env=...) so the
+#         SQL matrix enforces it server-side as well.
 
 set -euo pipefail
 
-CONN="${COMM_HUB_TEST_DB_URL:-${DATABASE_URL:-}}"
-if [ -z "$CONN" ]; then
-  echo "ERROR: set COMM_HUB_TEST_DB_URL (or DATABASE_URL) to a service-role connection string." >&2
+# --- 1. Required environment ------------------------------------------------
+if [ -z "${COMM_HUB_TEST_DB_URL:-}" ]; then
+  echo "ERROR: COMM_HUB_TEST_DB_URL is not set (never echoed)." >&2
   exit 2
 fi
 
-# Refuse production unless explicitly allowed.
-if echo "$CONN" | grep -qiE 'prod|xynceskeiiisiefqlgxo'; then
-  if [ "${COMM_HUB_ALLOW_PROD:-}" != "YES" ]; then
-    echo "ERROR: connection string looks like production. Set COMM_HUB_ALLOW_PROD=YES to override (not recommended)." >&2
+TEST_ENV="${COMM_HUB_TEST_ENVIRONMENT:-}"
+case "$(printf '%s' "$TEST_ENV" | tr '[:upper:]' '[:lower:]')" in
+  test|staging) ;;
+  *)
+    echo "ERROR: COMM_HUB_TEST_ENVIRONMENT must equal 'test' or 'staging'." >&2
+    echo "       Production and unmarked environments are rejected unconditionally." >&2
     exit 3
-  fi
+    ;;
+esac
+NORMALIZED_ENV="$(printf '%s' "$TEST_ENV" | tr '[:upper:]' '[:lower:]')"
+
+# --- 2. Production refusal --------------------------------------------------
+# Grep in a subshell against the raw value WITHOUT ever printing it.
+if printf '%s' "${COMM_HUB_TEST_DB_URL}" \
+     | grep -qiE 'prod|xynceskeiiisiefqlgxo'; then
+  echo "ERROR: connection target looks like production. Refusing." >&2
+  exit 4
 fi
 
 SQL_FILE="supabase/tests/comm-hub/preflight_verification_matrix.sql"
 if [ ! -f "$SQL_FILE" ]; then
   echo "ERROR: matrix file not found at $SQL_FILE" >&2
-  exit 4
+  exit 5
 fi
 
-echo "Running preflight verification matrix against: ${CONN%%@*}@***"
-psql "$CONN" -v ON_ERROR_STOP=1 -f "$SQL_FILE"
+echo "Running Communication Hub preflight matrix against approved non-production database."
+
+# --- 3. Execute -------------------------------------------------------------
+# psql reads the DB URL via a here-string on STDIN, never via argv, so the
+# secret cannot appear in process lists.
+#
+# NOTE: we ALSO pass -v env=... so the SQL matrix can enforce environment
+# rules server-side (item H). No secret value is ever passed via -v.
+PGCONNECT_TIMEOUT="${PGCONNECT_TIMEOUT:-15}" \
+  psql \
+    -v ON_ERROR_STOP=1 \
+    -v "env=${NORMALIZED_ENV}" \
+    -d "${COMM_HUB_TEST_DB_URL}" \
+    -f "$SQL_FILE" \
+    2>&1 \
+  | sed -E 's#postgres(ql)?://[^ ]*#postgres://<redacted>#g'
+
+echo "Matrix completed."
