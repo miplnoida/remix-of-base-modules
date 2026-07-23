@@ -449,25 +449,71 @@ export default function PreviewApprovalPanel({
         </div>
       )}
 
-      {approval && (
-        <div className="border rounded-md p-3 bg-muted/30">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary">Approval</Badge>
-            <span className="text-xs font-mono">{approval.approval_id}</span>
-            <Badge variant={approval.status === "ACTIVE" ? "default" : "destructive"}>
-              {approval.status}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              expires {new Date(approval.expires_at).toLocaleTimeString()}
-            </span>
-            {locked && effRecipient && (
-              <span className="text-xs text-muted-foreground">
-                · bound to {maskEmail(effRecipient)}
-              </span>
+      {approval && (() => {
+        const aCreated = formatEvidenceTimestamp(approval.created_at ?? null, UNAVAILABLE_LABEL);
+        const aExpires = formatEvidenceTimestamp(approval.expires_at, "—");
+        const aBadge = approval.status === "ACTIVE" && !approvalExpired
+          ? { label: "ACTIVE", variant: "default" as const }
+          : approvalExpired
+            ? { label: "EXPIRED", variant: "destructive" as const }
+            : { label: approval.status, variant: "destructive" as const };
+        return (
+          <div className="border rounded-md p-3 bg-muted/30 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary">Approval</Badge>
+              <span className="text-xs font-mono">{approval.approval_id}</span>
+              <Badge variant={aBadge.variant} data-testid="approval-lifecycle-badge">{aBadge.label}</Badge>
+              <Badge variant="outline">Server: {approval.status}</Badge>
+              {locked && effRecipient && (
+                <span className="text-xs text-muted-foreground">
+                  · bound to {maskEmail(effRecipient)}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+              <div data-testid="approval-created">
+                <strong>Approval created:</strong>{" "}
+                <span className={aCreated.ok ? "" : "text-destructive"}>{aCreated.display}</span>
+              </div>
+              <div data-testid="approval-expires">
+                <strong>Approval expires:</strong>{" "}
+                <span className={aExpires.ok ? "" : "text-destructive"}>{aExpires.display}</span>
+              </div>
+              <div>
+                <strong>Remaining:</strong>{" "}
+                <span className={approvalRemaining.expired ? "text-destructive" : ""}>
+                  {approvalRemaining.display}
+                </span>
+              </div>
+            </div>
+            {approvalExpired && (
+              <Alert variant="destructive" data-testid="approval-expired-alert">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Approval expired</AlertTitle>
+                <AlertDescription>
+                  This Preview or approval has expired. Create and approve a new Preview.
+                </AlertDescription>
+              </Alert>
             )}
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">Technical details</summary>
+              <pre className="mt-1 p-2 bg-background border rounded overflow-auto">
+{JSON.stringify({
+  preview_created_at: snapshot?.created_at ?? null,
+  preview_expires_at: snapshot?.expires_at ?? null,
+  approval_created_at: approval.created_at ?? null,
+  approval_expires_at: approval.expires_at,
+  server_validated_at: snapshot?.server_time ?? null,
+  browser_display_timezone: browserTimeZone(),
+  preview_remaining_seconds: previewRemaining.totalSeconds,
+  preview_expired: previewExpired,
+  approval_expired: approvalExpired,
+}, null, 2)}
+              </pre>
+            </details>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
