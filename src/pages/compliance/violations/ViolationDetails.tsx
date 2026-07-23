@@ -595,6 +595,7 @@ export default function ViolationDetails() {
                 {!v.due_date && latestNoticeDue?.due_response_date && (
                   <div className="text-xs text-muted-foreground mt-0.5">From latest notice</div>
                 )}
+              </div>
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Period</div>
                 <div className="text-base">{v.period_from ?? '-'}{v.period_to ? ` to ${v.period_to}` : ''}</div>
