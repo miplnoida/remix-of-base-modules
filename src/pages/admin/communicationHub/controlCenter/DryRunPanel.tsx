@@ -17,7 +17,8 @@
  * Designed for embedding inside the future unified Go Live workflow —
  * this panel is intentionally NOT registered as a top-level route.
  */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
