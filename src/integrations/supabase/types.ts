@@ -42079,15 +42079,21 @@ export type Database = {
           approved_at: string
           approved_by: string
           audit_metadata: Json
+          canonical_approval_evidence_hash: string | null
+          configuration_hash_at_approval: string | null
           configuration_version: number | null
           consumed_at: string | null
           consumed_by: string | null
           consumed_request_id: string | null
           content_hash_at_approval: string
+          correlation_id_at_approval: string | null
           created_at: string
+          evidence_version: string | null
           expires_at: string
           id: string
+          placeholder_evidence_hash_at_approval: string | null
           recipient_policy_version: number | null
+          recipient_set_hash_at_approval: string | null
           reservation_token: string | null
           reserved_at: string | null
           reserved_by: string | null
@@ -42095,24 +42101,33 @@ export type Database = {
           revocation_reason: string | null
           revoked_at: string | null
           revoked_by: string | null
+          scanner_version_at_approval: string | null
           send_policy_version: number | null
           snapshot_id: string
+          snapshot_id_at_approval: string | null
           status: string
+          template_version_id_at_approval: string | null
         }
         Insert: {
           approval_reason: string
           approved_at?: string
           approved_by: string
           audit_metadata?: Json
+          canonical_approval_evidence_hash?: string | null
+          configuration_hash_at_approval?: string | null
           configuration_version?: number | null
           consumed_at?: string | null
           consumed_by?: string | null
           consumed_request_id?: string | null
           content_hash_at_approval: string
+          correlation_id_at_approval?: string | null
           created_at?: string
+          evidence_version?: string | null
           expires_at: string
           id?: string
+          placeholder_evidence_hash_at_approval?: string | null
           recipient_policy_version?: number | null
+          recipient_set_hash_at_approval?: string | null
           reservation_token?: string | null
           reserved_at?: string | null
           reserved_by?: string | null
@@ -42120,24 +42135,33 @@ export type Database = {
           revocation_reason?: string | null
           revoked_at?: string | null
           revoked_by?: string | null
+          scanner_version_at_approval?: string | null
           send_policy_version?: number | null
           snapshot_id: string
+          snapshot_id_at_approval?: string | null
           status?: string
+          template_version_id_at_approval?: string | null
         }
         Update: {
           approval_reason?: string
           approved_at?: string
           approved_by?: string
           audit_metadata?: Json
+          canonical_approval_evidence_hash?: string | null
+          configuration_hash_at_approval?: string | null
           configuration_version?: number | null
           consumed_at?: string | null
           consumed_by?: string | null
           consumed_request_id?: string | null
           content_hash_at_approval?: string
+          correlation_id_at_approval?: string | null
           created_at?: string
+          evidence_version?: string | null
           expires_at?: string
           id?: string
+          placeholder_evidence_hash_at_approval?: string | null
           recipient_policy_version?: number | null
+          recipient_set_hash_at_approval?: string | null
           reservation_token?: string | null
           reserved_at?: string | null
           reserved_by?: string | null
@@ -42145,9 +42169,12 @@ export type Database = {
           revocation_reason?: string | null
           revoked_at?: string | null
           revoked_by?: string | null
+          scanner_version_at_approval?: string | null
           send_policy_version?: number | null
           snapshot_id?: string
+          snapshot_id_at_approval?: string | null
           status?: string
+          template_version_id_at_approval?: string | null
         }
         Relationships: [
           {
@@ -95896,6 +95923,10 @@ export type Database = {
           warning_count: number
         }[]
       }
+      certify_comm_hub_dry_run: {
+        Args: { p_execution_id: string }
+        Returns: Json
+      }
       certify_comm_hub_template_version: {
         Args: { p_template_version_id: string }
         Returns: Json
@@ -98844,6 +98875,10 @@ export type Database = {
           p_methods: Json
           p_mode: string
         }
+        Returns: Json
+      }
+      process_comm_hub_dry_run_execution: {
+        Args: { p_correlation_id: string; p_execution_id: string }
         Returns: Json
       }
       process_meeting_outcome: {
