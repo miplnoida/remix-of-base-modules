@@ -94994,6 +94994,26 @@ export type Database = {
         }
         Returns: Json
       }
+      _comm_hub_compute_canonical_approval_evidence_v1: {
+        Args: {
+          p_approved_at: string
+          p_approved_by: string
+          p_configuration_hash: string
+          p_content_hash: string
+          p_correlation_id: string
+          p_expires_at: string
+          p_placeholder_evidence_hash: string
+          p_recipient_set_hash: string
+          p_scanner_version: string
+          p_snapshot_id: string
+          p_template_version_id: string
+        }
+        Returns: string
+      }
+      _comm_hub_compute_placeholder_evidence_v1: {
+        Args: { p_rescan: Json; p_scanner_version: string }
+        Returns: string
+      }
       _comm_hub_ensure_event_governance_record: {
         Args: { p_manifest_hash: string; p_mapping_id: string }
         Returns: string
@@ -95033,6 +95053,7 @@ export type Database = {
         Args: { payload: Json }
         Returns: undefined
       }
+      _comm_hub_sha256_hex: { Args: { p_text: string }; Returns: string }
       _evaluate_comm_hub_send_decision_core: {
         Args: { p_payload: Json }
         Returns: Json
