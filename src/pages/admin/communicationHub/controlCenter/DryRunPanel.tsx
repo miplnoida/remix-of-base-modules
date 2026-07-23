@@ -121,13 +121,18 @@ export function DryRunPanel(props: DryRunPanelProps) {
     return anyCritical ? "Blocked" : "Needs Attention";
   }, [canonicalDecision]);
 
+  const trimmedReason = reason.trim();
+  const reasonValid = trimmedReason.length >= 5;
+
   const canRun =
     phase === "idle" &&
     !authError &&
     recipients.length > 0 &&
     !!previewSnapshotId &&
     previewApproved &&
+    reasonValid &&
     readinessStatus === "Ready";
+
 
   async function handleRun() {
     if (!canRun) return;
@@ -149,7 +154,7 @@ export function DryRunPanel(props: DryRunPanelProps) {
         recipients,
         previewSnapshotId: previewSnapshotId ?? null,
         previewApprovalId: previewApprovalId ?? null,
-        operatorReason: reason || null,
+        operatorReason: trimmedReason,
         idempotencyKey: idempotencyRef.current!,
       });
       clearInterval(timer);
@@ -319,15 +324,23 @@ export function DryRunPanel(props: DryRunPanelProps) {
       {/* C. Reason + Run button */}
       <section className="rounded-md border p-3 space-y-3">
         <div className="space-y-1">
-          <Label htmlFor="dry-run-reason">Operator reason (optional)</Label>
+          <Label htmlFor="dry-run-reason">
+            Operator reason <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="dry-run-reason"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="e.g. Pre-controlled-live rehearsal for pension award notice"
             disabled={phase !== "idle"}
+            aria-invalid={!reasonValid}
+            required
           />
+          <p className={`text-xs ${reasonValid ? "text-muted-foreground" : "text-destructive"}`}>
+            Required by the Communication Hub audit gate. Enter at least 5 characters explaining why this Dry Run is being executed (recorded in the Send Decision log).
+          </p>
         </div>
+
         <div className="flex items-center gap-2">
           <Button onClick={handleRun} disabled={!canRun} aria-label="Run Dry Test">
             {phase === "running" ? (
