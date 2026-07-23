@@ -475,7 +475,7 @@ export default function ViolationDetails() {
         violationId={v.id}
         createdAt={v.created_at}
         assignedAt={v.assigned_at}
-        dueDate={v.due_date}
+        dueDate={v.due_date ?? latestNoticeDue?.due_response_date ?? null}
         status={currentStatus}
       />
 
