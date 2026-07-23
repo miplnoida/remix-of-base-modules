@@ -158,7 +158,7 @@ export default function PreviewApprovalPanel({
     }
     if (reason.trim().length === 0) list.push("Approval reason is required.");
     return list;
-  }, [snapshot, snapshotIsPrepared, unresolvedRequiredVariables, contentIsComplete, locked, recipientDivergesFromSnapshot, reason]);
+  }, [snapshot, snapshotIsPrepared, previewExpired, unresolvedRequiredVariables, contentIsComplete, locked, recipientDivergesFromSnapshot, reason]);
 
 
   async function handlePrepare() {
