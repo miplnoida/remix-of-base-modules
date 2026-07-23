@@ -46,6 +46,15 @@ import {
   type SendDecisionEnvelope,
 } from "@/platform/communication-hub/sendDecisionService";
 import {
+  CommHubAuthError,
+  getFreshAuthenticatedSession,
+} from "@/platform/communication-hub/authSession";
+import {
+  getAuthErrorDetails,
+  type AuthErrorDetails,
+} from "@/platform/communication-hub/authErrorMessages";
+import { KeyRound, Loader2 } from "lucide-react";
+import {
   fetchGlobalSettings,
   type CommunicationGlobalSettings,
 } from "@/platform/communication-hub/globalSettingsService";
