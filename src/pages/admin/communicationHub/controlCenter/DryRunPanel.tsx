@@ -341,6 +341,50 @@ export function DryRunPanel(props: DryRunPanelProps) {
           The dry-run runs against the locked, server-verified preview. Refresh or approve the
           preview above before running the dry test.
         </div>
+        {previewSnapshotId && (
+          <div className="text-xs text-muted-foreground font-mono">
+            Preview ID: {previewSnapshotId}
+            {snapshotMeta?.createdAt && (
+              <> · Created {new Date(snapshotMeta.createdAt).toLocaleString()}</>
+            )}
+            {snapshotMeta?.resolverVersion && (
+              <> · Resolver {snapshotMeta.resolverVersion}</>
+            )}
+          </div>
+        )}
+        {resolverBlocking && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Required Preview information is missing</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <div>
+                This Preview carries required template values that could not be resolved. The Dry
+                Test is disabled until you create a Fresh Preview whose resolver reports zero
+                required unresolved variables.
+              </div>
+              <ul className="text-xs list-disc pl-5">
+                {snapshotMeta!.requiredUnresolved.map((u) => (
+                  <li key={u.variable}>
+                    <span className="font-mono">{u.variable}</span>
+                    {u.source_type && (
+                      <> — expected from <span className="font-mono">{u.source_type}</span>
+                        {u.canonical_path && (
+                          <> at <span className="font-mono">{u.canonical_path}</span></>
+                        )}
+                      </>
+                    )}
+                    {u.reason_code && <> · {u.reason_code}</>}
+                  </li>
+                ))}
+              </ul>
+              <div className="text-xs">
+                Fix the missing source (scenario payload, recipient display name, or server
+                context), then create a Fresh Preview above. Do not use Run Again on the current
+                pair.
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
       </section>
 
       {/* B. Readiness */}
