@@ -107,6 +107,10 @@ export function DryRunPanel(props: DryRunPanelProps) {
   const [certValidation, setCertValidation] =
     useState<DryRunCertificationValidation | null>(null);
   const [technicalOpen, setTechnicalOpen] = useState(false);
+  // Phase 4B3 — authentication is tracked independently of the runtime
+  // execution envelope. An auth failure must not populate a "final result".
+  const [authError, setAuthError] = useState<AuthErrorDetails | null>(null);
+  const [refreshingAuth, setRefreshingAuth] = useState(false);
 
   const readinessStatus: "Ready" | "Needs Attention" | "Blocked" = useMemo(() => {
     if (!canonicalDecision) return "Blocked";
@@ -119,6 +123,7 @@ export function DryRunPanel(props: DryRunPanelProps) {
 
   const canRun =
     phase === "idle" &&
+    !authError &&
     recipients.length > 0 &&
     !!previewSnapshotId &&
     previewApproved &&
@@ -129,10 +134,9 @@ export function DryRunPanel(props: DryRunPanelProps) {
     setPhase("running");
     setEnvelope(null);
     setCertValidation(null);
+    setAuthError(null);
     setProgressStep(0);
 
-    // Best-effort visual progress. The server remains authoritative; these
-    // labels are display-only and never gate the result.
     const timer = setInterval(() => {
       setProgressStep((s) => Math.min(s + 1, DRY_RUN_PROGRESS_STEPS.length - 2));
     }, 550);
@@ -149,15 +153,22 @@ export function DryRunPanel(props: DryRunPanelProps) {
         idempotencyKey: idempotencyRef.current!,
       });
       clearInterval(timer);
+
+      // Auth failure inside the envelope: DO NOT paint as a final Dry Run
+      // result. Show the dedicated authentication alert instead. The server
+      // guarantees no runtime rows were created (retry_safe = true).
+      const authDetails = getAuthErrorDetails(env);
+      if (authDetails) {
+        setAuthError(authDetails);
+        setPhase("idle");
+        setProgressStep(0);
+        toast.error(`${authDetails.title} — ${authDetails.message}`);
+        return;
+      }
+
       setProgressStep(DRY_RUN_PROGRESS_STEPS.length - 1);
       setEnvelope(env);
       setPhase("final");
-
-      // Auth failures come back as a structured BLOCKED envelope with
-      // failure_stage === "auth". Surface them with a friendly, action-oriented
-      // message instead of the generic "please retry" toast.
-      const authMsg = resolveAuthErrorMessage(env);
-      if (authMsg) toast.error(authMsg);
 
       let v: DryRunCertificationValidation | null = null;
       if (env.status === "DRY_RUN_PASSED" && env.dry_run_certification_id) {
@@ -176,20 +187,50 @@ export function DryRunPanel(props: DryRunPanelProps) {
       onFinal?.(env, v);
     } catch (e: any) {
       clearInterval(timer);
-      // Client-side auth (CommHubAuthError) or network failures land here;
-      // server business failures come back as an envelope above.
-      const authMsg = resolveAuthErrorMessage(e);
-      toast.error(authMsg ?? e?.message ?? "Dry-run request failed");
+      // Client-side auth (CommHubAuthError) and network failures land here.
+      // Auth failures must not fall through to the generic error toast.
+      if (isAuthFailure(e) || e instanceof CommHubAuthError) {
+        const d = getAuthErrorDetails(e) ?? getAuthErrorDetails({ blockers: [{ code: "authentication_required" }] })!;
+        setAuthError(d);
+        setPhase("idle");
+        setProgressStep(0);
+        return;
+      }
+      toast.error(e?.message ?? "Dry-run request failed");
       setPhase("idle");
     }
   }
 
+  async function handleRefreshSession() {
+    setRefreshingAuth(true);
+    try {
+      await getFreshAuthenticatedSession();
+      setAuthError(null);
+      toast.success("Session refreshed. You can retry the Dry Run.");
+    } catch (err) {
+      const d = getAuthErrorDetails(err) ?? {
+        code: "session_lookup_failed",
+        title: "Session could not be restored",
+        message: "Your session could not be restored. Please sign in again.",
+        fix: "Sign out and sign in again.",
+        severity: "medium" as const,
+        retrySafe: true,
+      };
+      setAuthError(d);
+      toast.error(d.message);
+    } finally {
+      setRefreshingAuth(false);
+    }
+  }
+
   function handleRunAgain() {
-    // Mint a fresh key ONLY after the prior result is final AND the server
-    // marked it retry-safe (or the run passed). Never regenerate over an
-    // ambiguous / unsafe outcome — operator must investigate first.
-    if (phase !== "final") return;
-    if (envelope && envelope.retry_safe === false && !envelope.passed) return;
+    // Retry-safe contract (Phase 4B3):
+    //   Block "Run Again" ONLY when the server EXPLICITLY set retry_safe=false
+    //   AND the outcome is ambiguous or mutation cleanup is unproven.
+    //   Missing retry_safe (=== "UNKNOWN") also blocks a fresh key mint.
+    if (phase !== "final" || !envelope) return;
+    if (envelope.retry_safe === false && envelope.ambiguous_outcome) return;
+    if (envelope.retry_safe === "UNKNOWN" && envelope.mutation_started) return;
     idempotencyRef.current = generateIdempotencyKey();
     setEnvelope(null);
     setCertValidation(null);
@@ -198,7 +239,10 @@ export function DryRunPanel(props: DryRunPanelProps) {
   }
 
   const runAgainBlocked =
-    phase === "final" && !!envelope && envelope.retry_safe === false && !envelope.passed;
+    phase === "final" &&
+    !!envelope &&
+    ((envelope.retry_safe === false && envelope.ambiguous_outcome) ||
+      (envelope.retry_safe === "UNKNOWN" && envelope.mutation_started));
 
   return (
     <div className="space-y-4">
