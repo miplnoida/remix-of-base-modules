@@ -1,141 +1,67 @@
-# Phase 4B3 — Unified Go-Live Certification Foundation
+# Phase 4B3 — Runtime Transition Certification & Controlled Stub Execution
 
-Goal: replace scattered manual checks with one server-owned certification runner that proves an event is ready for a target stage before any runtime row is created. No real email. No provider call.
+This iteration is large enough that a single response cannot land it safely without risking half-migrated state on Live. I want your acknowledgement of the staged sequence below before I begin, because each stage produces durable schema and RPC changes that must all land coherently.
 
-The work lands in one iteration, sequenced so each layer is complete before the next depends on it.
+## Scope reality check
 
-## What ships (four foundations, together)
+The 21 sections (A–U) collectively require:
+- 6–8 new SQL migrations (enum extensions, new tables/columns, ~10 new RPCs, revoke/grant sweeps, backfills)
+- Refactor of 5 existing RPCs (`prepare_comm_hub_preview`, `approve_comm_hub_preview`, `begin_comm_hub_dry_run`, `begin_comm_hub_controlled_live`, `create_comm_hub_controlled_stub_message`, `claim_comm_hub_targeted_message`, `revalidate_comm_hub_send_decision`)
+- 2 Edge Function refactors (`comm-hub-dry-run`, `comm-hub-controlled-live-test`) to call the new transition gate before each mutation
+- New service module + tests on the frontend
+- ~30+ deterministic SQL/vitest cases
+- One live Controlled Stub run against APPEALS with full evidence capture
 
-1. Targeted Controlled Stub message safety completed
-2. Canonical business-event envelope (typed contract)
-3. Platform-wide template renderability assessment (all 165 versions)
-4. One event-level Go-Live Certification Runner + immutable manifest
+I will execute it as five sub-iterations, each verifiable in isolation. I will not stop between them — but I need you to acknowledge the sequence so that if credits or a failure force a pause, we pause on a coherent boundary.
 
-Pilot event: `APPEALS / APPEAL_RECEIVED_NOTICE / email`.
+## Sub-iteration 1 — Capability vs Transition split + normaliser fix (Sections A, C, D, L)
 
-## Sequence
+- Rename `evaluate_comm_hub_stage_readiness` conceptually to "event capability evaluator" (compatibility wrapper retained).
+- Introduce `normalize_comm_hub_go_live_stage_for_action(p_stage, p_action)`; make bare `CONTROLLED_LIVE` raise `GO_LIVE_STAGE_ACTION_REQUIRED`.
+- Fix template-certification lookup false positive (exact template_version_id + kind + lifecycle + dependency hash + not stale/revoked).
+- Regression test: certified APPEALS version emits zero `template_version_certification_missing`.
 
-### 1. Inspection (read-only)
-- Confirm APPEALS event registration, template mapping, template version, active variable contract, payload schema.
-- Enumerate all 165 active/published template versions with purpose classification.
-- Confirm sender profile candidate + current readiness state.
-- Confirm dispatcher/orchestrator wiring from Slice 2 is still in place.
+## Sub-iteration 2 — Sender readiness correctness (Sections E, F, G, H)
 
-### 2. Targeted-message safety completion
-Slice 2 already landed authoritative creation + atomic targeted claim. Verify and close the remaining gaps:
-- Confirm generic queue/cron/manual/batch/bulk claim paths exclude `targeted_dispatch_only = true`.
-- Add missing rejection in any residual claim path found in step 1.
-- Confirm `send_communication_v1` validator rejects reserved targeted fields.
-- Confirm targeted evidence immutability trigger covers all frozen fields.
+- Revoke `compute_comm_hub_sender_readiness` from PUBLIC/anon/authenticated; add admin wrapper with server-side permission check.
+- Split `(sender_profile_id, sender_version, readiness_kind)` uniqueness; backfill existing rows without deletion.
+- SHA-256 canonicalised evidence hashing helper `comm_hub_canonical_sha256(jsonb)`.
+- REAL_EMAIL_READY returns `BLOCKED_CONFIGURATION` until provider-capability evidence table exists (new table `comm_hub_provider_capability_evidence`, empty for now).
+- TEST_READY re-derivation with new hash contract.
 
-No new runtime rows created.
+## Sub-iteration 3 — Exact fixture + schema validation (Sections I, J, K)
 
-### 3. Canonical business-event envelope
-- New TypeScript type `BusinessEventEnvelope` (module/event/entity/reference/occurredAt/schemaVersion/eventPayload/recipientIntent/correlationId/idempotencyKey/source).
-- Static regression test proves envelope never carries: template code, version, flat tokens, sender, provider, From, recipient email, request number, generated timestamp, governance IDs, dependency hashes.
+- Extend `check_comm_hub_event_fixture_compatibility(p_module, p_event, p_channel, p_template_version_id, p_scenario_id)`.
+- Real JSON Schema validation of governed fixture against enforced payload schema (using pg's `jsonb_path_query` + a validator helper or `plpgsql` walker; if no pg extension, implement in an Edge Function called from SQL via `pg_net` — decision at implementation time; likely inline plpgsql walker).
+- Return distinct `schema_valid / schema_errors / contract_paths_valid / required_variables_resolvable / rendered_without_raw_tokens`.
+- Replace silent `Test Recipient` / `test@example.com` / `now()` fallbacks with a governed platform test context table `comm_hub_platform_test_context` (versioned, deterministic, non-production). Variable source ownership classifier.
 
-### 4. APPEALS pilot canonical payload + variable contract
-- Confirm/land the APPEALS event payload schema (`appeal.id/reference/case_reference/submitted_at`) in `communication_hub_event_payload_schema`.
-- Confirm/land contract entries for `appeal_reference`, `case_reference`, `submitted_at`, `recipient_name`, `request_no`, `generated_at` bound to canonical paths (`event_payload.appeal.*`, `recipient_context.display_name`, `request_context.request_no`, `system_context.generated_at`).
-- Governed synthetic test fixture stores canonical `eventPayload` only (never flat tokens).
-- Pilot adapter (or governed fixture) emits canonical envelope; strips flat template aliases if present in current adapter.
+## Sub-iteration 4 — Runtime transition gate + boundary wiring (Sections B, N, O)
 
-### 5. System-owned context resolvers
-Server-side builders (all in Postgres, invoked by the runner):
-- `recipient_context` — approved test recipient + policy version.
-- `request_context` — request-no capability probe + correlation + timestamp.
-- `system_context` — generated_at, module, event, channel, platform IDs.
-- `sender_context` — profile ID, From/display/reply-to, readiness version.
-Event payload cannot override these namespaces (assertion in resolver).
+- New RPC `assert_comm_hub_runtime_transition(...)` with the full signature and 11 supported transitions; `START_ONE_REAL_EMAIL` / `DISPATCH_ONE_REAL_EMAIL` always deny in this iteration.
+- Runtime transition requirement matrix (separate from capability matrix).
+- Wire into: `prepare_comm_hub_preview`, `approve_comm_hub_preview`, `begin_comm_hub_dry_run`, `comm-hub-dry-run` edge fn, Dry Run certification issue path, `begin_comm_hub_controlled_live`, `create_comm_hub_controlled_stub_message`, `claim_comm_hub_targeted_message`, `processTargetedControlledLive` (pre-simulator), Controlled Stub certification issue, `revalidate_comm_hub_send_decision`.
+- Immutable chain: propagate mapping/version/template/schema/contract/scenario/sender/recipient-policy/manifest/recipient-set/subject/body/content hashes end-to-end; server refuses mid-chain re-render.
 
-### 6. Platform-wide renderability assessment
-New RPC `public.check_all_comm_hub_template_renderability()` returning one row per active/published version with: template/version ID, purpose, module/event, detected variables, contract status, source ownership, fixture status, recipient/sender requirements, resolved/unresolved counts, raw-token count, renderable flag, blockers, recommended action, dependency hash, checked timestamp. Purpose-specific rules for EVENT_COMMUNICATION / MANUAL_CORRESPONDENCE / DOCUMENT_GENERATION / FORM_OUTPUT.
+## Sub-iteration 5 — Recompute, deterministic tests, one live Controlled Stub (Sections M, P, Q, R, S, T, U)
 
-### 7. Event-level Go-Live Certification Runner
-New RPC `public.run_comm_hub_go_live_certification(p_module_code, p_event_code, p_channel, p_target_stage, p_execute default false)` performing all 30 checks listed in the brief and returning every blocker, not just the first. Stages: READINESS_ONLY / PREVIEW_READY / DRY_RUN_READY / CONTROLLED_STUB_READY. `p_execute` ignored (kept false) in this iteration.
+- Recompute APPEALS across all six stages; expect `CONTROLLED_STUB_READY` clean, `ONE_REAL_EMAIL_READY` blocked.
+- Deterministic SQL + vitest suite for every check in Section P.
+- Execute exactly one fresh APPEALS Controlled Stub end-to-end (new preview → approve → dry run → certify → controlled stub → grant → targeted message → claim → revalidate → simulator × 1 → attempt → consume grant → controlled-stub certification).
+- Capture the full evidence bundle listed in Section R.
+- Update the three docs; report all test totals; set status `PHASE_4B3_CONTROLLED_STUB_CERTIFIED` or the appropriate PARTIAL/BLOCKED state.
 
-### 8. Immutable event certification manifest + freshness
-- Deterministic canonicalisation of safe identifiers and versions.
-- SHA-256 manifest hash stored in a new/extended certification row.
-- States: CURRENT / STALE / POSSIBLY_STALE / NOT_CERTIFIED / BLOCKED / SUPERSEDED.
-- Staleness attributed to exactly one cause (template/contract/schema/mapping/scenario/recipient_policy/sender/code/dispatcher_contract).
+## Reasons I am pausing for your acknowledgement (not a design question — a safety confirmation)
 
-### 9. Pre-runtime stop gate
-`prepare_comm_hub_preview` (and downstream approve/dry-run/controlled-stub RPCs) refuse to create rows unless the current certification returns `ready_for_requested_stage = true` for the requested stage.
+1. Sub-iteration 3's real JSON Schema validation in Postgres is non-trivial. If your enforced payload schemas rely on features beyond `type / required / properties / enum / items / additionalProperties / format`, I need to know before implementing so I don't ship a partial validator that later silently accepts invalid fixtures.
+2. Sub-iteration 4 changes the calling convention of 7 existing RPCs and 2 Edge Functions. Any in-flight Preview/Dry-Run rows created under the old contract will need a one-time compatibility path. I plan to make the transition gate advisory-only for pre-existing rows created before the migration timestamp; confirm that is acceptable, or say "hard cut" and I will terminalise any in-flight rows instead.
+3. Sub-iteration 5 will consume one grant and produce one durable Controlled Stub certification against the real Live database. That is the intended outcome, but I want to name it explicitly.
 
-### 10. Other-adapter audit (read-only)
-Classify each business-module comm adapter into: CANONICAL_EVENT_PAYLOAD / LEGACY_FLAT_TEMPLATE_TOKENS / DIRECT_SEND_BYPASS / NO_EVENT_SCHEMA / NO_VARIABLE_CONTRACT / NO_MAPPING / READY_FOR_MIGRATION. Report only; do not migrate.
+## Estimate after this iteration completes successfully
 
-### 11. Sender handling for the pilot
-Run the existing sender verification pipeline against the resolved APPEALS sender profile. Record TEST_READY only from real evidence. No manual insertion. REAL_EMAIL_READY untouched.
+- Successful Controlled Stub: complete
+- One controlled real test email: ~2 more iterations (provider-capability evidence collection + one-real-email path certification + execution)
+- First Manual Production business event: ~4–6 more iterations
+- Broader multi-event production: ~7–11 more iterations
 
-### 12. Regression test — decoupling proof
-Test that:
-1. APPEALS canonical payload unchanged.
-2. A template alias renamed in a test version.
-3. Only the variable contract updated.
-4. No adapter change.
-5. New alias resolves.
-6. Renders with zero raw tokens.
-
-### 13. Tests, typecheck, build
-Full suite listed in section P of the brief. All run headless. No provider calls.
-
-### 14. Runner invocation (report only)
-Call the runner READINESS_ONLY → PREVIEW_READY → DRY_RUN_READY → CONTROLLED_STUB_READY for APPEALS/APPEAL_RECEIVED_NOTICE/email. Report every field required in section Q. Do not execute Controlled Stub.
-
-### 15. Documentation
-`docs/communication-hub/PHASE_4B3_UNIFIED_GO_LIVE_CERTIFICATION.md` covering all sections in R.
-
-## Technical details
-
-### New/changed database objects (additive only)
-- `communication_hub_event_payload_schema` — confirm APPEALS row (add if missing).
-- `communication_hub_template_variable_contract` — confirm APPEALS mappings (add if missing).
-- `communication_hub_event_certification` (new) — manifest hash, stage, state, blockers, superseded_by. Or extended `comm_hub_certification` if already suitable.
-- Function `public.check_all_comm_hub_template_renderability() returns table(...)`.
-- Function `public.run_comm_hub_go_live_certification(...) returns jsonb`.
-- Function `public._build_comm_hub_event_manifest(...) returns jsonb`.
-- Triggers on template/contract/schema/mapping/scenario/recipient_policy/sender to mark event certifications STALE with attribution.
-- Guard in `prepare_comm_hub_preview` to require `ready_for_requested_stage=true`.
-- All GRANTs kept minimal (service_role + authenticated where policies allow).
-
-### New/changed code
-- `src/platform/communication-hub/contracts/BusinessEventEnvelope.ts` — typed envelope + zod schema.
-- `src/services/communication-hub/certificationRunnerService.ts` — thin RPC wrapper.
-- `src/services/communication-hub/renderabilityService.ts` — thin RPC wrapper.
-- Pilot APPEALS adapter/fixture normalised to canonical envelope.
-- No changes to Preview/renderer/snapshot logic beyond the stop gate.
-
-### Tests
-`src/platform/communication-hub/__tests__/` and `src/__tests__/comm-hub/`:
-- envelope purity tests
-- APPEALS schema/contract resolution tests
-- protected-namespace tests
-- renderability RPC purpose-rule tests (mocked)
-- manifest determinism tests
-- freshness attribution tests
-- runner readiness tests
-- targeted queue-exclusion static tests
-- decoupling regression test (section M)
-- typecheck via `tsgo`
-- build via existing pipeline
-
-### Zero side effects
-- No Controlled Stub execution.
-- No provider invocation.
-- No new runtime rows in `communication_request`, `communication_message`, `communication_controlled_live_execution`, `communication_controlled_live_grant`, `communication_delivery_attempt`.
-- All row counts asserted before/after.
-
-## Out of scope this iteration
-- SEND_ONE_REAL_EMAIL and REAL_EMAIL_READY.
-- Migrating any adapter other than APPEALS.
-- `body_html_hash` / `body_text_hash` columns (still deferred).
-
-## Progress estimate (post-iteration)
-- Controlled Stub: ~1 iteration remaining (execute against certified APPEALS).
-- One controlled live test email: ~3 remaining.
-- First Manual Production event: ~5–7 remaining.
-
-## Completion status target
-`PHASE_4B3_UNIFIED_GO_LIVE_CERTIFICATION_FOUNDATION_COMPLETE` when every criterion in section T is met, otherwise `_PARTIAL` with the exact remaining blockers.
+Reply "proceed" (with any adjustment to items 1–3 above) and I will run Sub-iterations 1 → 5 back-to-back without stopping, executing the Controlled Stub at the end.
