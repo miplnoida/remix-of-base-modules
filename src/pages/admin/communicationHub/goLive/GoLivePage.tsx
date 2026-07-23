@@ -593,6 +593,35 @@ export default function GoLivePage() {
         </Alert>
       )}
 
+      {authError && (
+        <Alert>
+          <KeyRound className="h-4 w-4" />
+          <AlertTitle>Authentication required</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div>
+              Your session expired before the Dry Run started. No runtime
+              records or provider calls were created.
+            </div>
+            <div className="text-xs text-muted-foreground">{authError.fix}</div>
+            <div className="text-xs">
+              Readiness completed: No · Dry Run started: No · Execution created: No · Provider called: No · Simulator called: No · Safe to retry after sign-in: Yes
+            </div>
+            <div className="pt-1">
+              <Button size="sm" onClick={handleRefreshSession} disabled={refreshingAuth}>
+                {refreshingAuth ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Refreshing…
+                  </>
+                ) : (
+                  "Refresh Session"
+                )}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* CH-GL — Mode-driven entry point. Five named modes + Emergency Stop.
           Individual technical switches are managed by the server-side mode
           profile and are never surfaced as editable controls here. */}
