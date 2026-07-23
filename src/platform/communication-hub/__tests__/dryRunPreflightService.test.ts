@@ -54,7 +54,21 @@ function readyEnvelope(overrides: Record<string, unknown> = {}) {
     ambiguous_outcome: false,
     retry_safe: true,
     retry_reason: "SAFE_TO_PROCEED",
-    evidence: { authenticated: true, authorized: true },
+    evidence: {
+      authenticated: true,
+      authorized: true,
+      approval_evidence_complete: true,
+      approval_canonical_hash_valid: true,
+      recipient_recompute_ok: true,
+      recipient_snapshot_hash_match: true,
+      recipient_snapshot_valid: true,
+      frozen_recipient_snapshot_available: true,
+      recipient_containers_valid: true,
+      recipient_entries_valid: true,
+      recipient_duplicate_policy_ok: true,
+      configuration_hash_present: true,
+      dependency_hash_drift: false,
+    },
     ...overrides,
   };
 }
