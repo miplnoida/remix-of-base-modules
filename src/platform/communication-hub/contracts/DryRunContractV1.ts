@@ -56,9 +56,25 @@ export const DRY_RUN_STAGE_SUCCESS_STATUSES: readonly DryRunStatus[] = [
   "CERTIFIED",
 ] as const;
 
-/** Terminal statuses: no further stage will fire against this envelope. */
+/**
+ * Terminal statuses for the CURRENT invocation.
+ *
+ * Checkpoint 2A: `BLOCKED` is terminal for this call. A corrected new
+ * invocation may still be permitted — that is expressed via `retry_safe`
+ * independently of `terminal`.
+ */
 export const DRY_RUN_TERMINAL_STATUSES: readonly DryRunStatus[] = [
   "CERTIFIED",
+  "FAILED",
+  "BLOCKED",
+] as const;
+
+/**
+ * Statuses whose stage did NOT succeed. `BLOCKED` and `FAILED` are the only
+ * stage-failure statuses; every other status implies the stage completed.
+ */
+export const DRY_RUN_STAGE_FAILURE_STATUSES: readonly DryRunStatus[] = [
+  "BLOCKED",
   "FAILED",
 ] as const;
 
