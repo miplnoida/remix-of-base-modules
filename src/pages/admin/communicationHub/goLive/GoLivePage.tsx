@@ -248,6 +248,8 @@ export default function GoLivePage() {
   async function refreshDecision(overrideRecipient?: string | null) {
     if (!eventChosen) return;
     setDecisionLoading(true);
+    // Clear any stale authentication alert while we re-evaluate.
+    setAuthError(null);
     try {
       // Reload authoritative recipient policy first — never trust cached state.
       const policy = await fetchRecipientPolicy();
@@ -258,10 +260,6 @@ export default function GoLivePage() {
       setRecipientResolution(resolution);
 
       if (!resolution.resolved) {
-        // UX.5: do NOT synthesise a canonical decision envelope. Leave the
-        // canonical decision null and let RecipientResolutionPanel render
-        // the blocker directly. The canonical evaluator is called only
-        // once we have an authoritative recipient to test against.
         setDecision(null);
         setRecipientCtx(buildRecipientContext(policy, null));
         return;
@@ -277,9 +275,47 @@ export default function GoLivePage() {
       setDecision(env);
       setRecipientCtx(buildRecipientContext(policy, resolution.recipient));
     } catch (e: any) {
+      // Auth failure: track as a dedicated state; DO NOT populate canonical
+      // readiness with a fake `not_authenticated` business blocker.
+      if (e instanceof CommHubAuthError || getAuthErrorDetails(e)) {
+        const d = getAuthErrorDetails(e) ?? {
+          code: "authentication_required",
+          title: "Your session has expired",
+          message: "Your authenticated session is no longer available. No Dry Run was started.",
+          fix: "Refresh your session or sign in again, then retry.",
+          severity: "medium" as const,
+          retrySafe: true,
+        };
+        setAuthError(d);
+        setDecision(null);
+        return;
+      }
       toast.error(e?.message ?? "Readiness check failed");
     } finally {
       setDecisionLoading(false);
+    }
+  }
+
+  async function handleRefreshSession() {
+    setRefreshingAuth(true);
+    try {
+      await getFreshAuthenticatedSession();
+      setAuthError(null);
+      toast.success("Session refreshed.");
+      if (eventChosen) await refreshDecision();
+    } catch (err) {
+      const d = getAuthErrorDetails(err) ?? {
+        code: "session_lookup_failed",
+        title: "Session could not be restored",
+        message: "Your session could not be restored. Please sign in again.",
+        fix: "Sign out and sign in again.",
+        severity: "medium" as const,
+        retrySafe: true,
+      };
+      setAuthError(d);
+      toast.error(d.message);
+    } finally {
+      setRefreshingAuth(false);
     }
   }
 
