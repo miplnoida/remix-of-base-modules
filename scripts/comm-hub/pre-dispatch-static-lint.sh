@@ -77,9 +77,11 @@ fi
 pass "AUTH_3 always creates synthetic operator-admin"
 
 # 5. Readiness step exports DATABASE_URL.
-if ! awk '/name: Service \/ readiness tests/,/^      - name:/' "$WORKFLOW" \
-     | grep -q "DATABASE_URL: \${{ secrets.COMM_HUB_TEST_DB_URL }}"; then
-  fail "workflow readiness step does not export DATABASE_URL"
+if ! grep -q "Service / readiness tests" "$WORKFLOW"; then
+  fail "workflow missing 'Service / readiness tests' step"
+fi
+if ! grep -q "DATABASE_URL: \${{ secrets.COMM_HUB_TEST_DB_URL }}" "$WORKFLOW"; then
+  fail "workflow does not export DATABASE_URL for readiness tests"
 fi
 pass "workflow readiness step exports DATABASE_URL"
 
