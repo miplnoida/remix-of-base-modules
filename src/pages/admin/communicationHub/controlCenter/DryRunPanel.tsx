@@ -113,6 +113,49 @@ export function DryRunPanel(props: DryRunPanelProps) {
   const [authError, setAuthError] = useState<AuthErrorDetails | null>(null);
   const [refreshingAuth, setRefreshingAuth] = useState(false);
 
+  // Phase 4B3 — resolver readiness of the currently selected Preview.
+  // Fetched read-only from the frozen snapshot. If a required unresolved
+  // variable is present, the Dry Test button is disabled and the operator
+  // is told exactly which variables are missing and where they come from.
+  const [snapshotMeta, setSnapshotMeta] = useState<{
+    createdAt: string | null;
+    resolverVersion: string | null;
+    requiredUnresolved: Array<{ variable: string; source_type: string | null; canonical_path: string | null; reason_code: string | null }>;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!previewSnapshotId) { setSnapshotMeta(null); return; }
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from("communication_preview_snapshot")
+        .select("created_at, resolver_version, unresolved_variables_normalised")
+        .eq("id", previewSnapshotId)
+        .maybeSingle();
+      if (cancelled || error || !data) return;
+      const list = Array.isArray(data.unresolved_variables_normalised)
+        ? data.unresolved_variables_normalised
+        : [];
+      const required = list
+        .filter((v: any) => v && v.required === true)
+        .map((v: any) => ({
+          variable: String(v.variable ?? ""),
+          source_type: v.source_type ?? null,
+          canonical_path: v.canonical_path ?? null,
+          reason_code: v.reason_code ?? null,
+        }));
+      setSnapshotMeta({
+        createdAt: data.created_at ?? null,
+        resolverVersion: data.resolver_version ?? null,
+        requiredUnresolved: required,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [previewSnapshotId]);
+
+  const resolverBlocking = (snapshotMeta?.requiredUnresolved.length ?? 0) > 0;
+
+
   const readinessStatus: "Ready" | "Needs Attention" | "Blocked" = useMemo(() => {
     if (!canonicalDecision) return "Blocked";
     if (canonicalDecision.ready) return "Ready";
