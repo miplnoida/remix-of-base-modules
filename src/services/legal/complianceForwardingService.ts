@@ -70,6 +70,21 @@ export async function forwardComplianceCaseToLegal(
     throw new Error("This compliance case has already been forwarded to Legal");
   }
 
+  // Guard against uq_ce_legal_ref_source_active: an active (non-REJECTED/CLOSED)
+  // referral on the same source case would raise a raw Postgres unique-violation
+  // at insert time. Detect it early and surface a friendly, actionable message.
+  const { data: existingActive } = await sb
+    .from("ce_legal_referrals")
+    .select("id, referral_number, status")
+    .eq("source_case_id", input.ce_case_id)
+    .not("status", "in", "(REJECTED,CLOSED)")
+    .maybeSingle();
+  if (existingActive) {
+    throw new Error(
+      `An active Legal Referral (${existingActive.referral_number}, status ${existingActive.status}) already exists for this compliance case. Reject or close it before creating a new one.`,
+    );
+  }
+
   const outstanding =
     Number(ceCase.total_amount ?? 0) -
     Number(ceCase.amount_collected ?? 0) -
@@ -124,7 +139,14 @@ export async function forwardComplianceCaseToLegal(
     })
     .select("id")
     .single();
-  if (refErr) throw refErr;
+  if (refErr) {
+    if ((refErr as any)?.code === "23505") {
+      throw new Error(
+        "An active Legal Referral already exists for this compliance case. Reject or close the existing referral before creating a new one.",
+      );
+    }
+    throw refErr;
+  }
 
   // 2b. Insert selected referral items (if any). Header totals are auto-synced
   //     by the trigger core_lri_sync_header_totals.
