@@ -139,7 +139,14 @@ export async function forwardComplianceCaseToLegal(
     })
     .select("id")
     .single();
-  if (refErr) throw refErr;
+  if (refErr) {
+    if ((refErr as any)?.code === "23505") {
+      throw new Error(
+        "An active Legal Referral already exists for this compliance case. Reject or close the existing referral before creating a new one.",
+      );
+    }
+    throw refErr;
+  }
 
   // 2b. Insert selected referral items (if any). Header totals are auto-synced
   //     by the trigger core_lri_sync_header_totals.
