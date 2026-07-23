@@ -116,9 +116,24 @@ export default function PreviewApprovalPanel({
   const unresolvedRequiredVariables = snapshot?.unresolved_variables ?? [];
   const approvalInProgress = busy === "approve";
   const snapshotIsPrepared = snapshot?.status === "PREPARED";
+  // Phase 4B3 — lifecycle from server evidence (client-side is for display/button locking only).
+  const previewRemaining = computeRemaining(snapshot?.expires_at ?? null);
+  const approvalRemaining = computeRemaining(approval?.expires_at ?? null);
+  const previewExpired = !!snapshot && (snapshot.status === "EXPIRED" || previewRemaining.expired);
+  const approvalExpired = !!approval && (approval.status === "EXPIRED" || approvalRemaining.expired);
+  const lifecycleBadge: { label: string; variant: "default" | "secondary" | "destructive" } = !snapshot
+    ? { label: "—", variant: "secondary" }
+    : snapshot.status === "SUPERSEDED"
+      ? { label: "SUPERSEDED", variant: "destructive" }
+      : snapshot.status === "REVOKED"
+        ? { label: "REVOKED", variant: "destructive" }
+        : previewExpired
+          ? { label: "EXPIRED", variant: "destructive" }
+          : { label: "ACTIVE", variant: "default" };
   const canApprovePreview =
     !!snapshot &&
     snapshotIsPrepared &&
+    !previewExpired &&
     unresolvedRequiredVariables.length === 0 &&
     contentIsComplete &&
     !approvalInProgress &&
