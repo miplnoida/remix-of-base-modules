@@ -51,7 +51,7 @@ describe("evidenceTimestamps", () => {
     const r = computeRemaining(future);
     expect(r.expired).toBe(false);
     expect(r.totalSeconds).toBeGreaterThan(0);
-    expect(r.display).toMatch(/h .* m/);
+    expect(r.display).toMatch(/\dh \d+m/);
   });
 
   it("12. formatTtl returns 24 hours for the affected preview (no TTL mutation)", () => {
