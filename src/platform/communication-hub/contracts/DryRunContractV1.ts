@@ -2,22 +2,17 @@
  * comm-hub-dry-run-contract/v1
  * ----------------------------------------------------------------------------
  * Single normalised envelope shared by SQL RPCs, the `comm-hub-dry-run` Edge
- * Function, and the frontend `dryRunService`. Introduced by Phase 4B3 Slice 1
- * (Section B) to eliminate the pre-mutation `CORRELATION_ID_MISMATCH` class of
- * defects and to make retry safety server-authoritative.
+ * Function, and the frontend `dryRunService`.
  *
- * PURELY TYPES + CONSTANTS. No runtime behaviour, no side effects. Safe to
- * import from anywhere.
- *
- * Rules the contract enforces on callers/producers:
- *  - Missing mutation or retry evidence MUST be encoded as `"UNKNOWN"` — never
- *    silently defaulted to `false`.
- *  - `passed` MUST equal `status === "BEGIN_OK" | "BEGIN_REPLAY" | "PROCESSED"
- *    | "CERTIFIED" | "IDEMPOTENT"`.
- *  - `state` MUST reflect the last authoritative execution state observed by
- *    the server (never the browser's expectation).
- *  - `correlation_id` in a successful envelope is the AUTHORITATIVE Preview
- *    correlation — never a caller-supplied UUID.
+ * Checkpoint 2 (Section A) tightens semantics:
+ *   - `passed` MUST be true only for terminal, successful stages
+ *     (CERTIFIED). Intermediate stages (BEGIN_OK, BEGIN_REPLAY, PROCESSED,
+ *     PREFLIGHT_READY, PROCESSING) MUST return passed=false.
+ *   - Idempotency is expressed via `idempotent_replay=true` together with the
+ *     stage-appropriate status (e.g. BEGIN_REPLAY or CERTIFIED).
+ *   - The ambiguous `IDEMPOTENT` status is removed.
+ *   - `stage_succeeded`, `terminal`, `failure_stage`, `message`,
+ *     `validated_at`, and `execution_deadline_at` are first-class fields.
  */
 
 export const DRY_RUN_CONTRACT_VERSION = "comm-hub-dry-run-contract/v1" as const;
@@ -33,7 +28,6 @@ export type DryRunStatus =
   | "PROCESSING"
   | "PROCESSED"
   | "CERTIFIED"
-  | "IDEMPOTENT"
   | "BLOCKED"
   | "FAILED";
 
@@ -47,19 +41,29 @@ export type DryRunState =
   | "BLOCKED"
   | "UNKNOWN";
 
-export const DRY_RUN_SUCCESS_STATUSES: readonly DryRunStatus[] = [
+/** Statuses for which `passed` MUST be true (terminal + fully successful). */
+export const DRY_RUN_PASSED_STATUSES: readonly DryRunStatus[] = [
+  "CERTIFIED",
+] as const;
+
+/** Statuses that indicate the stage itself completed without error. */
+export const DRY_RUN_STAGE_SUCCESS_STATUSES: readonly DryRunStatus[] = [
   "PREFLIGHT_READY",
   "BEGIN_OK",
   "BEGIN_REPLAY",
+  "PROCESSING",
   "PROCESSED",
   "CERTIFIED",
-  "IDEMPOTENT",
+] as const;
+
+/** Terminal statuses: no further stage will fire against this envelope. */
+export const DRY_RUN_TERMINAL_STATUSES: readonly DryRunStatus[] = [
+  "CERTIFIED",
+  "FAILED",
 ] as const;
 
 // ---------------------------------------------------------------------------
 // Tri-state evidence flag ----------------------------------------------------
-// UNKNOWN is REQUIRED whenever the server has not proven the fact. It MUST
-// NOT be collapsed to `false` in either direction of the wire.
 // ---------------------------------------------------------------------------
 
 export type TriState = true | false | "UNKNOWN";
@@ -83,10 +87,11 @@ export interface DryRunWarning {
 }
 
 // ---------------------------------------------------------------------------
-// Retry classification (Section Q)
+// Retry classification
 // ---------------------------------------------------------------------------
 
 export type DryRunRetryReason =
+  | "SAFE_TO_PROCEED"
   | "PRE_MUTATION_CORRELATION_MISMATCH"
   | "PRE_MUTATION_VALIDATION_FAILURE"
   | "PRE_MUTATION_AUTH_FAILURE"
@@ -106,14 +111,23 @@ export interface DryRunContractV1Envelope {
 
   status: DryRunStatus;
   state: DryRunState;
-  passed: boolean;
 
-  // Authoritative Preview-chain correlation. Populated on every successful or
-  // replay response, and on blocked responses whenever the server can safely
-  // reveal it (i.e. after Preview + approval have been loaded and matched).
+  /** True only when the stage completed AND the run is fully certified. */
+  passed: boolean;
+  /** True when the stage itself completed without error (may not be terminal). */
+  stage_succeeded: boolean;
+  /** True when no further stage will be attempted against this envelope. */
+  terminal: boolean;
+  /** True when this response returned the pre-existing chain unchanged. */
+  idempotent_replay: boolean;
+
+  failure_stage: string | null;
+  message: string;
+  validated_at: string | null;
+  execution_deadline_at: string | null;
+
   correlation_id: string | null;
 
-  // Identifiers ------------------------------------------------------------
   preview_snapshot_id: string | null;
   preview_approval_id: string | null;
   dry_run_execution_id: string | null;
@@ -125,15 +139,12 @@ export interface DryRunContractV1Envelope {
   dry_run_certification_id: string | null;
   certification_expires_at: string | null;
 
-  // Frozen recipient evidence ---------------------------------------------
   recipient_count: number | null;
 
-  // Diagnostics ------------------------------------------------------------
   blockers: DryRunBlocker[];
   warnings: DryRunWarning[];
   transition_log_ids: string[];
 
-  // Mutation evidence (Section Q) — never default missing values to false.
   mutation_started: TriState;
   execution_created: TriState;
   request_created: TriState;
@@ -143,16 +154,14 @@ export interface DryRunContractV1Envelope {
   simulator_call_attempted: TriState;
   ambiguous_outcome: TriState;
 
-  // Retry safety
   retry_safe: TriState;
   retry_reason: DryRunRetryReason;
 }
 
 // ---------------------------------------------------------------------------
-// Helper contract envelope (Section C) --------------------------------------
+// Helper contract envelope --------------------------------------------------
 // Every readiness/gate/binding helper (SQL or TS) returns this exact shape.
-// `allowed` and `ok` MUST be identical; callers may check either without
-// creating drift.
+// `allowed` and `ok` MUST be identical.
 // ---------------------------------------------------------------------------
 
 export interface HelperContractResult<TEvidence = Record<string, unknown>> {
@@ -164,7 +173,7 @@ export interface HelperContractResult<TEvidence = Record<string, unknown>> {
 }
 
 // ---------------------------------------------------------------------------
-// Recipient snapshot contract (Section H) -----------------------------------
+// Recipient snapshot contract -----------------------------------------------
 // ---------------------------------------------------------------------------
 
 export const RECIPIENT_SNAPSHOT_VERSION =
@@ -191,8 +200,18 @@ export interface FrozenRecipientSnapshot {
 // Type guards + factories ---------------------------------------------------
 // ---------------------------------------------------------------------------
 
-export function isDryRunSuccess(status: DryRunStatus): boolean {
-  return (DRY_RUN_SUCCESS_STATUSES as readonly DryRunStatus[]).includes(status);
+export function isDryRunPassed(status: DryRunStatus): boolean {
+  return (DRY_RUN_PASSED_STATUSES as readonly DryRunStatus[]).includes(status);
+}
+
+export function isDryRunStageSuccess(status: DryRunStatus): boolean {
+  return (DRY_RUN_STAGE_SUCCESS_STATUSES as readonly DryRunStatus[]).includes(
+    status,
+  );
+}
+
+export function isDryRunTerminal(status: DryRunStatus): boolean {
+  return (DRY_RUN_TERMINAL_STATUSES as readonly DryRunStatus[]).includes(status);
 }
 
 export function emptyDryRunEnvelope(
@@ -203,7 +222,14 @@ export function emptyDryRunEnvelope(
     contract_version: DRY_RUN_CONTRACT_VERSION,
     status,
     state: "UNKNOWN",
-    passed: isDryRunSuccess(status),
+    passed: isDryRunPassed(status),
+    stage_succeeded: isDryRunStageSuccess(status),
+    terminal: isDryRunTerminal(status),
+    idempotent_replay: false,
+    failure_stage: null,
+    message: "",
+    validated_at: null,
+    execution_deadline_at: null,
     correlation_id: null,
     preview_snapshot_id: null,
     preview_approval_id: null,
@@ -234,8 +260,8 @@ export function emptyDryRunEnvelope(
 }
 
 /**
- * Assert an envelope produced by the SQL/Edge layer is well-formed.
- * Throws with a precise reason so contract-test regressions are localised.
+ * Assert an envelope produced by the SQL/Edge layer is well-formed AND that
+ * `passed`/`stage_succeeded`/`terminal` obey the checkpoint-2 semantics.
  */
 export function assertDryRunContractV1(
   input: unknown,
@@ -243,11 +269,48 @@ export function assertDryRunContractV1(
   const e = input as Partial<DryRunContractV1Envelope> | null;
   if (!e || typeof e !== "object") throw new Error("envelope: not an object");
   if (e.contract_version !== DRY_RUN_CONTRACT_VERSION) {
-    throw new Error(`envelope: contract_version must be ${DRY_RUN_CONTRACT_VERSION}`);
+    throw new Error(
+      `envelope: contract_version must be ${DRY_RUN_CONTRACT_VERSION}`,
+    );
   }
   if (typeof e.status !== "string") throw new Error("envelope: status missing");
+  if ((e.status as string) === "IDEMPOTENT") {
+    throw new Error(
+      'envelope: generic "IDEMPOTENT" status is rejected — use stage status + idempotent_replay=true',
+    );
+  }
+  const status = e.status as DryRunStatus;
   if (typeof e.state !== "string") throw new Error("envelope: state missing");
   if (typeof e.passed !== "boolean") throw new Error("envelope: passed missing");
+  if (typeof e.stage_succeeded !== "boolean") {
+    throw new Error("envelope: stage_succeeded missing");
+  }
+  if (typeof e.terminal !== "boolean") throw new Error("envelope: terminal missing");
+  if (typeof e.idempotent_replay !== "boolean") {
+    throw new Error("envelope: idempotent_replay missing");
+  }
+  if (typeof e.message !== "string") throw new Error("envelope: message missing");
+
+  // Invariants -----------------------------------------------------------
+  const expectedPassed = isDryRunPassed(status);
+  if (e.passed !== expectedPassed) {
+    throw new Error(
+      `envelope: passed=${e.passed} but status=${status} requires passed=${expectedPassed}`,
+    );
+  }
+  const expectedStageSuccess = isDryRunStageSuccess(status);
+  if (e.stage_succeeded !== expectedStageSuccess) {
+    throw new Error(
+      `envelope: stage_succeeded=${e.stage_succeeded} but status=${status} requires stage_succeeded=${expectedStageSuccess}`,
+    );
+  }
+  if (status === "FAILED" && !e.terminal) {
+    throw new Error("envelope: FAILED must be terminal");
+  }
+  if (status === "CERTIFIED" && !e.terminal) {
+    throw new Error("envelope: CERTIFIED must be terminal");
+  }
+
   const tri = (v: unknown, field: string) => {
     if (v !== true && v !== false && v !== "UNKNOWN") {
       throw new Error(`envelope: ${field} must be true|false|"UNKNOWN"`);
