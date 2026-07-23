@@ -358,9 +358,9 @@ export function DryRunPanel(props: DryRunPanelProps) {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Outcome not retry-safe</AlertTitle>
             <AlertDescription>
-              The server marked this result as unsafe to re-run automatically.
-              Investigate the blockers, correct the underlying configuration,
-              then reload this page to start a new attempt.
+              The server could not confirm whether runtime state was created
+              or safely cleaned up. Investigate the execution evidence below
+              before running again.
             </AlertDescription>
           </Alert>
         )}
