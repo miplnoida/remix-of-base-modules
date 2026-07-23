@@ -90,8 +90,7 @@ export async function inspectDryRunPreflight(
 
   const envelope = raw as DryRunContractV1Envelope;
 
-  // (K) Strict readiness invariant matrix — Checkpoint 2B Final Closure.
-  // Truthful evidence flags (server recomputes canonical hashes cryptographically).
+  // (I) Strict readiness invariant matrix — Checkpoint 2B Verification Closure.
   const blockers = Array.isArray(envelope.blockers) ? envelope.blockers : [];
   const ev = (envelope as any).evidence ?? {};
   const ready =
@@ -105,12 +104,26 @@ export async function inspectDryRunPreflight(
     envelope.execution_created === false &&
     envelope.request_created === false &&
     envelope.message_created === false &&
+    envelope.created_this_call === false &&
+    envelope.cleanup_proven === true &&
     envelope.provider_call_attempted === false &&
     envelope.simulator_call_attempted === false &&
+    envelope.ambiguous_outcome === false &&
+    envelope.retry_safe === true &&
+    envelope.retry_reason === "SAFE_TO_PROCEED" &&
+    ev.authenticated === true &&
+    ev.authorized === true &&
+    ev.approval_evidence_complete === true &&
     ev.approval_canonical_hash_valid === true &&
+    ev.recipient_recompute_ok === true &&
     ev.recipient_snapshot_hash_match === true &&
     ev.recipient_snapshot_valid === true &&
-    ev.frozen_recipient_snapshot_available === true;
+    ev.frozen_recipient_snapshot_available === true &&
+    ev.recipient_containers_valid === true &&
+    ev.recipient_entries_valid === true &&
+    ev.recipient_duplicate_policy_ok === true &&
+    ev.configuration_hash_present === true &&
+    ev.dependency_hash_drift === false;
 
   if (!ready && envelope.status === "PREFLIGHT_READY") {
     // Server claims ready but invariants contradict — fail closed.
