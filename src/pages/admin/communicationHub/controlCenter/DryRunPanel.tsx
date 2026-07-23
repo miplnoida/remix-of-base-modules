@@ -175,7 +175,8 @@ export function DryRunPanel(props: DryRunPanelProps) {
     !!previewSnapshotId &&
     previewApproved &&
     reasonValid &&
-    readinessStatus === "Ready";
+    readinessStatus === "Ready" &&
+    !resolverBlocking;
 
 
   async function handleRun() {
