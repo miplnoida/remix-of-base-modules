@@ -340,14 +340,40 @@ export default function PreviewApprovalPanel({
 
       {snapshot && (
         <div className="border rounded-md p-3 space-y-2 bg-muted/30">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary">Snapshot</Badge>
-            <span className="text-xs font-mono">{snapshot.snapshot_id}</span>
-            <Badge>{snapshot.status}</Badge>
-            <span className="text-xs text-muted-foreground">
-              generated {new Date().toLocaleTimeString()} · expires {new Date(snapshot.expires_at).toLocaleTimeString()}
-            </span>
-          </div>
+          {(() => {
+            const created = formatEvidenceTimestamp(snapshot.created_at, UNAVAILABLE_LABEL);
+            const expires = formatEvidenceTimestamp(snapshot.expires_at, "—");
+            const ttl = formatTtl(snapshot.created_at, snapshot.expires_at);
+            return (
+              <>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="secondary">Snapshot</Badge>
+                  <span className="text-xs font-mono">{snapshot.snapshot_id}</span>
+                  <Badge variant={lifecycleBadge.variant} data-testid="preview-lifecycle-badge">
+                    {lifecycleBadge.label}
+                  </Badge>
+                  <Badge variant="outline">Server: {snapshot.status}</Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                  <div data-testid="preview-generated">
+                    <strong>Generated:</strong>{" "}
+                    <span className={created.ok ? "" : "text-destructive"}>{created.display}</span>
+                  </div>
+                  <div data-testid="preview-expires">
+                    <strong>Expires:</strong>{" "}
+                    <span className={expires.ok ? "" : "text-destructive"}>{expires.display}</span>
+                  </div>
+                  <div><strong>Valid for:</strong> {ttl}</div>
+                  <div>
+                    <strong>Remaining:</strong>{" "}
+                    <span className={previewRemaining.expired ? "text-destructive" : ""}>
+                      {previewRemaining.display}
+                    </span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
           <div className="text-sm space-y-0.5">
             <div>
               <strong>Recipient:</strong>{" "}
@@ -366,6 +392,15 @@ export default function PreviewApprovalPanel({
               <div><strong>Test-data source:</strong> {lockedContext.testDataSource}</div>
             )}
           </div>
+          {previewExpired && (
+            <Alert variant="destructive" data-testid="preview-expired-alert">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Preview expired</AlertTitle>
+              <AlertDescription>
+                This Preview or approval has expired. Create and approve a new Preview.
+              </AlertDescription>
+            </Alert>
+          )}
           {(snapshot.unresolved_variables ?? []).length > 0 && (
             <Alert variant="destructive" data-testid="preview-unresolved-alert">
               <AlertTriangle className="h-4 w-4" />
