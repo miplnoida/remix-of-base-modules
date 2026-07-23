@@ -94851,6 +94851,13 @@ export type Database = {
         Returns: Json
       }
       _comm_hub_hash_manifest: { Args: { p_manifest: Json }; Returns: string }
+      _comm_hub_is_valid_date: { Args: { p_value: string }; Returns: boolean }
+      _comm_hub_is_valid_datetime: {
+        Args: { p_value: string }
+        Returns: boolean
+      }
+      _comm_hub_is_valid_email: { Args: { p_value: string }; Returns: boolean }
+      _comm_hub_is_valid_uuid: { Args: { p_value: string }; Returns: boolean }
       _comm_hub_jval_format: {
         Args: { p_format: string; p_value: string }
         Returns: boolean
