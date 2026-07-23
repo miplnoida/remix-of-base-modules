@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
-# Phase 4B3 — Checkpoint 2B Preflight Verification Matrix runner (hardened).
+# Phase 4B3 — Checkpoint 2B Preflight Verification Matrix runner.
 #
-# Item G: never prints connection string, username, host, password. All
-#         diagnostic messages are sanitized.
-# Item H: no production override exists. The runner requires an explicit
-#         non-production ack (COMM_HUB_TEST_ENVIRONMENT=test|staging) AND
-#         hostname refusal, and passes the ack into psql (-v env=...) so the
-#         SQL matrix enforces it server-side as well.
+# Item G: never prints connection string, username, host, or password. All
+#         diagnostic messages are sanitized. Output stream is piped through
+#         a sed redaction filter.
+# Item H: the connection URI is passed to psql via the PGDATABASE environment
+#         variable — NEVER on the command line. This keeps the secret out of
+#         `ps`, /proc/*/cmdline, shell history, and CI job logs. psql treats
+#         PGDATABASE as a connection URI when its value begins with
+#         `postgres://` or `postgresql://` (libpq behaviour).
+# Item J: no production override exists. The runner requires an explicit
+#         non-production ack (COMM_HUB_TEST_ENVIRONMENT=test|staging), the
+#         URL must not look like production, and the same env marker is
+#         passed into psql (-v env=...) so the SQL matrix enforces server ↔
+#         client agreement.
 
 set -euo pipefail
 
@@ -28,7 +35,6 @@ esac
 NORMALIZED_ENV="$(printf '%s' "$TEST_ENV" | tr '[:upper:]' '[:lower:]')"
 
 # --- 2. Production refusal --------------------------------------------------
-# Grep in a subshell against the raw value WITHOUT ever printing it.
 if printf '%s' "${COMM_HUB_TEST_DB_URL}" \
      | grep -qiE 'prod|xynceskeiiisiefqlgxo'; then
   echo "ERROR: connection target looks like production. Refusing." >&2
@@ -44,16 +50,13 @@ fi
 echo "Running Communication Hub preflight matrix against approved non-production database."
 
 # --- 3. Execute -------------------------------------------------------------
-# psql reads the DB URL via a here-string on STDIN, never via argv, so the
-# secret cannot appear in process lists.
-#
-# NOTE: we ALSO pass -v env=... so the SQL matrix can enforce environment
-# rules server-side (item H). No secret value is ever passed via -v.
+# The DB URI is passed via PGDATABASE (env, not argv). Never pass the URL via
+# `-d "$COMM_HUB_TEST_DB_URL"` or as any positional argument.
 PGCONNECT_TIMEOUT="${PGCONNECT_TIMEOUT:-15}" \
+PGDATABASE="${COMM_HUB_TEST_DB_URL}" \
   psql \
     -v ON_ERROR_STOP=1 \
     -v "env=${NORMALIZED_ENV}" \
-    -d "${COMM_HUB_TEST_DB_URL}" \
     -f "$SQL_FILE" \
     2>&1 \
   | sed -E 's#postgres(ql)?://[^ ]*#postgres://<redacted>#g'
