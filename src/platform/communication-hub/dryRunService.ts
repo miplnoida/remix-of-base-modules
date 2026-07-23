@@ -84,6 +84,80 @@ export interface RunDryTestInput {
   contextData?: Record<string, unknown>;
 }
 
+/** Normalize any server-shaped body to the full v1 envelope. Missing
+ *  retry-safety fields FAIL CLOSED to `"UNKNOWN"` — never silently `false`.
+ *  Auth failures are detected and stamped with the canonical retry contract. */
+function normalizeEnvelope(body: any): DryRunEnvelope {
+  const b: any = body ?? {};
+  const stage = b.failure_stage ?? b.failureStage ?? null;
+  const isAuth =
+    stage === "auth" ||
+    b.retry_reason === "AUTHENTICATION_REQUIRED" ||
+    (Array.isArray(b.blockers) &&
+      b.blockers.some((x: any) =>
+        typeof x?.code === "string" &&
+        /^(not_authenticated|UNAUTHENTICATED(_TRANSITION)?|authentication_|session_|invalid_or_expired_jwt)/i
+          .test(x.code),
+      ));
+
+  const has = (k: string) => Object.prototype.hasOwnProperty.call(b, k);
+  const retrySafe: boolean | "UNKNOWN" =
+    isAuth ? true : has("retry_safe") ? !!b.retry_safe : "UNKNOWN";
+  const retryReason: string =
+    isAuth ? "AUTHENTICATION_REQUIRED"
+    : b.retry_reason ?? (retrySafe === true ? "SAFE_TO_RETRY" : "UNKNOWN");
+  const mutationStarted = has("mutation_started")
+    ? !!b.mutation_started
+    : !!b.dry_run_execution_id;
+  const ambiguous = has("ambiguous_outcome")
+    ? !!b.ambiguous_outcome
+    : (retrySafe === "UNKNOWN" && mutationStarted);
+
+  return {
+    status: b.status,
+    passed: !!b.passed,
+    message: b.message ?? "",
+    idempotent_replay: !!b.idempotent_replay,
+    dry_run_execution_id: b.dry_run_execution_id ?? null,
+    execution_no: b.execution_no ?? null,
+    dry_run_certification_id: b.dry_run_certification_id ?? null,
+    request_id: b.request_id ?? null,
+    request_number: b.request_number ?? null,
+    message_id: b.message_id ?? null,
+    delivery_attempt_id: b.delivery_attempt_id ?? null,
+    trace_id: b.trace_id ?? null,
+    original_decision_id: b.original_decision_id ?? null,
+    dispatcher_revalidation_decision_id: b.dispatcher_revalidation_decision_id ?? null,
+    preview_snapshot_id: b.preview_snapshot_id ?? null,
+    preview_approval_id: b.preview_approval_id ?? null,
+    blockers: (b.blockers ?? []) as DryRunBlocker[],
+    warnings: (b.warnings ?? []) as unknown[],
+    failure_stage: stage,
+    started_at: b.started_at ?? null,
+    completed_at: b.completed_at ?? null,
+    certification_expires_at: b.certification_expires_at ?? null,
+    provider_call_attempted: !!b.provider_call_attempted,
+    provider_message_id: b.provider_message_id ?? null,
+    final_operating_mode: b.final_operating_mode ?? null,
+    retry_safe: retrySafe,
+    retry_reason: retryReason,
+    mutation_started: mutationStarted,
+    execution_created: has("execution_created")
+      ? !!b.execution_created
+      : !!b.dry_run_execution_id,
+    request_created: has("request_created") ? !!b.request_created : !!b.request_id,
+    message_created: has("message_created") ? !!b.message_created : !!b.message_id,
+    simulator_call_attempted: has("simulator_call_attempted")
+      ? !!b.simulator_call_attempted
+      : false,
+    ambiguous_outcome: ambiguous,
+    can_retry_after_reauthentication: isAuth
+      ? true
+      : !!b.can_retry_after_reauthentication,
+    transition_log_id: b.transition_log_id ?? null,
+  };
+}
+
 /**
  * Invoke the canonical dry-run edge function. The server is authoritative;
  * this function only forwards inputs and returns the stable envelope.
@@ -120,15 +194,12 @@ export async function runDryTest(input: RunDryTestInput): Promise<DryRunEnvelope
     },
   });
   if (error && !data) {
-    // Surface the server's response body when the Functions client wraps a
-    // non-2xx as FunctionsHttpError — the edge function returns a structured
-    // envelope even on 4xx/5xx, and losing it hides the real blocker.
     const ctx: any = (error as any)?.context;
     if (ctx && typeof ctx.json === "function") {
       try {
         const body = await ctx.json();
         if (body && typeof body === "object" && "status" in body) {
-          return body as DryRunEnvelope;
+          return normalizeEnvelope(body);
         }
         // eslint-disable-next-line no-console
         console.error("comm-hub-dry-run non-2xx", { status: ctx.status, body });
@@ -137,14 +208,13 @@ export async function runDryTest(input: RunDryTestInput): Promise<DryRunEnvelope
             `comm-hub-dry-run failed (HTTP ${ctx.status})`,
         );
       } catch (parseErr) {
-        // fall through to generic
         // eslint-disable-next-line no-console
         console.error("comm-hub-dry-run parse error", parseErr);
       }
     }
     throw new Error(error.message ?? "comm-hub-dry-run request failed");
   }
-  return data as DryRunEnvelope;
+  return normalizeEnvelope(data);
 }
 
 export interface DryRunExecutionRow {
