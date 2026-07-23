@@ -121,13 +121,18 @@ export function DryRunPanel(props: DryRunPanelProps) {
     return anyCritical ? "Blocked" : "Needs Attention";
   }, [canonicalDecision]);
 
+  const trimmedReason = reason.trim();
+  const reasonValid = trimmedReason.length >= 5;
+
   const canRun =
     phase === "idle" &&
     !authError &&
     recipients.length > 0 &&
     !!previewSnapshotId &&
     previewApproved &&
+    reasonValid &&
     readinessStatus === "Ready";
+
 
   async function handleRun() {
     if (!canRun) return;
