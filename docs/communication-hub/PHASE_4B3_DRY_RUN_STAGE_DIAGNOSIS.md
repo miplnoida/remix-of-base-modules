@@ -46,24 +46,43 @@ Callers:
 
 | Field | Preview `9a7fc2cd-…-e0b76d` | Approval `aec5dcf1-…-ca8891b` | Match |
 |-------|-----------------------------|-------------------------------|-------|
-| status | `PREPARED` | `ACTIVE` | — |
+| status | `PREPARED` | `ACTIVE` (row) — **expired** by clock | — |
 | correlation | `33c4a4ab-1bb4-4ec8-84ce-e0bf31ce3966` | `33c4a4ab-1bb4-4ec8-84ce-e0bf31ce3966` (`correlation_id_at_approval`) | ✅ |
 | content_hash | `a2cf3ea6…14966c2d` | `a2cf3ea6…14966c2d` | ✅ |
 | recipient_set_hash | `adcad87e…f8539b57` | `adcad87e…f8539b57` | ✅ |
 | template_version_id | `8d1fd9cb-…-bc42a4995f87` | `8d1fd9cb-…-bc42a4995f87` | ✅ |
-| configuration_hash | *(empty on snapshot)* | *(empty on approval)* | trivially equal — Slice 1/H will require non-empty |
-| expiry | `2026-07-24 13:20:16 UTC` | `2026-07-23 13:50:18 UTC` | Approval expires ~24h earlier |
+| configuration_hash | *(empty on snapshot)* | *(empty on approval)* | **INSUFFICIENT** — required hash is missing on both sides |
+| expiry | `2026-07-24 13:20:16 UTC` | `2026-07-23 13:50:18 UTC` (**expired**) | Approval expires ~24h earlier |
 | evidence_version | — | `comm-hub-approval-evidence/v1` | canonical hash `a04ba428…cb27e49a` present |
 | scanner | `comm-hub-raw-placeholder-scanner/v2` | (attested at approval) | ✅ |
 | raw_placeholder_count | `0` | — | ✅ |
 
-**Verdict:** the pair is internally consistent. Under the corrected code path
-(Slice 1 sections D/G — begin RPC derives the authoritative correlation from
-the Preview chain rather than accepting a browser UUID) this pair is still
-usable, provided the approval has not expired at the moment `begin` runs.
-Approval expiry is 2026-07-23 13:50:18 UTC — this pair may be past expiry by
-the time Slice 2 executes; Slice 2 must re-approve if so, using the same
-snapshot. Do NOT extend, reactivate, or rewrite the approval.
+**Corrected verdict:**
+- Approval `aec5dcf1-…-ca8891b` is **expired**; the historical pair is no
+  longer eligible for a successful `begin` under any code path.
+- Both the Preview snapshot and the approval have **empty
+  `configuration_hash` / `certified_dependency_hash`** — configuration/
+  dependency-hash evidence was never frozen. Re-approving the same Preview
+  would still fail preflight with `CONFIGURATION_HASH_MISSING`.
+- The eventual successful chain therefore requires a **fresh Preview and a
+  fresh approval** produced against the corrected canonical resolver so that
+  `certified_dependency_hash` is populated end-to-end.
+- The historical pair remains useful only as a deterministic fixture for
+  preflight-blocker tests (it will emit `APPROVAL_EXPIRED_BEFORE_BEGIN` and
+  `CONFIGURATION_HASH_MISSING` together, with correlation/content/recipient
+  hashes matching). Do NOT extend, reactivate, or rewrite the approval.
+
+## 2a. Repository path corrections
+
+- Go Live screen: `src/pages/admin/communicationHub/GoLivePage.tsx`
+  (Step 4 wiring lives in the same file).
+- Dry Run panel: `src/pages/admin/communicationHub/controlCenter/DryRunPanel.tsx`.
+- Dry Run service: `src/platform/communication-hub/dryRunService.ts`.
+- Dry Run contract (Checkpoint 2): `src/platform/communication-hub/contracts/DryRunContractV1.ts`.
+- Dry Run contract tests: `src/platform/communication-hub/contracts/__tests__/DryRunContractV1.test.ts`.
+- Edge Function: `supabase/functions/comm-hub-dry-run/index.ts` (unchanged in
+  this checkpoint — additive begin v1 is exposed for direct contract tests
+  only).
 
 ---
 
