@@ -1,13 +1,15 @@
 name: Comm Hub — Preflight Verification Matrix
 
-# Phase 4B3 — Checkpoint 2B (item M).
+# Phase 4B3 — Checkpoint 2B.
 #
 # Manual-dispatch only. Runs against an APPROVED test/staging database via a
-# GitHub Environment ("comm-hub-preflight-test") whose reviewers must approve
+# GitHub Environment ("comm-hub-preflight-<env>") whose reviewers must approve
 # each run. The DB URL secret is scoped to that environment.
 #
 # Never runs on push/PR. Never runs against production. The secret value is
-# not written to any file and is never echoed.
+# not written to any file and is never echoed. Item F: DATABASE_URL is
+# exported for the DB-backed readiness/service tests, and a skipped run is
+# treated as workflow failure.
 
 on:
   workflow_dispatch:
@@ -31,7 +33,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
-    # Reviewer approval required. Secret COMM_HUB_TEST_DB_URL lives here.
     environment:
       name: comm-hub-preflight-${{ github.event.inputs.environment }}
 
@@ -63,6 +64,9 @@ jobs:
           sudo apt-get install -y postgresql-client
           psql --version
 
+      - name: Pre-dispatch static lint
+        run: bash scripts/comm-hub/pre-dispatch-static-lint.sh
+
       - name: TypeScript contract tests
         run: |
           bunx vitest run \
@@ -70,12 +74,31 @@ jobs:
             --reporter=verbose \
             2>&1 | tee /tmp/ts-contract-tests.log
 
+      # Item F: the readiness harness uses DATABASE_URL / PGHOST to enter its
+      # runIf branch. Without it the whole suite would silently skip. We
+      # export the same secret and then require the JSON summary to show
+      # skipped=0.
       - name: Service / readiness tests
+        env:
+          DATABASE_URL: ${{ secrets.COMM_HUB_TEST_DB_URL }}
         run: |
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "secret COMM_HUB_TEST_DB_URL not configured for this environment — cannot run readiness tests" >&2
+            exit 1
+          fi
           bunx vitest run \
             src/__tests__/comm-hub/readinessReadOnly.test.ts \
-            --reporter=verbose \
+            --reporter=verbose --reporter=json --outputFile=/tmp/readiness-summary.json \
             2>&1 | tee /tmp/service-tests.log
+          # Fail if any test was skipped in an environment expected to have DB access.
+          SKIPPED=$(node -e "const j=require('/tmp/readiness-summary.json');console.log(j.numPendingTests||0)")
+          PASSED=$(node -e "const j=require('/tmp/readiness-summary.json');console.log(j.numPassedTests||0)")
+          FAILED=$(node -e "const j=require('/tmp/readiness-summary.json');console.log(j.numFailedTests||0)")
+          echo "Readiness results: passed=${PASSED} failed=${FAILED} skipped=${SKIPPED}"
+          if [ "${SKIPPED}" != "0" ] || [ "${FAILED}" != "0" ]; then
+            echo "Expected 0 failed / 0 skipped readiness tests in a DB-enabled environment." >&2
+            exit 1
+          fi
 
       - name: Preflight Verification Matrix (SQL, service-role)
         env:
@@ -90,8 +113,6 @@ jobs:
       - name: Sanitize logs before upload
         if: always()
         run: |
-          # Belt-and-braces: even though the runner already redacts, strip any
-          # accidental postgres URL from the artifact.
           for f in /tmp/ts-contract-tests.log /tmp/service-tests.log /tmp/preflight-matrix.log; do
             if [ -f "$f" ]; then
               sed -i -E 's#postgres(ql)?://[^ ]*#postgres://<redacted>#g' "$f"
@@ -107,5 +128,6 @@ jobs:
             /tmp/ts-contract-tests.log
             /tmp/service-tests.log
             /tmp/preflight-matrix.log
+            /tmp/readiness-summary.json
           retention-days: 30
           if-no-files-found: warn
