@@ -91,7 +91,7 @@ function normalizeEnvelope(body: any): DryRunEnvelope {
   const b: any = body ?? {};
   const stage = b.failure_stage ?? b.failureStage ?? null;
   const isAuth =
-    stage === "auth" ||
+    (typeof stage === "string" && stage.toUpperCase() === "AUTH") ||
     b.retry_reason === "AUTHENTICATION_REQUIRED" ||
     (Array.isArray(b.blockers) &&
       b.blockers.some((x: any) =>
