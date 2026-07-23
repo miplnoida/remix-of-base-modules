@@ -56,9 +56,25 @@ export const DRY_RUN_STAGE_SUCCESS_STATUSES: readonly DryRunStatus[] = [
   "CERTIFIED",
 ] as const;
 
-/** Terminal statuses: no further stage will fire against this envelope. */
+/**
+ * Terminal statuses for the CURRENT invocation.
+ *
+ * Checkpoint 2A: `BLOCKED` is terminal for this call. A corrected new
+ * invocation may still be permitted — that is expressed via `retry_safe`
+ * independently of `terminal`.
+ */
 export const DRY_RUN_TERMINAL_STATUSES: readonly DryRunStatus[] = [
   "CERTIFIED",
+  "FAILED",
+  "BLOCKED",
+] as const;
+
+/**
+ * Statuses whose stage did NOT succeed. `BLOCKED` and `FAILED` are the only
+ * stage-failure statuses; every other status implies the stage completed.
+ */
+export const DRY_RUN_STAGE_FAILURE_STATUSES: readonly DryRunStatus[] = [
+  "BLOCKED",
   "FAILED",
 ] as const;
 
@@ -149,6 +165,12 @@ export interface DryRunContractV1Envelope {
   execution_created: TriState;
   request_created: TriState;
   message_created: TriState;
+  /**
+   * Checkpoint 2A: whether THIS invocation created (or would create) the
+   * begin-chain. `false` for BEGIN_REPLAY / re-observed CERTIFIED / any
+   * preflight-only response.
+   */
+  created_this_call: TriState;
   cleanup_proven: TriState;
   provider_call_attempted: TriState;
   simulator_call_attempted: TriState;
@@ -156,6 +178,14 @@ export interface DryRunContractV1Envelope {
 
   retry_safe: TriState;
   retry_reason: DryRunRetryReason;
+
+  /**
+   * Checkpoint 2A: opaque structured evidence bag. Preflight/begin-v1 MUST
+   * populate it with the fields they gated on (approval canonical hash
+   * present/valid, scanner counts, dependency-hash drift, frozen-recipient
+   * check outcomes, etc.). Never `undefined`.
+   */
+  evidence: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
@@ -249,12 +279,14 @@ export function emptyDryRunEnvelope(
     execution_created: "UNKNOWN",
     request_created: "UNKNOWN",
     message_created: "UNKNOWN",
+    created_this_call: "UNKNOWN",
     cleanup_proven: "UNKNOWN",
     provider_call_attempted: "UNKNOWN",
     simulator_call_attempted: "UNKNOWN",
     ambiguous_outcome: "UNKNOWN",
     retry_safe: "UNKNOWN",
     retry_reason: "UNKNOWN",
+    evidence: {},
     ...overrides,
   };
 }
@@ -310,6 +342,15 @@ export function assertDryRunContractV1(
   if (status === "CERTIFIED" && !e.terminal) {
     throw new Error("envelope: CERTIFIED must be terminal");
   }
+  if (status === "BLOCKED" && !e.terminal) {
+    throw new Error("envelope: BLOCKED must be terminal for the current invocation");
+  }
+  if (status === "BLOCKED" && e.stage_succeeded !== false) {
+    throw new Error("envelope: BLOCKED must have stage_succeeded=false");
+  }
+  if (status === "BLOCKED" && e.passed !== false) {
+    throw new Error("envelope: BLOCKED must have passed=false");
+  }
 
   const tri = (v: unknown, field: string) => {
     if (v !== true && v !== false && v !== "UNKNOWN") {
@@ -320,11 +361,15 @@ export function assertDryRunContractV1(
   tri(e.execution_created, "execution_created");
   tri(e.request_created, "request_created");
   tri(e.message_created, "message_created");
+  tri(e.created_this_call, "created_this_call");
   tri(e.cleanup_proven, "cleanup_proven");
   tri(e.provider_call_attempted, "provider_call_attempted");
   tri(e.simulator_call_attempted, "simulator_call_attempted");
   tri(e.ambiguous_outcome, "ambiguous_outcome");
   tri(e.retry_safe, "retry_safe");
+  if (!e.evidence || typeof e.evidence !== "object" || Array.isArray(e.evidence)) {
+    throw new Error("envelope: evidence must be a plain object (never undefined)");
+  }
   if (!Array.isArray(e.blockers)) throw new Error("envelope: blockers must be array");
   if (!Array.isArray(e.warnings)) throw new Error("envelope: warnings must be array");
   if (!Array.isArray(e.transition_log_ids)) {

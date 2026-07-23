@@ -49,11 +49,29 @@ describe("DryRunContractV1 — checkpoint 2 semantics", () => {
     expect(() => assertDryRunContractV1(env)).not.toThrow();
   });
 
-  it("BLOCKED is not stage_succeeded", () => {
+  it("BLOCKED is terminal and stage-failed (Checkpoint 2A)", () => {
     const env = emptyDryRunEnvelope("BLOCKED");
     expect(env.passed).toBe(false);
     expect(env.stage_succeeded).toBe(false);
+    expect(env.terminal).toBe(true);
     expect(() => assertDryRunContractV1(env)).not.toThrow();
+  });
+
+  it("mutating terminal=false on BLOCKED is rejected", () => {
+    const bad = { ...emptyDryRunEnvelope("BLOCKED"), terminal: false };
+    expect(() => assertDryRunContractV1(bad)).toThrow(/BLOCKED/);
+  });
+
+  it("envelope carries evidence object and created_this_call by default", () => {
+    const env = emptyDryRunEnvelope("PREFLIGHT_READY");
+    expect(env.evidence).toEqual({});
+    expect(env.created_this_call).toBe("UNKNOWN");
+  });
+
+  it("assert rejects missing evidence object", () => {
+    const bad: any = { ...emptyDryRunEnvelope("BEGIN_OK") };
+    delete bad.evidence;
+    expect(() => assertDryRunContractV1(bad)).toThrow(/evidence/);
   });
 
   it("generic IDEMPOTENT status is rejected by assert", () => {
