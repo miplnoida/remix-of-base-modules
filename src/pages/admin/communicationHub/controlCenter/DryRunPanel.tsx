@@ -246,7 +246,34 @@ export function DryRunPanel(props: DryRunPanelProps) {
 
   return (
     <div className="space-y-4">
-      {/* A. Preview status */}
+      {/* Authentication alert — strictly separate from readiness / dispatch. */}
+      {authError && (
+        <Alert>
+          <KeyRound className="h-4 w-4" />
+          <AlertTitle>{authError.title}</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div>{authError.message}</div>
+            <div className="text-xs text-muted-foreground">{authError.fix}</div>
+            <div className="text-xs">
+              Evidence: No Dry Run runtime rows were created · Provider called: No · Simulator called: No · Safe to retry after sign-in: Yes
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" onClick={handleRefreshSession} disabled={refreshingAuth}>
+                {refreshingAuth ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Refreshing…
+                  </>
+                ) : (
+                  "Refresh Session"
+                )}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+
       <section className="rounded-md border p-3 space-y-2">
         <div className="flex items-center justify-between">
           <div className="text-sm font-medium">Preview status</div>
