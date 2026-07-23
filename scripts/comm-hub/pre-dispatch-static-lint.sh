@@ -17,21 +17,30 @@ pass() { echo "  ok — $*"; }
 echo "== Pre-dispatch static lint =="
 
 # 1. No obsolete blocker codes remain in the matrix.
+#    Each entry is: "regex|negative-guard" — matches that also match the
+#    negative-guard are ignored (used to exclude canonical prefixes/suffixes).
 OBSOLETE=(
-  "PREVIEW_EXPIRED[^_]"
-  "PLACEHOLDER_SCANNER_VERSION_STALE"
-  "RAW_PLACEHOLDERS_PRESENT"
-  "RENDERER_UNRESOLVED_VARIABLES"
-  "REQUIRED_VARIABLES_UNRESOLVED"
-  "RECIPIENT_CONTAINERS_INVALID"
-  "RECIPIENT_ENTRIES_INVALID"
-  "RECIPIENT_DUPLICATE_POLICY_VIOLATED"
-  "APPROVAL_NOT_ACTIVE[^_]"
-  "APPROVAL_CORRELATION_MISMATCH"
+  "PREVIEW_EXPIRED[^_A-Z]|"
+  "PLACEHOLDER_SCANNER_VERSION_STALE|"
+  "RAW_PLACEHOLDERS_PRESENT|"
+  "RENDERER_UNRESOLVED_VARIABLES|"
+  "REQUIRED_VARIABLES_UNRESOLVED|"
+  "RECIPIENT_CONTAINERS_INVALID|"
+  "RECIPIENT_ENTRIES_INVALID|"
+  "RECIPIENT_DUPLICATE_POLICY_VIOLATED|"
+  "APPROVAL_NOT_ACTIVE|PREVIEW_APPROVAL_NOT_ACTIVE"
+  "APPROVAL_CORRELATION_MISMATCH|APPROVAL_PREVIEW_CORRELATION_MISMATCH"
 )
-for pat in "${OBSOLETE[@]}"; do
-  if grep -nE "$pat" "$MATRIX" >/dev/null 2>&1; then
-    grep -nE "$pat" "$MATRIX" >&2
+for entry in "${OBSOLETE[@]}"; do
+  pat="${entry%%|*}"
+  guard="${entry#*|}"
+  if [ -n "$guard" ]; then
+    hits=$(grep -nE "$pat" "$MATRIX" | grep -vE "$guard" || true)
+  else
+    hits=$(grep -nE "$pat" "$MATRIX" || true)
+  fi
+  if [ -n "$hits" ]; then
+    printf '%s\n' "$hits" >&2
     fail "obsolete blocker code pattern present in matrix: $pat"
   fi
 done
