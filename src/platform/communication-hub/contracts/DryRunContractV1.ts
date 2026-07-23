@@ -165,6 +165,12 @@ export interface DryRunContractV1Envelope {
   execution_created: TriState;
   request_created: TriState;
   message_created: TriState;
+  /**
+   * Checkpoint 2A: whether THIS invocation created (or would create) the
+   * begin-chain. `false` for BEGIN_REPLAY / re-observed CERTIFIED / any
+   * preflight-only response.
+   */
+  created_this_call: TriState;
   cleanup_proven: TriState;
   provider_call_attempted: TriState;
   simulator_call_attempted: TriState;
@@ -172,6 +178,14 @@ export interface DryRunContractV1Envelope {
 
   retry_safe: TriState;
   retry_reason: DryRunRetryReason;
+
+  /**
+   * Checkpoint 2A: opaque structured evidence bag. Preflight/begin-v1 MUST
+   * populate it with the fields they gated on (approval canonical hash
+   * present/valid, scanner counts, dependency-hash drift, frozen-recipient
+   * check outcomes, etc.). Never `undefined`.
+   */
+  evidence: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
