@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import {
   Loader2, Eye, Briefcase, History, AlertCircle, CheckCircle, Building2,
-  ArrowLeft, Link2, HandshakeIcon, Mail, Scale, DollarSign, FileText
+  ArrowLeft, Link2, HandshakeIcon, Mail, Scale, DollarSign, FileText,
+  CalendarClock, XCircle,
 } from 'lucide-react';
+import { AddToInspectionPlanningDialog } from '@/components/compliance/AddToInspectionPlanningDialog';
+import { inspectionNominationService } from '@/services/inspectionNominationService';
 import { CasePaymentArrangementDialog } from '@/components/compliance/CasePaymentArrangementDialog';
 import { CaseRequestActions } from '@/components/compliance/CaseRequestActions';
 import { WorkflowStatusBadge } from '@/components/compliance/WorkflowStatusBadge';
