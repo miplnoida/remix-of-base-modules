@@ -9,6 +9,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { supabase } from '@/integrations/supabase/client';
 import { weeklyPlanService, planItemService } from '@/services/weeklyPlanService';
 import { planCandidateService } from '@/services/planCandidateService';
+import { inspectionNominationService } from '@/services/inspectionNominationService';
 import {
   WeeklyPlan,
   WeeklyPlanItem,
