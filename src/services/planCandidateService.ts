@@ -36,6 +36,7 @@ export const CANDIDATE_REASON_LABELS: Record<string, string> = {
   BENEFIT_PAYROLL_MISMATCH_REVIEW: 'Benefit/payroll mismatch requires review',
   ARRANGEMENT_BREACH: 'Payment arrangement breached',
   LEGAL_STAGE_TRIGGER: 'Active legal/enforcement stage trigger',
+  OFFICER_NOMINATED: 'Officer-nominated from compliance case',
 };
 
 // ── V2: Batch-scored candidates from DB ────────────────────
