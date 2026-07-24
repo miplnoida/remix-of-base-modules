@@ -23,10 +23,17 @@ import { ViolationNoticesTab } from '@/components/compliance/ViolationNoticesTab
 import { ViolationResolutionDialog } from '@/components/compliance/ViolationResolutionDialog';
 import { ViolationActionConfirmDialog, ConfirmActionType } from '@/components/compliance/ViolationActionConfirmDialog';
 import { violationLifecycleService, ViolationStatus } from '@/services/violationLifecycleService';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { fetchViolationById } from '@/services/complianceDataService';
+import { confirmViolation, rejectViolation } from '@/services/verificationQueueService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
 import { FinancialSummaryCard } from '@/components/compliance/FinancialSummaryCard';
 import { ViolationTimeline } from '@/components/compliance/ViolationTimeline';
