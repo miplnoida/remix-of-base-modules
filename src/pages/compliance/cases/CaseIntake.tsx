@@ -111,7 +111,7 @@ const CaseIntake = () => {
                         <div className="text-xs text-muted-foreground">{r.employer_id}</div>
                       </TableCell>
                       <TableCell>{r.case_family || '—'}</TableCell>
-                      <TableCell>{r.fund_type || '—'}</TableCell>
+                      <TableCell>{r.fund_display ? <Badge variant="outline" className="text-[10px]">{r.fund_display}</Badge> : '—'}</TableCell>
                       <TableCell><Badge variant="outline">{r.status}</Badge></TableCell>
                       <TableCell>
                         <Badge variant={r.priority === 'Critical' ? 'destructive' : r.priority === 'High' ? 'default' : 'secondary'}>
