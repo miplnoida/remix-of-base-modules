@@ -368,7 +368,80 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
             <AlertTriangle className="h-3 w-3" />BREACH
           </Badge>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* ── Lifecycle actions ── */}
+          {canManageArrangements && arr.status === 'DRAFT' && (
+            <>
+              <Button
+                variant="outline" size="sm"
+                onClick={() => submitMutation.mutate()}
+                disabled={submitMutation.isPending}
+                title="Submit this draft to a supervisor for approval"
+              >
+                {submitMutation.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  : <Bell className="h-4 w-4 mr-1" />}
+                Submit for Approval
+              </Button>
+              <Button
+                variant="default" size="sm"
+                onClick={() => activateMutation.mutate()}
+                disabled={activateMutation.isPending}
+                title="Approve and activate immediately (requires arrangement authority)"
+              >
+                {activateMutation.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  : <CheckCircle2 className="h-4 w-4 mr-1" />}
+                Approve &amp; Activate
+              </Button>
+            </>
+          )}
+          {canManageArrangements && arr.status === 'PENDING_APPROVAL' && (
+            <Button
+              variant="default" size="sm"
+              onClick={() => approveMutation.mutate()}
+              disabled={approveMutation.isPending}
+            >
+              {approveMutation.isPending
+                ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                : <CheckCircle2 className="h-4 w-4 mr-1" />}
+              Approve
+            </Button>
+          )}
+          {canManageArrangements && ['DRAFT', 'PENDING_APPROVAL'].includes(arr.status) && (
+            <AlertDialog open={rejectOpen} onOpenChange={setRejectOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={rejectMutation.isPending}>
+                  <XCircle className="h-4 w-4 mr-1" />Reject
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reject payment arrangement?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will cancel the arrangement. A reason is recorded on the record and shown in case history.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <Textarea
+                  placeholder="Reason for rejection (required)"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={3}
+                />
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={rejectReason.trim().length < 3 || rejectMutation.isPending}
+                    onClick={(e) => { e.preventDefault(); rejectMutation.mutate(rejectReason.trim()); }}
+                  >
+                    {rejectMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Confirm Reject
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
           <Button
             variant="outline" size="sm"
             onClick={() => breachRefreshMutation.mutate()}
