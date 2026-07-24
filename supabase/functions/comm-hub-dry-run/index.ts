@@ -40,7 +40,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const EDGE_VERSION = "comm-hub-dry-run/v1.4.0-correlation-hotfix";
+const EDGE_VERSION = "comm-hub-dry-run/v1.5.0-service-role-positive-probe";
 const CONTRACT_VERSION = "comm-hub-dry-run-contract/v1";
 const EVALUATOR_VERSION = "comm-hub-dry-run-preflight/v1";
 
@@ -54,6 +54,37 @@ const CORS = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+/**
+ * Phase 4B3 — Edge environment validation.
+ * Runs before any preflight/begin. Never logs secret values.
+ */
+function validateEdgeEnvironment(): { ok: true } | { ok: false; reason: string } {
+  if (!SUPABASE_URL) return { ok: false, reason: "SUPABASE_URL_MISSING" };
+  if (!ANON_KEY) return { ok: false, reason: "SUPABASE_ANON_KEY_MISSING" };
+  if (!SERVICE_ROLE) return { ok: false, reason: "SUPABASE_SERVICE_ROLE_KEY_MISSING" };
+  if (SERVICE_ROLE === ANON_KEY) return { ok: false, reason: "SERVICE_ROLE_KEY_EQUALS_ANON_KEY" };
+  return { ok: true };
+}
+
+/**
+ * Build a dedicated service-role client. Never reuses the operator header.
+ */
+function buildServiceClient() {
+  return createClient(SUPABASE_URL, SERVICE_ROLE, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${SERVICE_ROLE}`,
+        apikey: SERVICE_ROLE,
+      },
+    },
+  });
+}
 
 const SUCCESS_MESSAGE = "Dry test passed — no real email was sent.";
 
