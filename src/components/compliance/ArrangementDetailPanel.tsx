@@ -141,6 +141,10 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
   onBack,
 }) => {
   const queryClient = useQueryClient();
+  const { userCode } = useUserCode();
+  const canManageArrangements = useHasCapability(COMPLIANCE_CAPABILITIES.ENFORCEMENT_ARRANGEMENTS);
+  const [rejectReason, setRejectReason] = React.useState('');
+  const [rejectOpen, setRejectOpen] = React.useState(false);
 
   // ── PRIMARY: Arrangement + Installments ───────────────────
   const { data, isLoading, isError: primaryError } = useQuery({
