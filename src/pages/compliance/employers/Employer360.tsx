@@ -14,6 +14,7 @@ import {
   ChevronUp, StickyNote, Gavel, History,
 } from 'lucide-react';
 import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
+import { PaymentHistoryGroupedTable } from './PaymentHistoryGroupedTable';
 import {
   fetchEmployerMaster, fetchEmployerFiling, fetchEmployerArrears, fetchEmployerPayments,
   fetchEmployerLegal, fetchEmployerWorkforce, fetchEmployerRisk, fetchEmployerViolations,
