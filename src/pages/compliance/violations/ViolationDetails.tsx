@@ -433,6 +433,34 @@ export default function ViolationDetails() {
                 <span className="ml-1">{action.label}</span>
               </Button>
             ))}
+
+            {/* Verification actions — shown for violations awaiting verification
+                (UNDER_REVIEW with no verification decision yet). Approves or
+                rejects the row using the same service as the Verification Queue
+                so decisions, history and downstream case grouping stay aligned. */}
+            {canVerifyViolations
+              && currentStatus === 'UNDER_REVIEW'
+              && !v.verification_decision && (
+              <>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => { setVerifyNotes(''); setVerifyOpen('confirm'); }}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="ml-1">Approve (Verify)</span>
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => { setVerifyNotes(''); setVerifyOpen('reject'); }}
+                >
+                  <XCircle className="h-4 w-4" />
+                  <span className="ml-1">Reject (Verify)</span>
+                </Button>
+              </>
+            )}
+
             {/* Navigation buttons */}
             <div className="ml-auto flex gap-2">
               {linkedCase ? (
