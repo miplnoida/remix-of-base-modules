@@ -1,67 +1,97 @@
-# Phase 4B3 — Runtime Transition Certification & Controlled Stub Execution
 
-This iteration is large enough that a single response cannot land it safely without risking half-migrated state on Live. I want your acknowledgement of the staged sequence below before I begin, because each stage produces durable schema and RPC changes that must all land coherently.
+## Goal
 
-## Scope reality check
+On the **Case Details** page, give the assigned officer a one-click way to nominate the case's employer for a field inspection. The nomination lands in the officer's existing **Pending Planning** queue (same tray auto-scored candidates already sit in) so they can pull it into their weekly plan; the Compliance Head then approves the plan as they do today. No parallel planning system is created.
 
-The 21 sections (A–U) collectively require:
-- 6–8 new SQL migrations (enum extensions, new tables/columns, ~10 new RPCs, revoke/grant sweeps, backfills)
-- Refactor of 5 existing RPCs (`prepare_comm_hub_preview`, `approve_comm_hub_preview`, `begin_comm_hub_dry_run`, `begin_comm_hub_controlled_live`, `create_comm_hub_controlled_stub_message`, `claim_comm_hub_targeted_message`, `revalidate_comm_hub_send_decision`)
-- 2 Edge Function refactors (`comm-hub-dry-run`, `comm-hub-controlled-live-test`) to call the new transition gate before each mutation
-- New service module + tests on the frontend
-- ~30+ deterministic SQL/vitest cases
-- One live Controlled Stub run against APPEALS with full evidence capture
+## Why here (and not the violation page)
 
-I will execute it as five sub-iterations, each verifiable in isolation. I will not stop between them — but I need you to acknowledge the sequence so that if credits or a failure force a pause, we pause on a coherent boundary.
+A case bundles multiple violations for one employer. Deciding to inspect is an **employer/case-level** decision, not a per-violation one. Putting the button on the case avoids duplicate nominations when several violations under the same case would each be flagged.
 
-## Sub-iteration 1 — Capability vs Transition split + normaliser fix (Sections A, C, D, L)
+## Where it fits in the existing pipeline
 
-- Rename `evaluate_comm_hub_stage_readiness` conceptually to "event capability evaluator" (compatibility wrapper retained).
-- Introduce `normalize_comm_hub_go_live_stage_for_action(p_stage, p_action)`; make bare `CONTROLLED_LIVE` raise `GO_LIVE_STAGE_ACTION_REQUIRED`.
-- Fix template-certification lookup false positive (exact template_version_id + kind + lifecycle + dependency hash + not stale/revoked).
-- Regression test: certified APPEALS version emits zero `template_version_certification_missing`.
+Today (confirmed by reading the code and DB):
 
-## Sub-iteration 2 — Sender readiness correctness (Sections E, F, G, H)
+- Candidates come from `fn_ce_score_candidates_batch` / view `ce_v_weekly_plan_candidates` (server-scored, employer-level, with reason codes such as `OPEN_VIOLATION`, `HIGH_RISK`, …). Rendered by `CandidateQueuePanel` on the Weekly Plan builder.
+- Officers pull a candidate into a day → writes a row to `ce_weekly_plan_items` (`source_type`, `source_id`, `employer_id`, `visit_type`, `priority`, …) tied to the officer's `ce_weekly_plans` row.
+- Officer submits the weekly plan → Compliance Head approves via existing weekly-plan approval flow (`plannerApprovalService`, `ce_weekly_plan_reviews`).
 
-- Revoke `compute_comm_hub_sender_readiness` from PUBLIC/anon/authenticated; add admin wrapper with server-side permission check.
-- Split `(sender_profile_id, sender_version, readiness_kind)` uniqueness; backfill existing rows without deletion.
-- SHA-256 canonicalised evidence hashing helper `comm_hub_canonical_sha256(jsonb)`.
-- REAL_EMAIL_READY returns `BLOCKED_CONFIGURATION` until provider-capability evidence table exists (new table `comm_hub_provider_capability_evidence`, empty for now).
-- TEST_READY re-derivation with new hash contract.
+We reuse this pipeline. We introduce **one new candidate source**: `MANUAL_CASE_NOMINATION`.
 
-## Sub-iteration 3 — Exact fixture + schema validation (Sections I, J, K)
+## Changes
 
-- Extend `check_comm_hub_event_fixture_compatibility(p_module, p_event, p_channel, p_template_version_id, p_scenario_id)`.
-- Real JSON Schema validation of governed fixture against enforced payload schema (using pg's `jsonb_path_query` + a validator helper or `plpgsql` walker; if no pg extension, implement in an Edge Function called from SQL via `pg_net` — decision at implementation time; likely inline plpgsql walker).
-- Return distinct `schema_valid / schema_errors / contract_paths_valid / required_variables_resolvable / rendered_without_raw_tokens`.
-- Replace silent `Test Recipient` / `test@example.com` / `now()` fallbacks with a governed platform test context table `comm_hub_platform_test_context` (versioned, deterministic, non-production). Variable source ownership classifier.
+### 1. Data (single migration)
 
-## Sub-iteration 4 — Runtime transition gate + boundary wiring (Sections B, N, O)
+Extend `ce_planner_candidate_actions` usage — no new table. It already supports manual planner actions (`action_type`, `linked_case_id`, `approval_status`, `is_active`, `requested_by_user_code`). We use it as the durable record of the nomination:
 
-- New RPC `assert_comm_hub_runtime_transition(...)` with the full signature and 11 supported transitions; `START_ONE_REAL_EMAIL` / `DISPATCH_ONE_REAL_EMAIL` always deny in this iteration.
-- Runtime transition requirement matrix (separate from capability matrix).
-- Wire into: `prepare_comm_hub_preview`, `approve_comm_hub_preview`, `begin_comm_hub_dry_run`, `comm-hub-dry-run` edge fn, Dry Run certification issue path, `begin_comm_hub_controlled_live`, `create_comm_hub_controlled_stub_message`, `claim_comm_hub_targeted_message`, `processTargetedControlledLive` (pre-simulator), Controlled Stub certification issue, `revalidate_comm_hub_send_decision`.
-- Immutable chain: propagate mapping/version/template/schema/contract/scenario/sender/recipient-policy/manifest/recipient-set/subject/body/content hashes end-to-end; server refuses mid-chain re-render.
+- `action_type = 'NOMINATE_FOR_PLANNING'`
+- `linked_case_id = <case.id>`, `employer_id = <case.employer_id>`
+- `week_start_date = next Monday` (default) — officer can change on the plan builder
+- `approval_required = false`, `approval_status = 'AUTO_APPROVED'` (nomination itself needs no approval; the weekly plan does)
+- `requested_by_user_code = current officer`
+- `reason` = "Officer nomination from Case <case_no>"
 
-## Sub-iteration 5 — Recompute, deterministic tests, one live Controlled Stub (Sections M, P, Q, R, S, T, U)
+Add a small view `ce_v_pending_case_nominations` (SECURITY INVOKER) that lists active nominations not yet consumed by a `ce_weekly_plan_items` row for the same officer+employer+week. Grant `SELECT` to `authenticated`.
 
-- Recompute APPEALS across all six stages; expect `CONTROLLED_STUB_READY` clean, `ONE_REAL_EMAIL_READY` blocked.
-- Deterministic SQL + vitest suite for every check in Section P.
-- Execute exactly one fresh APPEALS Controlled Stub end-to-end (new preview → approve → dry run → certify → controlled stub → grant → targeted message → claim → revalidate → simulator × 1 → attempt → consume grant → controlled-stub certification).
-- Capture the full evidence bundle listed in Section R.
-- Update the three docs; report all test totals; set status `PHASE_4B3_CONTROLLED_STUB_CERTIFIED` or the appropriate PARTIAL/BLOCKED state.
+Update `fn_ce_score_candidates_batch` / `fn_ce_score_candidates_v3` to `UNION` in rows from that view with `candidate_source = 'MANUAL_CASE_NOMINATION'` and `candidate_reason = 'OFFICER_NOMINATED'`, priority boosted so they sort to the top of the officer's queue. Nominations are scoped to the officer who made them.
 
-## Reasons I am pausing for your acknowledgement (not a design question — a safety confirmation)
+Add a uniqueness guard: one active nomination per `(employer_id, case_id, requested_by_user_code, week_start_date)` — prevents accidental duplicates when the officer clicks twice.
 
-1. Sub-iteration 3's real JSON Schema validation in Postgres is non-trivial. If your enforced payload schemas rely on features beyond `type / required / properties / enum / items / additionalProperties / format`, I need to know before implementing so I don't ship a partial validator that later silently accepts invalid fixtures.
-2. Sub-iteration 4 changes the calling convention of 7 existing RPCs and 2 Edge Functions. Any in-flight Preview/Dry-Run rows created under the old contract will need a one-time compatibility path. I plan to make the transition gate advisory-only for pre-existing rows created before the migration timestamp; confirm that is acceptable, or say "hard cut" and I will terminalise any in-flight rows instead.
-3. Sub-iteration 5 will consume one grant and produce one durable Controlled Stub certification against the real Live database. That is the intended outcome, but I want to name it explicitly.
+### 2. Services
 
-## Estimate after this iteration completes successfully
+- `src/services/inspectionNominationService.ts` (new):
+  - `nominateCaseForInspection({ caseId, employerId, employerName, weekStartDate?, notes? })` → inserts into `ce_planner_candidate_actions`.
+  - `withdrawNomination(nominationId)` → sets `is_active = false`.
+  - `listMyPendingNominations()` → queries `ce_v_pending_case_nominations`.
+- `planCandidateService`: no behavioural change; automatically surfaces the new rows through the RPCs.
+- Add a candidate reason label + colour for `OFFICER_NOMINATED` in `planCandidateService.CANDIDATE_REASON_LABELS`.
 
-- Successful Controlled Stub: complete
-- One controlled real test email: ~2 more iterations (provider-capability evidence collection + one-real-email path certification + execution)
-- First Manual Production business event: ~4–6 more iterations
-- Broader multi-event production: ~7–11 more iterations
+### 3. UI — Case Details page
 
-Reply "proceed" (with any adjustment to items 1–3 above) and I will run Sub-iterations 1 → 5 back-to-back without stopping, executing the Controlled Stub at the end.
+In the case header action row (next to Assign / Escalate):
+
+- **Button:** `Add to Inspection Planning`
+  - Visible only to the assigned officer (UUID/code match, same resolver already used on `AssignedCases`) or a Compliance Head.
+  - Disabled + tooltip "Already in your pending planning list" when a nomination already exists for this case/officer for the current or next week.
+  - On click → small dialog: read-only employer + case, optional target week (defaults next Monday), optional visit purpose note, Confirm.
+- After success: toast "Added to your pending planning list — schedule it from Weekly Plan". Provide a link to `/compliance/weekly-plan`.
+- **Withdraw:** If nomination exists and not yet placed on the plan, show `Remove from Planning` in an overflow menu.
+
+### 4. UI — Weekly Plan builder
+
+`CandidateQueuePanel` already renders scored candidates; the new source flows in for free. Two small tweaks:
+
+- Show a distinct badge "Officer nomination" for `candidate_source = 'MANUAL_CASE_NOMINATION'`.
+- In the source popover, deep-link back to the originating case (`/compliance/cases/:id`).
+
+### 5. UI — My Work Queue
+
+Add a compact "Pending planning nominations" strip (count + link to Weekly Plan) so officers don't forget items they nominated. Reuses `listMyPendingNominations()`.
+
+## Permissions
+
+- Nominate: assigned officer for the case, or Compliance Head. Gated via existing `useHasCapability` for `COMPLIANCE_CAPABILITIES.PLANNING_WRITE` (falls back to case-assignment check when capability not present).
+- View own nominations: any authenticated compliance user (RLS filters to `requested_by_user_code = current user`).
+- Approval of the weekly plan itself continues to sit with Compliance Head/Admin — unchanged.
+
+## Out of scope
+
+- No change to weekly-plan approval workflow.
+- No auto-scheduling of nominations onto a specific day; the officer still drags them onto a day in the plan builder.
+- No new communications/notifications beyond the existing plan-submission events.
+
+## Files touched (technical)
+
+- Migration: `ce_planner_candidate_actions` uniqueness index; new view `ce_v_pending_case_nominations`; update `fn_ce_score_candidates_batch` and `fn_ce_score_candidates_v3` to UNION nominations.
+- `src/services/inspectionNominationService.ts` (new).
+- `src/services/planCandidateService.ts` — add reason label.
+- `src/pages/compliance/cases/CaseDetails.tsx` (and its header actions component) — add button, dialog, withdraw.
+- `src/components/compliance/weekly-plan/CandidateCard.tsx` — nomination badge + case deep link.
+- `src/pages/compliance/MyWorkQueue.tsx` — pending nominations strip.
+
+## Verification
+
+- Nominate from a case → row appears in officer's Pending Planning within the Weekly Plan builder with the "Officer nomination" badge.
+- Drag onto a day → `ce_weekly_plan_items` row created; nomination disappears from Pending list (view excludes consumed items).
+- Second click on the button is disabled with correct tooltip.
+- Withdraw → nomination hidden from candidates; button re-enabled.
+- Non-assigned, non-Head user does not see the button.

@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Inbox, Loader2, ExternalLink } from 'lucide-react';
+import { Inbox, Loader2, ExternalLink, CalendarClock } from 'lucide-react';
+import { inspectionNominationService } from '@/services/inspectionNominationService';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
@@ -554,6 +555,8 @@ function MyWorkQueueContent() {
         </Badge>
       </div>
 
+      <PendingPlanningStrip officerUserCode={userCode} />
+
       {enabled.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
@@ -612,5 +615,38 @@ export default function MyWorkQueue() {
     <PermissionWrapper moduleName={MODULE_NAME}>
       <MyWorkQueueContent />
     </PermissionWrapper>
+  );
+}
+
+// ─── Pending Planning Nominations strip ───────────────────────────────────────
+function PendingPlanningStrip({ officerUserCode }: { officerUserCode: string | null }) {
+  const { data = [], isLoading } = useQuery({
+    queryKey: ['pending-nominations', officerUserCode],
+    enabled: !!officerUserCode,
+    queryFn: () => inspectionNominationService.listMyPendingNominations(officerUserCode!),
+  });
+
+  if (!officerUserCode || isLoading || data.length === 0) return null;
+
+  return (
+    <Card className="border-primary/40 bg-primary/5">
+      <CardContent className="py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 text-sm">
+          <CalendarClock className="h-4 w-4 text-primary" />
+          <span className="font-medium">
+            {data.length} pending inspection nomination{data.length === 1 ? '' : 's'}
+          </span>
+          <span className="text-muted-foreground">
+            — schedule in your Weekly Plan before submission.
+          </span>
+        </div>
+        <Link
+          to="/compliance/weekly-plan"
+          className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+        >
+          Open Weekly Plan <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
+      </CardContent>
+    </Card>
   );
 }

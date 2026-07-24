@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import {
   Loader2, Eye, Briefcase, History, AlertCircle, CheckCircle, Building2,
-  ArrowLeft, Link2, HandshakeIcon, Mail, Scale, DollarSign, FileText
+  ArrowLeft, Link2, HandshakeIcon, Mail, Scale, DollarSign, FileText,
+  CalendarClock, XCircle,
 } from 'lucide-react';
+import { AddToInspectionPlanningDialog } from '@/components/compliance/AddToInspectionPlanningDialog';
+import { inspectionNominationService } from '@/services/inspectionNominationService';
 import { CasePaymentArrangementDialog } from '@/components/compliance/CasePaymentArrangementDialog';
 import { CaseRequestActions } from '@/components/compliance/CaseRequestActions';
 import { WorkflowStatusBadge } from '@/components/compliance/WorkflowStatusBadge';
@@ -21,7 +25,7 @@ import { fetchPaymentArrangements } from '@/services/complianceDataService';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { fetchCaseById } from '@/services/complianceDataService';
 import { caseViolationService } from '@/services/caseViolationService';
 import { supabase } from '@/integrations/supabase/client';
@@ -76,13 +80,37 @@ export default function CaseDetailView() {
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
   const [forwardLegalOpen, setForwardLegalOpen] = useState(false);
   const [breakdownDialogOpen, setBreakdownDialogOpen] = useState(false);
+  const [planningDialogOpen, setPlanningDialogOpen] = useState(false);
 
 
   const { userCode } = useUserCode();
+  const { user } = useSupabaseAuth();
   const currentUserCode = userCode || 'UNKNOWN';
   const complianceRole = useComplianceRole();
   // Only Compliance Head/Admin may (re)assign case ownership.
   const canManageAssignments = complianceRole === 'head';
+
+  // Resolve the current user's officer identifiers (UUID + inspector codes) so
+  // we can tell if this case is theirs, regardless of which identifier shape
+  // was written into ce_cases.assigned_officer_id.
+  const { data: myOfficerIds = [] } = useQuery({
+    queryKey: ['ce_my_officer_ids', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_inspectors')
+        .select('id, inspector_code, legacy_inspector_code')
+        .eq('profile_id', user!.id);
+      if (error) throw error;
+      const out = new Set<string>();
+      (data || []).forEach((r: any) => {
+        if (r.id) out.add(r.id);
+        if (r.inspector_code) out.add(r.inspector_code);
+        if (r.legacy_inspector_code) out.add(r.legacy_inspector_code);
+      });
+      return Array.from(out);
+    },
+  });
 
   const { data: caseData, isLoading } = useQuery({
     queryKey: ['ce_case_detail', id],
@@ -137,6 +165,28 @@ export default function CaseDetailView() {
     },
     enabled: !!id,
   });
+
+  // Existing pending nomination (if any) for this case + officer
+  const { data: existingNomination } = useQuery({
+    queryKey: ['pending-nomination', id, currentUserCode],
+    enabled: !!id && !!userCode,
+    queryFn: () => inspectionNominationService.getNominationForCase({
+      caseId: id!, officerUserCode: currentUserCode,
+    }),
+  });
+
+  const withdrawNominationMutation = useMutation({
+    mutationFn: () => inspectionNominationService.withdrawNomination(
+      existingNomination!.nomination_id, currentUserCode
+    ),
+    onSuccess: () => {
+      toast.success('Removed from pending planning');
+      queryClient.invalidateQueries({ queryKey: ['pending-nomination', id] });
+      queryClient.invalidateQueries({ queryKey: ['pending-nominations'] });
+    },
+    onError: (err: any) => toast.error('Could not remove', { description: err?.message }),
+  });
+
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] });
@@ -342,6 +392,40 @@ export default function CaseDetailView() {
                 Request Waiver
               </Button>
             )}
+            {/* Add to Inspection Planning — assigned officer or Compliance Head */}
+            {(() => {
+              const isAssignedOfficer =
+                !!(c as any).assigned_officer_id &&
+                myOfficerIds.includes((c as any).assigned_officer_id);
+              const canNominate = isAssignedOfficer || canManageAssignments;
+              const caseClosed = ['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status);
+              if (!canNominate || caseClosed || !c.employer_id) return null;
+              if (existingNomination) {
+                return (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => withdrawNominationMutation.mutate()}
+                    disabled={withdrawNominationMutation.isPending}
+                    title={`Queued for week starting ${existingNomination.week_start_date}. Click to remove.`}
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />Remove from Planning
+                  </Button>
+                );
+              }
+              return (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPlanningDialogOpen(true)}
+                  title="Queue this case for an inspection in your weekly plan"
+                >
+                  <CalendarClock className="h-4 w-4 mr-1" />Add to Inspection Planning
+                </Button>
+              );
+            })()}
             <CaseRequestActions
               caseId={c.id}
               caseStatus={c.status}
@@ -772,6 +856,18 @@ export default function CaseDetailView() {
           Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0) - Number((c as any).amount_waived ?? 0)
         }
       />
+
+      <AddToInspectionPlanningDialog
+        open={planningDialogOpen}
+        onOpenChange={setPlanningDialogOpen}
+        caseId={c.id}
+        caseNumber={c.case_number}
+        employerId={c.employer_id || ''}
+        employerName={c.employer_name || ''}
+        officerUserCode={currentUserCode}
+      />
+
+
 
       {/* Amount Breakdown Dialog */}
       <Dialog open={breakdownDialogOpen} onOpenChange={setBreakdownDialogOpen}>
