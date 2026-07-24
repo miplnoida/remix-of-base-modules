@@ -80,13 +80,37 @@ export default function CaseDetailView() {
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
   const [forwardLegalOpen, setForwardLegalOpen] = useState(false);
   const [breakdownDialogOpen, setBreakdownDialogOpen] = useState(false);
+  const [planningDialogOpen, setPlanningDialogOpen] = useState(false);
 
 
   const { userCode } = useUserCode();
+  const { user } = useSupabaseAuth();
   const currentUserCode = userCode || 'UNKNOWN';
   const complianceRole = useComplianceRole();
   // Only Compliance Head/Admin may (re)assign case ownership.
   const canManageAssignments = complianceRole === 'head';
+
+  // Resolve the current user's officer identifiers (UUID + inspector codes) so
+  // we can tell if this case is theirs, regardless of which identifier shape
+  // was written into ce_cases.assigned_officer_id.
+  const { data: myOfficerIds = [] } = useQuery({
+    queryKey: ['ce_my_officer_ids', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_inspectors')
+        .select('id, inspector_code, legacy_inspector_code')
+        .eq('profile_id', user!.id);
+      if (error) throw error;
+      const out = new Set<string>();
+      (data || []).forEach((r: any) => {
+        if (r.id) out.add(r.id);
+        if (r.inspector_code) out.add(r.inspector_code);
+        if (r.legacy_inspector_code) out.add(r.legacy_inspector_code);
+      });
+      return Array.from(out);
+    },
+  });
 
   const { data: caseData, isLoading } = useQuery({
     queryKey: ['ce_case_detail', id],
