@@ -428,7 +428,7 @@ function MyWorkQueueContent() {
         label: 'Assigned Cases',
         enabled: canCases,
         capability: COMPLIANCE_CAPABILITIES.CASES_MANAGE,
-        query: () => fetchAssignedCases(userCode),
+        query: () => fetchAssignedCases(userId, userCode),
       },
       {
         key: 'notices',
