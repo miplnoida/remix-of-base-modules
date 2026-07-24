@@ -396,6 +396,58 @@ serve(async (req) => {
     );
   }
 
+  // ---------- Step 1b: positive service-role probe (Section G) ------------
+  // Runs BEFORE begin. On failure, no execution/request/message is created.
+  const admin = buildServiceClient();
+  const { data: probeData, error: probeErr } = await admin.rpc(
+    "probe_comm_hub_dry_run_service_identity",
+  );
+  if (probeErr || !probeData || !(probeData as any).allowed) {
+    const probe = (probeData ?? {}) as any;
+    const reason = probeErr?.message ?? "SERVICE_ROLE_REQUIRED";
+    return json(200, {
+      contract_version: CONTRACT_VERSION,
+      edge_version: EDGE_VERSION,
+      status: "BLOCKED",
+      state: "BLOCKED",
+      failure_stage: "SERVICE_IDENTITY",
+      message:
+        "The platform could not authenticate its internal Dry Run processing service. No Dry Run execution or communication records were created. Platform configuration required.",
+      correlation_id: authoritativeCorrelation,
+      preview_snapshot_id: previewSnapshotId ?? null,
+      preview_approval_id: previewApprovalId ?? null,
+      dry_run_execution_id: null,
+      request_id: null,
+      message_id: null,
+      trace_id: null,
+      probe: {
+        allowed: Boolean(probe.allowed),
+        resolved_role: probe.resolved_role ?? null,
+        role_source: probe.role_source ?? null,
+        service_role_confirmed: Boolean(probe.service_role_confirmed),
+        process_allowlist_match: Boolean(probe.process_allowlist_match),
+        certify_allowlist_match: Boolean(probe.certify_allowlist_match),
+      },
+      blockers: [
+        {
+          code: "SERVICE_ROLE_REQUIRED",
+          stage: "SERVICE_IDENTITY",
+          message: reason,
+        },
+      ],
+      mutation_started: false,
+      execution_created: false,
+      request_created: false,
+      message_created: false,
+      cleanup_proven: true,
+      provider_call_attempted: false,
+      simulator_call_attempted: false,
+      ambiguous_outcome: false,
+      retry_safe: false,
+      retry_reason: "SERVICE_IDENTITY_FAILURE",
+    });
+  }
+
   // ---------- Step 2: begin_comm_hub_dry_run_v1 (JWT-scoped) --------------
   const beginPayload: Json = {
     module_code: moduleCode,
@@ -454,6 +506,10 @@ serve(async (req) => {
   const executionId: string | null =
     begin?.dry_run_execution_id ?? begin?.execution_id ?? null;
   const beginCorrelation: string | null = begin?.correlation_id ?? null;
+  const beginRequestId: string | null = begin?.request_id ?? null;
+  const beginMessageId: string | null = begin?.message_id ?? null;
+  const beginTraceId: string | null = begin?.trace_id ?? null;
+  const beginExecutionNo: string | null = begin?.execution_no ?? null;
   if (!executionId || !beginCorrelation) {
     return blockedResponse(
       {
@@ -491,9 +547,7 @@ serve(async (req) => {
   }
 
   // ---------- Step 3: process (service role) ------------------------------
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+
 
   const { data: procData, error: procErr } = await admin.rpc(
     "process_comm_hub_dry_run_execution",
