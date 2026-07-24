@@ -36,6 +36,20 @@ import {
   recalculateArrangementSummary,
 } from '@/services/compliance/paymentReconciliationService';
 import { recalculateBreachState } from '@/services/compliance/breachEvaluationService';
+import {
+  submitForApproval,
+  approveArrangement,
+  rejectArrangement,
+  activateArrangement,
+} from '@/services/arrangementWorkflowService';
+import { useUserCode } from '@/hooks/useUserCode';
+import { useHasCapability } from '@/hooks/useHasCapability';
+import { COMPLIANCE_CAPABILITIES } from '@/lib/compliance/capabilities';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 // ── Types ───────────────────────────────────────────────────
 
