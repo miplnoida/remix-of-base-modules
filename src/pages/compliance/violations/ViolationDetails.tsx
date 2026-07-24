@@ -889,6 +889,51 @@ export default function ViolationDetails() {
           }}
         />
       )}
+
+      {/* Verification Approve / Reject dialog */}
+      <AlertDialog
+        open={verifyOpen !== null}
+        onOpenChange={(o) => { if (!o) { setVerifyOpen(null); setVerifyNotes(''); } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {verifyOpen === 'confirm' ? 'Approve violation?' : 'Reject violation?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {verifyOpen === 'confirm'
+                ? 'This confirms the possible violation, moves it to OPEN and records the verification decision. Any duplicate/case grouping will be auto-applied.'
+                : 'This rejects the possible violation and cancels the record. A reason is required and will be recorded on the case history.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder={verifyOpen === 'reject' ? 'Reason for rejection (required)' : 'Verification notes (optional)'}
+            value={verifyNotes}
+            onChange={(e) => setVerifyNotes(e.target.value)}
+            rows={4}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={
+                (verifyOpen === 'reject' && verifyNotes.trim().length < 3)
+                || confirmVerificationMut.isPending
+                || rejectVerificationMut.isPending
+              }
+              onClick={(e) => {
+                e.preventDefault();
+                if (verifyOpen === 'confirm') confirmVerificationMut.mutate();
+                else if (verifyOpen === 'reject') rejectVerificationMut.mutate();
+              }}
+            >
+              {(confirmVerificationMut.isPending || rejectVerificationMut.isPending)
+                ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              {verifyOpen === 'confirm' ? 'Approve' : 'Confirm Reject'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
