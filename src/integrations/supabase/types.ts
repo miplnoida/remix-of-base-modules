@@ -29998,6 +29998,13 @@ export type Database = {
             referencedRelation: "ce_planner_candidate_actions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ce_planner_action_approvals_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_pending_case_nominations"
+            referencedColumns: ["nomination_id"]
+          },
         ]
       }
       ce_planner_approval_audit: {
@@ -93051,6 +93058,23 @@ export type Database = {
           receipt_status: string | null
           source_payment_id: number | null
           sync_key: string | null
+        }
+        Relationships: []
+      }
+      ce_v_pending_case_nominations: {
+        Row: {
+          case_id: string | null
+          case_number: string | null
+          created_at: string | null
+          employer_id: string | null
+          employer_name: string | null
+          fund_type: string | null
+          nomination_id: string | null
+          notes: string | null
+          officer_user_code: string | null
+          reason: string | null
+          risk_band: string | null
+          week_start_date: string | null
         }
         Relationships: []
       }
