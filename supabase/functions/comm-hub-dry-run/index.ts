@@ -40,7 +40,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const EDGE_VERSION = "comm-hub-dry-run/v1.4.0-correlation-hotfix";
+const EDGE_VERSION = "comm-hub-dry-run/v1.5.0-service-role-positive-probe";
 const CONTRACT_VERSION = "comm-hub-dry-run-contract/v1";
 const EVALUATOR_VERSION = "comm-hub-dry-run-preflight/v1";
 
@@ -54,6 +54,37 @@ const CORS = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+/**
+ * Phase 4B3 — Edge environment validation.
+ * Runs before any preflight/begin. Never logs secret values.
+ */
+function validateEdgeEnvironment(): { ok: true } | { ok: false; reason: string } {
+  if (!SUPABASE_URL) return { ok: false, reason: "SUPABASE_URL_MISSING" };
+  if (!ANON_KEY) return { ok: false, reason: "SUPABASE_ANON_KEY_MISSING" };
+  if (!SERVICE_ROLE) return { ok: false, reason: "SUPABASE_SERVICE_ROLE_KEY_MISSING" };
+  if (SERVICE_ROLE === ANON_KEY) return { ok: false, reason: "SERVICE_ROLE_KEY_EQUALS_ANON_KEY" };
+  return { ok: true };
+}
+
+/**
+ * Build a dedicated service-role client. Never reuses the operator header.
+ */
+function buildServiceClient() {
+  return createClient(SUPABASE_URL, SERVICE_ROLE, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${SERVICE_ROLE}`,
+        apikey: SERVICE_ROLE,
+      },
+    },
+  });
+}
 
 const SUCCESS_MESSAGE = "Dry test passed — no real email was sent.";
 
@@ -146,6 +177,37 @@ function blockedResponse(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
+
+  // ---------- Edge environment validation (Section E) ---------------------
+  const envCheck = validateEdgeEnvironment();
+  if (!envCheck.ok) {
+    return json(500, {
+      contract_version: CONTRACT_VERSION,
+      edge_version: EDGE_VERSION,
+      status: "BLOCKED",
+      state: "BLOCKED",
+      failure_stage: "EDGE_ENVIRONMENT",
+      message:
+        "The Dry Run processing service is not configured. Platform configuration required.",
+      blockers: [
+        {
+          code: "EDGE_SERVICE_ROLE_CONFIGURATION_INVALID",
+          stage: "EDGE_ENVIRONMENT",
+          reason: envCheck.reason,
+        },
+      ],
+      mutation_started: false,
+      execution_created: false,
+      request_created: false,
+      message_created: false,
+      cleanup_proven: true,
+      provider_call_attempted: false,
+      simulator_call_attempted: false,
+      ambiguous_outcome: false,
+      retry_safe: false,
+      retry_reason: "EDGE_CONFIGURATION_INVALID",
+    });
+  }
 
   // ---------- Auth boundary ------------------------------------------------
   const authHeader = req.headers.get("Authorization") ?? "";
@@ -334,6 +396,58 @@ serve(async (req) => {
     );
   }
 
+  // ---------- Step 1b: positive service-role probe (Section G) ------------
+  // Runs BEFORE begin. On failure, no execution/request/message is created.
+  const admin = buildServiceClient();
+  const { data: probeData, error: probeErr } = await admin.rpc(
+    "probe_comm_hub_dry_run_service_identity",
+  );
+  if (probeErr || !probeData || !(probeData as any).allowed) {
+    const probe = (probeData ?? {}) as any;
+    const reason = probeErr?.message ?? "SERVICE_ROLE_REQUIRED";
+    return json(200, {
+      contract_version: CONTRACT_VERSION,
+      edge_version: EDGE_VERSION,
+      status: "BLOCKED",
+      state: "BLOCKED",
+      failure_stage: "SERVICE_IDENTITY",
+      message:
+        "The platform could not authenticate its internal Dry Run processing service. No Dry Run execution or communication records were created. Platform configuration required.",
+      correlation_id: authoritativeCorrelation,
+      preview_snapshot_id: previewSnapshotId ?? null,
+      preview_approval_id: previewApprovalId ?? null,
+      dry_run_execution_id: null,
+      request_id: null,
+      message_id: null,
+      trace_id: null,
+      probe: {
+        allowed: Boolean(probe.allowed),
+        resolved_role: probe.resolved_role ?? null,
+        role_source: probe.role_source ?? null,
+        service_role_confirmed: Boolean(probe.service_role_confirmed),
+        process_allowlist_match: Boolean(probe.process_allowlist_match),
+        certify_allowlist_match: Boolean(probe.certify_allowlist_match),
+      },
+      blockers: [
+        {
+          code: "SERVICE_ROLE_REQUIRED",
+          stage: "SERVICE_IDENTITY",
+          message: reason,
+        },
+      ],
+      mutation_started: false,
+      execution_created: false,
+      request_created: false,
+      message_created: false,
+      cleanup_proven: true,
+      provider_call_attempted: false,
+      simulator_call_attempted: false,
+      ambiguous_outcome: false,
+      retry_safe: false,
+      retry_reason: "SERVICE_IDENTITY_FAILURE",
+    });
+  }
+
   // ---------- Step 2: begin_comm_hub_dry_run_v1 (JWT-scoped) --------------
   const beginPayload: Json = {
     module_code: moduleCode,
@@ -392,6 +506,10 @@ serve(async (req) => {
   const executionId: string | null =
     begin?.dry_run_execution_id ?? begin?.execution_id ?? null;
   const beginCorrelation: string | null = begin?.correlation_id ?? null;
+  const beginRequestId: string | null = begin?.request_id ?? null;
+  const beginMessageId: string | null = begin?.message_id ?? null;
+  const beginTraceId: string | null = begin?.trace_id ?? null;
+  const beginExecutionNo: string | null = begin?.execution_no ?? null;
   if (!executionId || !beginCorrelation) {
     return blockedResponse(
       {
@@ -429,9 +547,7 @@ serve(async (req) => {
   }
 
   // ---------- Step 3: process (service role) ------------------------------
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+
 
   const { data: procData, error: procErr } = await admin.rpc(
     "process_comm_hub_dry_run_execution",
@@ -444,8 +560,12 @@ serve(async (req) => {
       status: "DRY_RUN_FAILED",
       failure_stage: "PROCESS",
       dry_run_execution_id: executionId,
+      execution_no: beginExecutionNo,
       execution_state: null,
       correlation_id: beginCorrelation,
+      request_id: beginRequestId,
+      message_id: beginMessageId,
+      trace_id: beginTraceId,
       preview_snapshot_id: previewSnapshotId ?? null,
       preview_approval_id: previewApprovalId ?? null,
       blockers: [
@@ -455,35 +575,62 @@ serve(async (req) => {
           message: procErr.message,
         },
       ],
+      // Section L: begin succeeded, so rows exist. Report truthfully.
+      mutation_started: true,
+      execution_created: true,
+      request_created: Boolean(beginRequestId),
+      message_created: Boolean(beginMessageId),
+      cleanup_proven: false,
       provider_call_attempted: false,
       simulator_call_attempted: false,
+      ambiguous_outcome: false,
+      retry_safe: false,
+      retry_reason: "POST_BEGIN_PROCESS_FAILURE",
     });
   }
   const proc = (procData ?? {}) as any;
   const procState = String(proc?.state ?? proc?.execution_state ?? proc?.status ?? "");
-  // Accept PROCESSED (canonical) or COMPLETED / OK (legacy compatibility).
   const procOk =
     procState === "PROCESSED" ||
     procState === "COMPLETED" ||
     procState === "OK";
   if (!procOk) {
+    const procFailureStage = proc?.failure_stage ?? proc?.stage ?? "PROCESS";
     return json(200, {
       contract_version: CONTRACT_VERSION,
       edge_version: EDGE_VERSION,
       status: procState === "FAILED" ? "DRY_RUN_FAILED" : "BLOCKED",
-      failure_stage: proc?.failure_stage ?? proc?.stage ?? "PROCESS",
+      failure_stage: procFailureStage,
       dry_run_execution_id: executionId,
+      execution_no: beginExecutionNo,
       execution_state: procState || null,
       correlation_id: beginCorrelation,
-      request_id: proc?.request_id ?? null,
-      message_id: proc?.message_id ?? null,
-      trace_id: proc?.trace_id ?? null,
+      request_id: proc?.request_id ?? beginRequestId,
+      message_id: proc?.message_id ?? beginMessageId,
+      trace_id: proc?.trace_id ?? beginTraceId,
       preview_snapshot_id: previewSnapshotId ?? null,
       preview_approval_id: previewApprovalId ?? null,
+      resolved_role: proc?.resolved_role ?? null,
+      role_source: proc?.role_source ?? null,
       blockers: toBlockers(proc?.blockers ?? []),
       warnings: proc?.warnings ?? [],
+      mutation_started: true,
+      execution_created: true,
+      request_created: Boolean(beginRequestId),
+      message_created: Boolean(beginMessageId),
+      cleanup_proven: false,
       provider_call_attempted: false,
       simulator_call_attempted: false,
+      ambiguous_outcome: false,
+      retry_safe: false,
+      retry_reason:
+        procFailureStage === "SERVICE_IDENTITY"
+          ? "SERVICE_IDENTITY_FAILURE_AFTER_BEGIN"
+          : "POST_BEGIN_PROCESS_BLOCKED",
+      message:
+        procFailureStage === "SERVICE_IDENTITY"
+          ? "The Dry Run execution and internal message records were created, but the platform processing identity was rejected. No provider or simulator call was made. The partial execution is being reconciled and must not be retried."
+          : "The Dry Run execution was created but processing was blocked.",
     });
   }
 

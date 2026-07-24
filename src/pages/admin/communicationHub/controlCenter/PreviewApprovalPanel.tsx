@@ -450,7 +450,13 @@ export default function PreviewApprovalPanel({
       )}
 
       {approval && (() => {
-        const aCreated = formatEvidenceTimestamp(approval.created_at ?? null, UNAVAILABLE_LABEL);
+        // Section N: prefer authoritative approval decision timestamp
+        // (approved_at) over the record creation timestamp for the
+        // operator-facing "Approved at" field.
+        const aApprovedAt = formatEvidenceTimestamp(
+          approval.approved_at ?? approval.created_at ?? null,
+          UNAVAILABLE_LABEL,
+        );
         const aExpires = formatEvidenceTimestamp(approval.expires_at, "—");
         const aBadge = approval.status === "ACTIVE" && !approvalExpired
           ? { label: "ACTIVE", variant: "default" as const }
@@ -472,8 +478,8 @@ export default function PreviewApprovalPanel({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
               <div data-testid="approval-created">
-                <strong>Approval created:</strong>{" "}
-                <span className={aCreated.ok ? "" : "text-destructive"}>{aCreated.display}</span>
+                <strong>Approved at:</strong>{" "}
+                <span className={aApprovedAt.ok ? "" : "text-destructive"}>{aApprovedAt.display}</span>
               </div>
               <div data-testid="approval-expires">
                 <strong>Approval expires:</strong>{" "}
@@ -502,6 +508,7 @@ export default function PreviewApprovalPanel({
   preview_created_at: snapshot?.created_at ?? null,
   preview_expires_at: snapshot?.expires_at ?? null,
   approval_created_at: approval.created_at ?? null,
+  approval_approved_at: approval.approved_at ?? null,
   approval_expires_at: approval.expires_at,
   server_validated_at: snapshot?.server_time ?? null,
   browser_display_timezone: browserTimeZone(),

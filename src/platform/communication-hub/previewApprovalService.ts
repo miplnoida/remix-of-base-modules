@@ -58,8 +58,13 @@ export interface PreviewApprovalRecord {
   approval_id: string;
   snapshot_id: string;
   status: PreviewApprovalStatus;
-  /** Authoritative server-side approval creation timestamp (ISO). */
+  /** Authoritative server-side approval record creation timestamp (ISO). */
   created_at?: string | null;
+  /**
+   * Authoritative server-side approval decision timestamp (ISO).
+   * This is the timestamp the UI must display as "Approved at".
+   */
+  approved_at: string | null;
   expires_at: string;
   content_hash: string;
   recipient_set_hash: string;

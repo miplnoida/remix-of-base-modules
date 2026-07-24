@@ -95046,6 +95046,7 @@ export type Database = {
         Args: { p_manifest_hash: string; p_mapping_id: string }
         Returns: string
       }
+      _comm_hub_get_request_role: { Args: never; Returns: Json }
       _comm_hub_governance_transition_core: {
         Args: {
           p_action: Database["public"]["Enums"]["comm_hub_governance_action"]
@@ -98937,6 +98938,7 @@ export type Database = {
         }
         Returns: Json
       }
+      probe_comm_hub_dry_run_service_identity: { Args: never; Returns: Json }
       process_comm_hub_dry_run_execution: {
         Args: { p_correlation_id: string; p_execution_id: string }
         Returns: Json
