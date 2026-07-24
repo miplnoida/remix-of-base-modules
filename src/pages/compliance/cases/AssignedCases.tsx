@@ -22,21 +22,29 @@ const AssignedCases = () => {
   const [mineOnly, setMineOnly] = useState(true);
   const ql = useDebounce(q, 300);
 
-  // Resolve the current user's ce_inspectors.id — assignments store the
-  // inspector UUID on ce_cases.assigned_officer_id, NOT the user_code.
-  const { data: myInspectorId } = useQuery({
-    queryKey: ['ce_my_inspector_id', user?.id],
+  // Resolve every identifier that ce_cases.assigned_officer_id might contain
+  // for the current user: ce_inspectors.id (UUID), inspector_code, and
+  // legacy_inspector_code. The column is mixed-shape across legacy and new
+  // assignment paths, so we must match on all of them.
+  const { data: myOfficerIds = [] } = useQuery({
+    queryKey: ['ce_my_officer_ids', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ce_inspectors')
-        .select('id')
-        .eq('profile_id', user!.id)
-        .maybeSingle();
+        .select('id, inspector_code, legacy_inspector_code')
+        .eq('profile_id', user!.id);
       if (error) throw error;
-      return (data as any)?.id as string | null;
+      const out = new Set<string>();
+      (data || []).forEach((r: any) => {
+        if (r.id) out.add(r.id);
+        if (r.inspector_code) out.add(r.inspector_code);
+        if (r.legacy_inspector_code) out.add(r.legacy_inspector_code);
+      });
+      return Array.from(out);
     },
   });
+
 
   const { data = [], isLoading } = useQuery({
     queryKey: ['ce_cases_assigned', ql, mineOnly, myInspectorId],
