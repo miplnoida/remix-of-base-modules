@@ -560,8 +560,12 @@ serve(async (req) => {
       status: "DRY_RUN_FAILED",
       failure_stage: "PROCESS",
       dry_run_execution_id: executionId,
+      execution_no: beginExecutionNo,
       execution_state: null,
       correlation_id: beginCorrelation,
+      request_id: beginRequestId,
+      message_id: beginMessageId,
+      trace_id: beginTraceId,
       preview_snapshot_id: previewSnapshotId ?? null,
       preview_approval_id: previewApprovalId ?? null,
       blockers: [
@@ -571,35 +575,62 @@ serve(async (req) => {
           message: procErr.message,
         },
       ],
+      // Section L: begin succeeded, so rows exist. Report truthfully.
+      mutation_started: true,
+      execution_created: true,
+      request_created: Boolean(beginRequestId),
+      message_created: Boolean(beginMessageId),
+      cleanup_proven: false,
       provider_call_attempted: false,
       simulator_call_attempted: false,
+      ambiguous_outcome: false,
+      retry_safe: false,
+      retry_reason: "POST_BEGIN_PROCESS_FAILURE",
     });
   }
   const proc = (procData ?? {}) as any;
   const procState = String(proc?.state ?? proc?.execution_state ?? proc?.status ?? "");
-  // Accept PROCESSED (canonical) or COMPLETED / OK (legacy compatibility).
   const procOk =
     procState === "PROCESSED" ||
     procState === "COMPLETED" ||
     procState === "OK";
   if (!procOk) {
+    const procFailureStage = proc?.failure_stage ?? proc?.stage ?? "PROCESS";
     return json(200, {
       contract_version: CONTRACT_VERSION,
       edge_version: EDGE_VERSION,
       status: procState === "FAILED" ? "DRY_RUN_FAILED" : "BLOCKED",
-      failure_stage: proc?.failure_stage ?? proc?.stage ?? "PROCESS",
+      failure_stage: procFailureStage,
       dry_run_execution_id: executionId,
+      execution_no: beginExecutionNo,
       execution_state: procState || null,
       correlation_id: beginCorrelation,
-      request_id: proc?.request_id ?? null,
-      message_id: proc?.message_id ?? null,
-      trace_id: proc?.trace_id ?? null,
+      request_id: proc?.request_id ?? beginRequestId,
+      message_id: proc?.message_id ?? beginMessageId,
+      trace_id: proc?.trace_id ?? beginTraceId,
       preview_snapshot_id: previewSnapshotId ?? null,
       preview_approval_id: previewApprovalId ?? null,
+      resolved_role: proc?.resolved_role ?? null,
+      role_source: proc?.role_source ?? null,
       blockers: toBlockers(proc?.blockers ?? []),
       warnings: proc?.warnings ?? [],
+      mutation_started: true,
+      execution_created: true,
+      request_created: Boolean(beginRequestId),
+      message_created: Boolean(beginMessageId),
+      cleanup_proven: false,
       provider_call_attempted: false,
       simulator_call_attempted: false,
+      ambiguous_outcome: false,
+      retry_safe: false,
+      retry_reason:
+        procFailureStage === "SERVICE_IDENTITY"
+          ? "SERVICE_IDENTITY_FAILURE_AFTER_BEGIN"
+          : "POST_BEGIN_PROCESS_BLOCKED",
+      message:
+        procFailureStage === "SERVICE_IDENTITY"
+          ? "The Dry Run execution and internal message records were created, but the platform processing identity was rejected. No provider or simulator call was made. The partial execution is being reconciled and must not be retried."
+          : "The Dry Run execution was created but processing was blocked.",
     });
   }
 
