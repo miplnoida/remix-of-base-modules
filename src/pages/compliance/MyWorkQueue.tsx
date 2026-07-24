@@ -555,6 +555,8 @@ function MyWorkQueueContent() {
         </Badge>
       </div>
 
+      <PendingPlanningStrip officerUserCode={userCode} />
+
       {enabled.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
