@@ -14,6 +14,7 @@ import {
   ChevronUp, StickyNote, Gavel, History,
 } from 'lucide-react';
 import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
+import { PaymentHistoryGroupedTable } from './PaymentHistoryGroupedTable';
 import {
   fetchEmployerMaster, fetchEmployerFiling, fetchEmployerArrears, fetchEmployerPayments,
   fetchEmployerLegal, fetchEmployerWorkforce, fetchEmployerRisk, fetchEmployerViolations,
@@ -437,7 +438,7 @@ export default function Employer360() {
             <CardHeader>
               <CardTitle>Payment History</CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Combined view of cashier receipts (cn_payment) and posted ledger credits.
+                One row per payment transaction. Use <span className="font-medium">View Details</span> to see the fund-level breakdown (contribution, penalty, interest, fees).
               </p>
             </CardHeader>
             <CardContent>
@@ -446,31 +447,14 @@ export default function Employer360() {
                   No payment records found for this employer in either the cashier system or the compliance ledger.
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead><TableHead>Period</TableHead><TableHead>Fund</TableHead>
-                      <TableHead>Source</TableHead>
-                      <TableHead>Description</TableHead><TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paymentHistory.map((p: any) => (
-                      <TableRow key={p.id}>
-                        <TableCell className="text-xs">{formatDate(p.posted_at)}</TableCell>
-                        <TableCell className="font-mono text-xs">{p.period}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs">{p.fund_type}</Badge></TableCell>
-                        <TableCell><Badge variant={p.source === 'CASHIER' ? 'default' : 'secondary'} className="text-[10px]">{p.source}</Badge></TableCell>
-                        <TableCell className="text-xs max-w-xs truncate">{p.description}</TableCell>
-                        <TableCell className="text-right font-mono text-sm text-green-600">{formatCurrency(p.credit_amount)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <PaymentHistoryGroupedTable rows={paymentHistory as any[]} />
               )}
             </CardContent>
           </Card>
         </TabsContent>
+
+
+
 
 
         {/* ═══ STATEMENT TAB (embedded preview) ═══ */}
