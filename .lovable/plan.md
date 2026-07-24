@@ -1,97 +1,89 @@
-
 ## Goal
 
-On the **Case Details** page, give the assigned officer a one-click way to nominate the case's employer for a field inspection. The nomination lands in the officer's existing **Pending Planning** queue (same tray auto-scored candidates already sit in) so they can pull it into their weekly plan; the Compliance Head then approves the plan as they do today. No parallel planning system is created.
+Deliver a single planning workbook that catalogues every screen, tab and user operation across the SSB platform, with cross-cutting integration status (Workflow, Audit, DMS, Notifications/Communication) so we can drive final closure.
 
-## Why here (and not the violation page)
+## Deliverable
 
-A case bundles multiple violations for one employer. Deciding to inspect is an **employer/case-level** decision, not a per-violation one. Putting the button on the case avoids duplicate nominations when several violations under the same case would each be flagged.
+`/mnt/documents/SSB_Platform_Screen_Inventory.xlsx`
 
-## Where it fits in the existing pipeline
+### Sheets
 
-Today (confirmed by reading the code and DB):
+1. **Legend** — status vocabulary: `YES` (implemented), `MANAGED` (toggle/setting driven), `AUTO` (applied by default), `PLANNED` (designed but not built), blank (not applicable). Column definitions.
+2. **All Screens** — master flat table (filterable, frozen header). One row per (Route × Tab/Action × Operation). Every artifact-producing operation (notice generated, case created, email sent, upload, cheque printed, referral packet) explicitly listed so DMS + Notification columns are meaningful.
+3. **Pivot — Module × Status** — count of YES / MANAGED / AUTO / PLANNED / blank per module, split by the four integration columns.
+4. **Gaps** — auto-filtered rows where any of Workflow / Audit / DMS / Notification = `PLANNED` — the closure worklist.
+5. **Per-module sheets** — one sheet per module (same schema as All Screens) for focused review: Admin & Master Data, SSB Setup, Configuration Governance, Identity & Organisation, Employer, Insured Person, C3 Contributions, Benefits (BN) — Product/Award360/Claims/Payments/Servicing/Suspension/Mortality/Appeals/Overpayments/Means-Test/Risk/Uprating, Compliance & Enforcement, Legal, BeMA (legacy), Communication Hub, Workflow Engine, Audit, DMS, Portals (Employer / Doctor / External Task), Reports & Analytics, Public API.
 
-- Candidates come from `fn_ce_score_candidates_batch` / view `ce_v_weekly_plan_candidates` (server-scored, employer-level, with reason codes such as `OPEN_VIOLATION`, `HIGH_RISK`, …). Rendered by `CandidateQueuePanel` on the Weekly Plan builder.
-- Officers pull a candidate into a day → writes a row to `ce_weekly_plan_items` (`source_type`, `source_id`, `employer_id`, `visit_type`, `priority`, …) tied to the officer's `ce_weekly_plans` row.
-- Officer submits the weekly plan → Compliance Head approves via existing weekly-plan approval flow (`plannerApprovalService`, `ce_weekly_plan_reviews`).
+### Columns (All Screens and per-module sheets)
 
-We reuse this pipeline. We introduce **one new candidate source**: `MANUAL_CASE_NOMINATION`.
 
-## Changes
+| #      | Column                  | Notes                                                                    | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| ------ | ----------------------- | ------------------------------------------------------------------------ | ------ | ------ | ------ | ------ |
+| 1      | Module                  | e.g. Benefits, Compliance, Comm Hub                                      | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| 2      | Sub-Module              | e.g. Award360, Weekly Planning                                           | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| 3      | Route                   | e.g. `/compliance/weekly-plan`                                           | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| 4      | Main Task               | Business purpose of the screen                                           | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| 5      | Page Level Task         | Tab or major section                                                     | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| 6      | User Action / Operation | Button, dialog, wizard step                                              | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| 7      | Produces Artifact       | e.g. Notice PDF, Case, Referral packet, Cheque, Email, blank if none     | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| 8      | Workflow Implementation | YES / MANAGED / AUTO / PLANNED / blank                                   | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| 9      | Audit Logs              | YES / MANAGED / AUTO / PLANNED / blank                                   | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| 10     | DMS Integration         | YES / MANAGED / AUTO / PLANNED / blank (mandatory whenever col 7 is set) | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| 11     | Notification / Comm Hub | YES / MANAGED / AUTO / PLANNED / blank                                   | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| &nbsp; | &nbsp;                  | &nbsp;                                                                   | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| &nbsp; | &nbsp;                  | &nbsp;                                                                   | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| &nbsp; | &nbsp;                  | &nbsp;                                                                   | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
+| &nbsp; | &nbsp;                  | &nbsp;                                                                   | &nbsp; | &nbsp; | &nbsp; | &nbsp; |
 
-### 1. Data (single migration)
 
-Extend `ce_planner_candidate_actions` usage — no new table. It already supports manual planner actions (`action_type`, `linked_case_id`, `approval_status`, `is_active`, `requested_by_user_code`). We use it as the durable record of the nomination:
+Rule I will follow while filling column 10: any row whose column 7 is non-blank must have column 10 set to `YES` or `PLANNED` — never blank — because every artifact must land in DMS.
 
-- `action_type = 'NOMINATE_FOR_PLANNING'`
-- `linked_case_id = <case.id>`, `employer_id = <case.employer_id>`
-- `week_start_date = next Monday` (default) — officer can change on the plan builder
-- `approval_required = false`, `approval_status = 'AUTO_APPROVED'` (nomination itself needs no approval; the weekly plan does)
-- `requested_by_user_code = current officer`
-- `reason` = "Officer nomination from Case <case_no>"
+## Source strategy
 
-Add a small view `ce_v_pending_case_nominations` (SECURITY INVOKER) that lists active nominations not yet consumed by a `ce_weekly_plan_items` row for the same officer+employer+week. Grant `SELECT` to `authenticated`.
+Docs first, code second:
 
-Update `fn_ce_score_candidates_batch` / `fn_ce_score_candidates_v3` to `UNION` in rows from that view with `candidate_source = 'MANUAL_CASE_NOMINATION'` and `candidate_reason = 'OFFICER_NOMINATED'`, priority boosted so they sort to the top of the officer's queue. Nominations are scoped to the officer who made them.
+1. **Docs sweep** — read the module-level docs already in the repo: `docs/social-security/*`, `docs/enterprise/*`, `docs/communication-hub/*`, `docs/compliance/*`, `docs/modernisation/benefits-gap/*`, `docs/organization/*`, `docs/architecture/*`, `docs/business-modules/*`, `docs/platform/*`, plus the memory index files under `mem://` referenced in the project memory.
+2. **Menu & routes** — walk `src/components/sidebar/menuItems/*`, `src/App.tsx` router, `src/config/routes.ts`, satellite `docs/satellite-templates/*` for the route spine.
+3. **Screens & operations** — for each route, open the page component under `src/pages/**` (and its major child components) to enumerate tabs, dialogs, wizard steps, and mutation calls.
+4. **Cross-cutting enrichment** — for each operation, decide the four status cells by checking:
+  - Workflow: usage of `workflow_*` tables, `workflow-service`, `useWorkflowInstance`, or a documented workflow template.
+  - Audit: call to `audit_logs` / `bn_*_audit` / `ce_*_audit` / `_comm_hub_*_audit` insert or trigger.
+  - DMS: `generated_documents` / `core_generated_document` / `documentsAdapter` / storage bucket upload.
+  - Notification: call to `sendCommunication` façade, `communication_*`, `notification_*`, or `notificationsAdapter`.
+5. **Governance labels** — treat toggle-gated behaviour (feature flags, `app_lockdown_state`, module settings) as `MANAGED`; trigger-driven or middleware-applied behaviour (audit triggers, RLS-linked logs) as `AUTO`; documented-but-not-landed items as `PLANNED`.
 
-Add a uniqueness guard: one active nomination per `(employer_id, case_id, requested_by_user_code, week_start_date)` — prevents accidental duplicates when the officer clicks twice.
+## Build steps
 
-### 2. Services
+1. Read docs and memory files listed above; extract module → screen map.
+2. Walk sidebar menu + `src/App.tsx` router; produce the authoritative route list.
+3. For each route, open the page file and its major sub-components; enumerate tabs, dialogs, wizard steps and mutations into a JSON intermediate.
+4. Enrich each operation with the four status columns using the checks above; mark artifacts and force DMS column accordingly.
+5. Generate the XLSX with `openpyxl`:
+  - Legend sheet with coloured status swatches and column definitions.
+  - All Screens sheet with frozen header, autofilter, conditional colouring per status.
+  - Pivot sheet built with `COUNTIFS` formulas (kept dynamic).
+  - Gaps sheet as a filtered view (formulas referencing All Screens).
+  - Per-module sheets sliced from All Screens.
+6. Run the recalculate_formulas skill script and fix any errors.
+7. Save workbook to `/mnt/documents/SSB_Platform_Screen_Inventory.xlsx` and drop a short `SSB_Platform_Screen_Inventory_README.md` next to it summarising sheet layout and how to use the Gaps sheet for closure planning.
 
-- `src/services/inspectionNominationService.ts` (new):
-  - `nominateCaseForInspection({ caseId, employerId, employerName, weekStartDate?, notes? })` → inserts into `ce_planner_candidate_actions`.
-  - `withdrawNomination(nominationId)` → sets `is_active = false`.
-  - `listMyPendingNominations()` → queries `ce_v_pending_case_nominations`.
-- `planCandidateService`: no behavioural change; automatically surfaces the new rows through the RPCs.
-- Add a candidate reason label + colour for `OFFICER_NOMINATED` in `planCandidateService.CANDIDATE_REASON_LABELS`.
+## Scope confirmation
 
-### 3. UI — Case Details page
-
-In the case header action row (next to Assign / Escalate):
-
-- **Button:** `Add to Inspection Planning`
-  - Visible only to the assigned officer (UUID/code match, same resolver already used on `AssignedCases`) or a Compliance Head.
-  - Disabled + tooltip "Already in your pending planning list" when a nomination already exists for this case/officer for the current or next week.
-  - On click → small dialog: read-only employer + case, optional target week (defaults next Monday), optional visit purpose note, Confirm.
-- After success: toast "Added to your pending planning list — schedule it from Weekly Plan". Provide a link to `/compliance/weekly-plan`.
-- **Withdraw:** If nomination exists and not yet placed on the plan, show `Remove from Planning` in an overflow menu.
-
-### 4. UI — Weekly Plan builder
-
-`CandidateQueuePanel` already renders scored candidates; the new source flows in for free. Two small tweaks:
-
-- Show a distinct badge "Officer nomination" for `candidate_source = 'MANUAL_CASE_NOMINATION'`.
-- In the source popover, deep-link back to the originating case (`/compliance/cases/:id`).
-
-### 5. UI — My Work Queue
-
-Add a compact "Pending planning nominations" strip (count + link to Weekly Plan) so officers don't forget items they nominated. Reuses `listMyPendingNominations()`.
-
-## Permissions
-
-- Nominate: assigned officer for the case, or Compliance Head. Gated via existing `useHasCapability` for `COMPLIANCE_CAPABILITIES.PLANNING_WRITE` (falls back to case-assignment check when capability not present).
-- View own nominations: any authenticated compliance user (RLS filters to `requested_by_user_code = current user`).
-- Approval of the weekly plan itself continues to sit with Compliance Head/Admin — unchanged.
+- All modules (internal admin + Employer/Doctor/External portals + Public API + Reports).
+- Every route × major tab/action × user operation gets a row.
+- Docs are the primary source; code fills gaps and validates.
+- Output: XLSX with legend, pivot, gaps and per-module sheets — no separate MD except a short README.
 
 ## Out of scope
 
-- No change to weekly-plan approval workflow.
-- No auto-scheduling of nominations onto a specific day; the officer still drags them onto a day in the plan builder.
-- No new communications/notifications beyond the existing plan-submission events.
-
-## Files touched (technical)
-
-- Migration: `ce_planner_candidate_actions` uniqueness index; new view `ce_v_pending_case_nominations`; update `fn_ce_score_candidates_batch` and `fn_ce_score_candidates_v3` to UNION nominations.
-- `src/services/inspectionNominationService.ts` (new).
-- `src/services/planCandidateService.ts` — add reason label.
-- `src/pages/compliance/cases/CaseDetails.tsx` (and its header actions component) — add button, dialog, withdraw.
-- `src/components/compliance/weekly-plan/CandidateCard.tsx` — nomination badge + case deep link.
-- `src/pages/compliance/MyWorkQueue.tsx` — pending nominations strip.
+- Design/UX critique.
+- Any code changes to the app.
+- Estimating effort or timeline per gap (can be added later in the Notes column if you want).
 
 ## Verification
 
-- Nominate from a case → row appears in officer's Pending Planning within the Weekly Plan builder with the "Officer nomination" badge.
-- Drag onto a day → `ce_weekly_plan_items` row created; nomination disappears from Pending list (view excludes consumed items).
-- Second click on the button is disabled with correct tooltip.
-- Withdraw → nomination hidden from candidates; button re-enabled.
-- Non-assigned, non-Head user does not see the button.
+- Every module in the sidebar menu appears as its own sheet and in the pivot.
+- Every row with a value in `Produces Artifact` has `DMS Integration` set.
+- Pivot totals match row counts on All Screens.
+- Legend covers all status values used; no stray values.
+- Workbook opens cleanly; formulas recalculate with zero errors.
