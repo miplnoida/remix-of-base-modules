@@ -36,6 +36,20 @@ import {
   recalculateArrangementSummary,
 } from '@/services/compliance/paymentReconciliationService';
 import { recalculateBreachState } from '@/services/compliance/breachEvaluationService';
+import {
+  submitForApproval,
+  approveArrangement,
+  rejectArrangement,
+  activateArrangement,
+} from '@/services/arrangementWorkflowService';
+import { useUserCode } from '@/hooks/useUserCode';
+import { useHasCapability } from '@/hooks/useHasCapability';
+import { COMPLIANCE_CAPABILITIES } from '@/lib/compliance/capabilities';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -127,6 +141,10 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
   onBack,
 }) => {
   const queryClient = useQueryClient();
+  const { userCode } = useUserCode();
+  const canManageArrangements = useHasCapability(COMPLIANCE_CAPABILITIES.ENFORCEMENT_ARRANGEMENTS);
+  const [rejectReason, setRejectReason] = React.useState('');
+  const [rejectOpen, setRejectOpen] = React.useState(false);
 
   // ── PRIMARY: Arrangement + Installments ───────────────────
   const { data, isLoading, isError: primaryError } = useQuery({
@@ -244,6 +262,43 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
     onError: (e: any) => toast.error('Breach refresh failed', { description: e.message }),
   });
 
+  // ── Lifecycle: Submit / Approve / Activate / Reject ───────
+  const invalidateArrangement = () => {
+    queryClient.invalidateQueries({ queryKey: ['arrangement_detail', arrangementId] });
+    queryClient.invalidateQueries({ queryKey: ['ce_payment_arrangements'] });
+    queryClient.invalidateQueries({ queryKey: ['my-work-queue'] });
+  };
+  const actor = userCode || 'SYSTEM';
+
+  const submitMutation = useMutation({
+    mutationFn: () => submitForApproval(arrangementId, actor),
+    onSuccess: () => { invalidateArrangement(); toast.success('Submitted for approval'); },
+    onError: (e: any) => toast.error('Submit failed', { description: e.message }),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: () => approveArrangement(arrangementId, actor),
+    onSuccess: () => { invalidateArrangement(); toast.success('Arrangement approved and activated'); },
+    onError: (e: any) => toast.error('Approve failed', { description: e.message }),
+  });
+
+  const activateMutation = useMutation({
+    mutationFn: () => activateArrangement(arrangementId, actor),
+    onSuccess: () => { invalidateArrangement(); toast.success('Arrangement activated'); },
+    onError: (e: any) => toast.error('Activate failed', { description: e.message }),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (reason: string) => rejectArrangement(arrangementId, actor, reason),
+    onSuccess: () => {
+      invalidateArrangement();
+      toast.success('Arrangement rejected');
+      setRejectOpen(false);
+      setRejectReason('');
+    },
+    onError: (e: any) => toast.error('Reject failed', { description: e.message }),
+  });
+
   // ── Render: Loading ───────────────────────────────────────
 
   if (isLoading) {
@@ -313,7 +368,80 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
             <AlertTriangle className="h-3 w-3" />BREACH
           </Badge>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* ── Lifecycle actions ── */}
+          {canManageArrangements && arr.status === 'DRAFT' && (
+            <>
+              <Button
+                variant="outline" size="sm"
+                onClick={() => submitMutation.mutate()}
+                disabled={submitMutation.isPending}
+                title="Submit this draft to a supervisor for approval"
+              >
+                {submitMutation.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  : <Bell className="h-4 w-4 mr-1" />}
+                Submit for Approval
+              </Button>
+              <Button
+                variant="default" size="sm"
+                onClick={() => activateMutation.mutate()}
+                disabled={activateMutation.isPending}
+                title="Approve and activate immediately (requires arrangement authority)"
+              >
+                {activateMutation.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  : <CheckCircle2 className="h-4 w-4 mr-1" />}
+                Approve &amp; Activate
+              </Button>
+            </>
+          )}
+          {canManageArrangements && arr.status === 'PENDING_APPROVAL' && (
+            <Button
+              variant="default" size="sm"
+              onClick={() => approveMutation.mutate()}
+              disabled={approveMutation.isPending}
+            >
+              {approveMutation.isPending
+                ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                : <CheckCircle2 className="h-4 w-4 mr-1" />}
+              Approve
+            </Button>
+          )}
+          {canManageArrangements && ['DRAFT', 'PENDING_APPROVAL'].includes(arr.status) && (
+            <AlertDialog open={rejectOpen} onOpenChange={setRejectOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={rejectMutation.isPending}>
+                  <XCircle className="h-4 w-4 mr-1" />Reject
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reject payment arrangement?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will cancel the arrangement. A reason is recorded on the record and shown in case history.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <Textarea
+                  placeholder="Reason for rejection (required)"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={3}
+                />
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={rejectReason.trim().length < 3 || rejectMutation.isPending}
+                    onClick={(e) => { e.preventDefault(); rejectMutation.mutate(rejectReason.trim()); }}
+                  >
+                    {rejectMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Confirm Reject
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
           <Button
             variant="outline" size="sm"
             onClick={() => breachRefreshMutation.mutate()}
