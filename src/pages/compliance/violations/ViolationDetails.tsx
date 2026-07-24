@@ -23,10 +23,17 @@ import { ViolationNoticesTab } from '@/components/compliance/ViolationNoticesTab
 import { ViolationResolutionDialog } from '@/components/compliance/ViolationResolutionDialog';
 import { ViolationActionConfirmDialog, ConfirmActionType } from '@/components/compliance/ViolationActionConfirmDialog';
 import { violationLifecycleService, ViolationStatus } from '@/services/violationLifecycleService';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { fetchViolationById } from '@/services/complianceDataService';
+import { confirmViolation, rejectViolation } from '@/services/verificationQueueService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
 import { FinancialSummaryCard } from '@/components/compliance/FinancialSummaryCard';
 import { ViolationTimeline } from '@/components/compliance/ViolationTimeline';
@@ -108,12 +115,21 @@ export default function ViolationDetails() {
   // (re)assigning violations. Officers/Inspectors are intentionally blocked.
   const canReopenCancelled = complianceRole === 'head';
   const canManageAssignments = complianceRole === 'head';
+  // Verification actions (Approve / Reject) are available to Compliance Head
+  // and Senior officers when a violation is sitting in UNDER_REVIEW with no
+  // verification decision recorded yet — matching the Verification Queue rules.
+  const canVerifyViolations = complianceRole === 'head' || complianceRole === 'senior';
+
+  // Verification decision dialog state
+  const [verifyOpen, setVerifyOpen] = useState<null | 'confirm' | 'reject'>(null);
+  const [verifyNotes, setVerifyNotes] = useState('');
 
   const { data: violationData, isLoading: loadingCase } = useQuery({
     queryKey: ['ce_violation', id],
     queryFn: () => fetchViolationById(id!),
     enabled: !!id,
   });
+
 
   const { data: otherViolations = [] } = useQuery({
     queryKey: ['ce_violations_employer', violationData?.employer_id, id],
@@ -235,6 +251,26 @@ export default function ViolationDetails() {
       setConfirmDialogOpen(true);
     }
   };
+
+  const confirmVerificationMut = useMutation({
+    mutationFn: () => confirmViolation(id!, currentUserCode, verifyNotes),
+    onSuccess: () => {
+      toast.success('Violation approved and moved to OPEN.');
+      setVerifyOpen(null); setVerifyNotes('');
+      invalidateAll();
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Failed to approve violation'),
+  });
+  const rejectVerificationMut = useMutation({
+    mutationFn: () => rejectViolation(id!, currentUserCode, verifyNotes),
+    onSuccess: () => {
+      toast.success('Violation rejected and cancelled.');
+      setVerifyOpen(null); setVerifyNotes('');
+      invalidateAll();
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Failed to reject violation'),
+  });
+
 
   const handleResolutionConfirm = async (data: { resolutionType: string; notes: string; resolutionNotes: string }) => {
     if (resolutionMode === 'resolve') {
@@ -397,6 +433,34 @@ export default function ViolationDetails() {
                 <span className="ml-1">{action.label}</span>
               </Button>
             ))}
+
+            {/* Verification actions — shown for violations awaiting verification
+                (UNDER_REVIEW with no verification decision yet). Approves or
+                rejects the row using the same service as the Verification Queue
+                so decisions, history and downstream case grouping stay aligned. */}
+            {canVerifyViolations
+              && currentStatus === 'UNDER_REVIEW'
+              && !v.verification_decision && (
+              <>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => { setVerifyNotes(''); setVerifyOpen('confirm'); }}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="ml-1">Approve (Verify)</span>
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => { setVerifyNotes(''); setVerifyOpen('reject'); }}
+                >
+                  <XCircle className="h-4 w-4" />
+                  <span className="ml-1">Reject (Verify)</span>
+                </Button>
+              </>
+            )}
+
             {/* Navigation buttons */}
             <div className="ml-auto flex gap-2">
               {linkedCase ? (
@@ -825,6 +889,51 @@ export default function ViolationDetails() {
           }}
         />
       )}
+
+      {/* Verification Approve / Reject dialog */}
+      <AlertDialog
+        open={verifyOpen !== null}
+        onOpenChange={(o) => { if (!o) { setVerifyOpen(null); setVerifyNotes(''); } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {verifyOpen === 'confirm' ? 'Approve violation?' : 'Reject violation?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {verifyOpen === 'confirm'
+                ? 'This confirms the possible violation, moves it to OPEN and records the verification decision. Any duplicate/case grouping will be auto-applied.'
+                : 'This rejects the possible violation and cancels the record. A reason is required and will be recorded on the case history.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder={verifyOpen === 'reject' ? 'Reason for rejection (required)' : 'Verification notes (optional)'}
+            value={verifyNotes}
+            onChange={(e) => setVerifyNotes(e.target.value)}
+            rows={4}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={
+                (verifyOpen === 'reject' && verifyNotes.trim().length < 3)
+                || confirmVerificationMut.isPending
+                || rejectVerificationMut.isPending
+              }
+              onClick={(e) => {
+                e.preventDefault();
+                if (verifyOpen === 'confirm') confirmVerificationMut.mutate();
+                else if (verifyOpen === 'reject') rejectVerificationMut.mutate();
+              }}
+            >
+              {(confirmVerificationMut.isPending || rejectVerificationMut.isPending)
+                ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              {verifyOpen === 'confirm' ? 'Approve' : 'Confirm Reject'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
