@@ -480,9 +480,9 @@ function MyWorkQueueContent() {
         label: 'Payment Arrangements Awaiting Approval',
         enabled: canArrangements,
         capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_ARRANGEMENTS,
-        query: () => fetchArrangementsAwaitingApproval(),
+        query: () => fetchArrangementsAwaitingApproval(userId, userCode),
         assumption:
-          'ce_payment_arrangements has no approver column; showing system-wide arrangements in DRAFT/PENDING_APPROVAL.',
+          'Shows only payment arrangements linked to cases assigned to you and in PENDING_APPROVAL / AWAITING_APPROVAL / SUBMITTED status.',
       },
       {
         key: 'waivers',
