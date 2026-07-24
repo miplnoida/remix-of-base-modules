@@ -508,6 +508,7 @@ export default function PreviewApprovalPanel({
   preview_created_at: snapshot?.created_at ?? null,
   preview_expires_at: snapshot?.expires_at ?? null,
   approval_created_at: approval.created_at ?? null,
+  approval_approved_at: approval.approved_at ?? null,
   approval_expires_at: approval.expires_at,
   server_validated_at: snapshot?.server_time ?? null,
   browser_display_timezone: browserTimeZone(),
