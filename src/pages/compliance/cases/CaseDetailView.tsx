@@ -166,6 +166,28 @@ export default function CaseDetailView() {
     enabled: !!id,
   });
 
+  // Existing pending nomination (if any) for this case + officer
+  const { data: existingNomination } = useQuery({
+    queryKey: ['pending-nomination', id, currentUserCode],
+    enabled: !!id && !!userCode,
+    queryFn: () => inspectionNominationService.getNominationForCase({
+      caseId: id!, officerUserCode: currentUserCode,
+    }),
+  });
+
+  const withdrawNominationMutation = useMutation({
+    mutationFn: () => inspectionNominationService.withdrawNomination(
+      existingNomination!.nomination_id, currentUserCode
+    ),
+    onSuccess: () => {
+      toast.success('Removed from pending planning');
+      queryClient.invalidateQueries({ queryKey: ['pending-nomination', id] });
+      queryClient.invalidateQueries({ queryKey: ['pending-nominations'] });
+    },
+    onError: (err: any) => toast.error('Could not remove', { description: err?.message }),
+  });
+
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] });
     queryClient.invalidateQueries({ queryKey: ['ce_case_violations', id] });
