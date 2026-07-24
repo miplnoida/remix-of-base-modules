@@ -188,12 +188,40 @@ function fetchEmployerResponses() {
   return Promise.resolve([] as WorkItem[]);
 }
 
-function fetchArrangementsAwaitingApproval() {
+function fetchArrangementsAwaitingApproval(userId: string | null, userCode: string | null) {
   return safe(async () => {
+    if (!userId) return [] as WorkItem[];
+
+    // 1) Resolve every identifier the current user might own on ce_cases.assigned_officer_id
+    //    (UUID + inspector_code + legacy_inspector_code). Same pattern as AssignedCases.
+    const { data: inspectorRows } = await sb
+      .from('ce_inspectors')
+      .select('id, inspector_code, legacy_inspector_code')
+      .eq('profile_id', userId);
+    const officerIds = new Set<string>();
+    (inspectorRows ?? []).forEach((r: any) => {
+      if (r.id) officerIds.add(r.id);
+      if (r.inspector_code) officerIds.add(r.inspector_code);
+      if (r.legacy_inspector_code) officerIds.add(r.legacy_inspector_code);
+    });
+    if (userCode) officerIds.add(userCode);
+    if (officerIds.size === 0) return [] as WorkItem[];
+
+    // 2) Cases assigned to this officer.
+    const { data: cases } = await sb
+      .from('ce_cases')
+      .select('id')
+      .in('assigned_officer_id', Array.from(officerIds));
+    const caseIds = (cases ?? []).map((c: any) => c.id).filter(Boolean);
+    if (caseIds.length === 0) return [] as WorkItem[];
+
+    // 3) Arrangements linked to those cases in a genuine awaiting-approval state.
+    //    DRAFT is intentionally excluded — a draft is not yet submitted for approval.
     const { data, error } = await sb
       .from('ce_payment_arrangements')
-      .select('id, arrangement_number, employer_name, status, next_due_date')
-      .in('status', ['DRAFT', 'PENDING_APPROVAL', 'pending_approval', 'AWAITING_APPROVAL', 'PENDING', 'SUBMITTED'])
+      .select('id, arrangement_number, employer_name, status, next_due_date, case_id')
+      .in('case_id', caseIds)
+      .in('status', ['PENDING_APPROVAL', 'pending_approval', 'AWAITING_APPROVAL', 'awaiting_approval', 'SUBMITTED', 'submitted', 'PENDING', 'pending'])
       .order('next_due_date', { ascending: true, nullsFirst: false })
       .limit(200);
     if (error) return [] as WorkItem[];
