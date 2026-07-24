@@ -20,6 +20,7 @@ import {
   useEmployerStatement, useEmployerArrears, type LedgerEntry,
 } from '@/hooks/useComplianceLedger';
 import { fetchEmployerMaster } from '@/services/employer360Service';
+import { fetchEmployerPaymentHistory } from '@/services/employer360ExtendedService';
 import { useQuery } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -50,7 +51,7 @@ export default function EmployerStatementDetail() {
     enabled: !!employerId,
   });
 
-  const { data: entries = [], isLoading } = useEmployerStatement(
+  const { data: rawEntries = [], isLoading } = useEmployerStatement(
     employerId,
     fromPeriod || undefined,
     toPeriod || undefined,
@@ -58,6 +59,77 @@ export default function EmployerStatementDetail() {
   );
 
   const { data: arrears = [] } = useEmployerArrears(employerId);
+
+  // Fallback source: cashier receipts + posted ledger credits (Employer 360 parity).
+  // When the formal ledger has not been materialised for this employer, synthesise
+  // ledger-shaped rows from cashier receipts and outstanding arrears so the Full
+  // Statement still reflects real financial activity captured elsewhere.
+  const { data: paymentHistory = [] } = useQuery({
+    queryKey: ['stmt_payment_history', employerId],
+    queryFn: () => fetchEmployerPaymentHistory(employerId!),
+    enabled: !!employerId && rawEntries.length === 0,
+  });
+
+  const entries: LedgerEntry[] = (() => {
+    if (rawEntries.length > 0) return rawEntries;
+    if (!employerId) return [];
+
+    const synth: LedgerEntry[] = [];
+    // Arrears become opening debit rows per fund
+    (arrears as any[])
+      .filter((a) => (a.net_balance || 0) > 0)
+      .forEach((a, idx) => {
+        synth.push({
+          entry_id: `AR-${a.fund_type}-${idx}`,
+          posted_at: new Date(0).toISOString(),
+          period: '—',
+          fund_type: a.fund_type,
+          entry_type: 'OPENING_ARREARS',
+          description: `Outstanding balance brought forward (${a.period_count ?? 0} periods)`,
+          debit_amount: Number(a.net_balance) || 0,
+          credit_amount: 0,
+          running_balance: 0,
+          status: 'POSTED',
+          reference_type: null,
+          reference_id: null,
+          reversal_of_id: null,
+          reversal_reason: null,
+          posted_by: 'system',
+        });
+      });
+
+    // Cashier receipts become credit rows
+    (paymentHistory as any[])
+      .filter((p) => (p.credit_amount || 0) > 0)
+      .forEach((p) => {
+        synth.push({
+          entry_id: p.id,
+          posted_at: p.posted_at,
+          period: p.period ? String(p.period).slice(0, 10) : '—',
+          fund_type: p.fund_type || '—',
+          entry_type: `PAYMENT_RECEIVED`,
+          description: p.description || `Payment · ${p.source}`,
+          debit_amount: 0,
+          credit_amount: Number(p.credit_amount) || 0,
+          running_balance: 0,
+          status: p.status || 'POSTED',
+          reference_type: p.source,
+          reference_id: p.reference ?? null,
+          reversal_of_id: null,
+          reversal_reason: null,
+          posted_by: 'system',
+        });
+      });
+
+    // Sort chronologically and compute running balance
+    synth.sort((a, b) => new Date(a.posted_at).getTime() - new Date(b.posted_at).getTime());
+    let bal = 0;
+    for (const e of synth) {
+      bal += (e.debit_amount || 0) - (e.credit_amount || 0);
+      e.running_balance = bal;
+    }
+    return synth;
+  })();
 
   // Apply type filter
   const filtered = entries.filter((e) => {
