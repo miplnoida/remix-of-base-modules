@@ -20,6 +20,7 @@ import {
   useEmployerStatement, useEmployerArrears, type LedgerEntry,
 } from '@/hooks/useComplianceLedger';
 import { fetchEmployerMaster } from '@/services/employer360Service';
+import { fetchEmployerPaymentHistory } from '@/services/employer360ExtendedService';
 import { useQuery } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
