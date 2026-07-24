@@ -857,6 +857,18 @@ export default function CaseDetailView() {
         }
       />
 
+      <AddToInspectionPlanningDialog
+        open={planningDialogOpen}
+        onOpenChange={setPlanningDialogOpen}
+        caseId={c.id}
+        caseNumber={c.case_number}
+        employerId={c.employer_id || ''}
+        employerName={c.employer_name || ''}
+        officerUserCode={currentUserCode}
+      />
+
+
+
       {/* Amount Breakdown Dialog */}
       <Dialog open={breakdownDialogOpen} onOpenChange={setBreakdownDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
