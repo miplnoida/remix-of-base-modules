@@ -119,17 +119,33 @@ function fetchVerificationViolations(userId: string | null, userCode: string | n
   }, [] as WorkItem[]);
 }
 
-function fetchAssignedCases(userCode: string | null) {
+function fetchAssignedCases(userId: string | null, userCode: string | null) {
   return safe(async () => {
-    // ce_cases uses assigned_officer_id (varchar(10), holds the inspector/officer code).
-    // Fall back to system-wide pending cases when no user code is available.
+    // ce_cases.assigned_officer_id is mixed-shape across legacy + new
+    // assignment paths: it may hold a ce_inspectors.id (UUID), an
+    // inspector_code (e.g. "CI-02"), or a legacy code (e.g. "INS-002").
+    // Resolve every identifier the current user maps to.
+    const ids = new Set<string>();
+    if (userCode) ids.add(userCode);
+    if (userId) {
+      const { data: insp } = await sb
+        .from('ce_inspectors')
+        .select('id, inspector_code, legacy_inspector_code')
+        .eq('profile_id', userId);
+      (insp || []).forEach((r: any) => {
+        if (r.id) ids.add(r.id);
+        if (r.inspector_code) ids.add(r.inspector_code);
+        if (r.legacy_inspector_code) ids.add(r.legacy_inspector_code);
+      });
+    }
+
     let query = sb
       .from('ce_cases')
       .select('id, case_number, employer_name, status, priority, due_date, assigned_officer_id')
       .in('status', ['open', 'OPEN', 'ACTIVE', 'INVESTIGATION', 'in_progress', 'IN_PROGRESS', 'ESCALATED'])
       .order('due_date', { ascending: true, nullsFirst: false })
       .limit(200);
-    if (userCode) query = query.eq('assigned_officer_id', userCode);
+    if (ids.size > 0) query = query.in('assigned_officer_id', Array.from(ids));
     const { data, error } = await query;
     if (error) return [] as WorkItem[];
     return (data ?? []).map((r: any): WorkItem => ({
@@ -143,6 +159,7 @@ function fetchAssignedCases(userCode: string | null) {
     }));
   }, [] as WorkItem[]);
 }
+
 
 function fetchNoticesAwaitingApproval() {
   return safe(async () => {
