@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useComplianceRole } from '@/hooks/useComplianceRole';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -241,7 +241,25 @@ export default function ViolationDetails() {
     queryClient.invalidateQueries({ queryKey: ['ce_violation_linked_case', id] });
   };
 
+  // Radix Dialog / AlertDialog occasionally leaves `pointer-events: none`
+  // on <body> after a previous dialog closes (known Radix issue). That makes
+  // subsequent header buttons — including Escalate — appear to "do nothing"
+  // on the first click. Clearing the inline style before opening a new
+  // dialog guarantees the click is honoured.
+  const clearStuckBodyPointerEvents = useCallback(() => {
+    if (typeof document !== 'undefined' && document.body.style.pointerEvents === 'none') {
+      document.body.style.pointerEvents = '';
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!resolutionDialogOpen && !confirmDialogOpen && !assignmentDialogOpen && !createLinkOpen && verifyOpen === null) {
+      clearStuckBodyPointerEvents();
+    }
+  }, [resolutionDialogOpen, confirmDialogOpen, assignmentDialogOpen, createLinkOpen, verifyOpen, clearStuckBodyPointerEvents]);
+
   const handleActionClick = (action: ActionButtonDef) => {
+    clearStuckBodyPointerEvents();
     if (action.useResolutionDialog) {
       setResolutionMode(action.useResolutionDialog);
       setResolutionDialogOpen(true);
@@ -425,8 +443,16 @@ export default function ViolationDetails() {
             {availableActions.map((action) => (
               <Button
                 key={action.label}
+                type="button"
                 variant={action.variant}
                 size="sm"
+                title={
+                  action.confirmType === 'escalate'
+                    ? 'Escalate this violation to Compliance Head / Legal for senior review, formal notice or referral. Requires a written reason and is logged on the case history.'
+                    : action.confirmType === 'de_escalate'
+                      ? 'Return this violation from ESCALATED back to UNDER_REVIEW.'
+                      : undefined
+                }
                 onClick={() => handleActionClick(action)}
               >
                 {action.icon}
