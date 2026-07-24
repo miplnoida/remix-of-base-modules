@@ -37,13 +37,39 @@ const CaseIntake = () => {
         .order('opened_date', { ascending: false })
         .limit(200);
       if (ql) query = query.or(`case_number.ilike.%${ql}%,employer_name.ilike.%${ql}%,employer_id.ilike.%${ql}%`);
-      const { data, error } = await query;
+      const { data: cases, error } = await query;
       if (error) throw error;
-      return data || [];
+      const list = cases || [];
+
+      // Fund on ce_cases is often NULL because cases are created from one or
+      // more linked violations. Derive the fund set from ce_case_violations →
+      // ce_violations.fund_type for any rows where the case header is empty.
+      const missingFundIds = list.filter((c: any) => !c.fund_type).map((c: any) => c.id);
+      const derivedFunds = new Map<string, string>();
+      if (missingFundIds.length) {
+        const { data: links } = await supabase
+          .from('ce_case_violations')
+          .select('case_id, ce_violations!inner(fund_type)')
+          .in('case_id', missingFundIds);
+        const bucket = new Map<string, Set<string>>();
+        (links || []).forEach((row: any) => {
+          const f = row.ce_violations?.fund_type;
+          if (!f) return;
+          if (!bucket.has(row.case_id)) bucket.set(row.case_id, new Set());
+          bucket.get(row.case_id)!.add(f);
+        });
+        bucket.forEach((set, caseId) => derivedFunds.set(caseId, Array.from(set).sort().join(', ')));
+      }
+
+      return list.map((c: any) => ({
+        ...c,
+        fund_display: c.fund_type || derivedFunds.get(c.id) || null,
+      }));
     },
   });
 
   const rows = useMemo(() => data, [data]);
+
 
   return (
     <PermissionWrapper moduleName={MODULE}>
@@ -85,7 +111,7 @@ const CaseIntake = () => {
                         <div className="text-xs text-muted-foreground">{r.employer_id}</div>
                       </TableCell>
                       <TableCell>{r.case_family || '—'}</TableCell>
-                      <TableCell>{r.fund_type || '—'}</TableCell>
+                      <TableCell>{r.fund_display ? <Badge variant="outline" className="text-[10px]">{r.fund_display}</Badge> : '—'}</TableCell>
                       <TableCell><Badge variant="outline">{r.status}</Badge></TableCell>
                       <TableCell>
                         <Badge variant={r.priority === 'Critical' ? 'destructive' : r.priority === 'High' ? 'default' : 'secondary'}>
