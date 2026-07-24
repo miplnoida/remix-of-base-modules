@@ -262,6 +262,43 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
     onError: (e: any) => toast.error('Breach refresh failed', { description: e.message }),
   });
 
+  // ── Lifecycle: Submit / Approve / Activate / Reject ───────
+  const invalidateArrangement = () => {
+    queryClient.invalidateQueries({ queryKey: ['arrangement_detail', arrangementId] });
+    queryClient.invalidateQueries({ queryKey: ['ce_payment_arrangements'] });
+    queryClient.invalidateQueries({ queryKey: ['my-work-queue'] });
+  };
+  const actor = userCode || 'SYSTEM';
+
+  const submitMutation = useMutation({
+    mutationFn: () => submitForApproval(arrangementId, actor),
+    onSuccess: () => { invalidateArrangement(); toast.success('Submitted for approval'); },
+    onError: (e: any) => toast.error('Submit failed', { description: e.message }),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: () => approveArrangement(arrangementId, actor),
+    onSuccess: () => { invalidateArrangement(); toast.success('Arrangement approved and activated'); },
+    onError: (e: any) => toast.error('Approve failed', { description: e.message }),
+  });
+
+  const activateMutation = useMutation({
+    mutationFn: () => activateArrangement(arrangementId, actor),
+    onSuccess: () => { invalidateArrangement(); toast.success('Arrangement activated'); },
+    onError: (e: any) => toast.error('Activate failed', { description: e.message }),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (reason: string) => rejectArrangement(arrangementId, actor, reason),
+    onSuccess: () => {
+      invalidateArrangement();
+      toast.success('Arrangement rejected');
+      setRejectOpen(false);
+      setRejectReason('');
+    },
+    onError: (e: any) => toast.error('Reject failed', { description: e.message }),
+  });
+
   // ── Render: Loading ───────────────────────────────────────
 
   if (isLoading) {
