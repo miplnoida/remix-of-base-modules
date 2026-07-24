@@ -11,19 +11,36 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, ClipboardList } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useUserCode } from '@/hooks/useUserCode';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 const MODULE = 'manage_compliance';
 
 const AssignedCases = () => {
   const navigate = useNavigate();
-  const { userCode } = useUserCode();
+  const { user } = useSupabaseAuth();
   const [q, setQ] = useState('');
   const [mineOnly, setMineOnly] = useState(true);
   const ql = useDebounce(q, 300);
 
+  // Resolve the current user's ce_inspectors.id — assignments store the
+  // inspector UUID on ce_cases.assigned_officer_id, NOT the user_code.
+  const { data: myInspectorId } = useQuery({
+    queryKey: ['ce_my_inspector_id', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_inspectors')
+        .select('id')
+        .eq('profile_id', user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as any)?.id as string | null;
+    },
+  });
+
   const { data = [], isLoading } = useQuery({
-    queryKey: ['ce_cases_assigned', ql, mineOnly, userCode],
+    queryKey: ['ce_cases_assigned', ql, mineOnly, myInspectorId],
+    enabled: !mineOnly || !!myInspectorId,
     queryFn: async () => {
       let query = supabase
         .from('ce_cases')
@@ -33,13 +50,14 @@ const AssignedCases = () => {
         .not('status', 'in', '(CLOSED,RESOLVED)')
         .order('opened_date', { ascending: false })
         .limit(300);
-      if (mineOnly && userCode) query = query.eq('assigned_officer_id', userCode);
+      if (mineOnly && myInspectorId) query = query.eq('assigned_officer_id', myInspectorId);
       if (ql) query = query.or(`case_number.ilike.%${ql}%,employer_name.ilike.%${ql}%,assigned_officer_name.ilike.%${ql}%`);
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
   });
+
 
   return (
     <PermissionWrapper moduleName={MODULE}>
