@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Inbox, Loader2, ExternalLink } from 'lucide-react';
+import { Inbox, Loader2, ExternalLink, CalendarClock } from 'lucide-react';
+import { inspectionNominationService } from '@/services/inspectionNominationService';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
