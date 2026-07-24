@@ -139,34 +139,87 @@ export default function WeeklyPlanBuilderSmart({ onSwitchToLegacy }: Props) {
   }, [builder.candidates, builder.addedSourceIds]);
 
   const handleGenerateDraft = useCallback(async () => {
-    if (!builder.canEdit) return;
+    if (!builder.canEdit) {
+      toast({
+        title: 'Plan Locked',
+        description: 'This plan is no longer editable. Withdraw or request changes to modify it.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (builder.candidatesLoading) {
+      toast({ title: 'Still loading', description: 'Candidate list is loading. Please try again in a moment.' });
+      return;
+    }
+
+    if (!builder.inspectorId) {
+      toast({
+        title: 'Inspector Profile Required',
+        description:
+          'Smart Plan needs an inspector profile linked to your account. Please ask an administrator to add you to the Inspectors register, then retry.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!builder.candidates || builder.candidates.length === 0) {
+      toast({
+        title: 'No Candidates Available',
+        description:
+          'There are no eligible items (overdue, high-risk, follow-ups, nominations) to auto-schedule for this week. Add an Exception manually, or use Browse & Add.',
+      });
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const result = generateSmartDraft(builder.candidates, builder.addedSourceIds);
 
       if (result.draftItems.length === 0) {
-        toast({ title: 'No Suggestions', description: 'No candidate items available to auto-schedule.' });
+        toast({
+          title: 'Nothing to Schedule',
+          description:
+            'All eligible candidates are already on the plan, or none fit within the weekly capacity. Adjust filters or add items manually.',
+        });
         return;
       }
 
       const requests = draftToRequests(result.draftItems, '', builder.week.days, '');
 
       let addedCount = 0;
+      let firstError: string | null = null;
       for (const req of requests) {
         try {
           await builder.addManualItem(req);
           addedCount++;
-        } catch {
-          // Skip failed items
+        } catch (e: any) {
+          if (!firstError) firstError = e?.message || 'Unknown error';
         }
+      }
+
+      if (addedCount === 0) {
+        toast({
+          title: 'Smart Plan Failed',
+          description: firstError || 'No items could be added to the plan. Please try again or contact support.',
+          variant: 'destructive',
+        });
+        return;
       }
 
       toast({
         title: 'Smart Draft Ready',
-        description: `${addedCount} items scheduled across the week. Review and adjust before submitting.`,
+        description:
+          `${addedCount} of ${requests.length} items scheduled across the week. ` +
+          `Review and adjust before submitting.` +
+          (firstError ? ` (Some items failed: ${firstError})` : ''),
       });
     } catch (err: any) {
-      toast({ title: 'Error', description: err.message || 'Failed to generate draft', variant: 'destructive' });
+      toast({
+        title: 'Smart Plan Failed',
+        description: err?.message || 'Failed to generate draft. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsGenerating(false);
     }
