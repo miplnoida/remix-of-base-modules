@@ -450,7 +450,13 @@ export default function PreviewApprovalPanel({
       )}
 
       {approval && (() => {
-        const aCreated = formatEvidenceTimestamp(approval.created_at ?? null, UNAVAILABLE_LABEL);
+        // Section N: prefer authoritative approval decision timestamp
+        // (approved_at) over the record creation timestamp for the
+        // operator-facing "Approved at" field.
+        const aApprovedAt = formatEvidenceTimestamp(
+          approval.approved_at ?? approval.created_at ?? null,
+          UNAVAILABLE_LABEL,
+        );
         const aExpires = formatEvidenceTimestamp(approval.expires_at, "—");
         const aBadge = approval.status === "ACTIVE" && !approvalExpired
           ? { label: "ACTIVE", variant: "default" as const }
