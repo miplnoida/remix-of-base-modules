@@ -178,6 +178,37 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
+  // ---------- Edge environment validation (Section E) ---------------------
+  const envCheck = validateEdgeEnvironment();
+  if (!envCheck.ok) {
+    return json(500, {
+      contract_version: CONTRACT_VERSION,
+      edge_version: EDGE_VERSION,
+      status: "BLOCKED",
+      state: "BLOCKED",
+      failure_stage: "EDGE_ENVIRONMENT",
+      message:
+        "The Dry Run processing service is not configured. Platform configuration required.",
+      blockers: [
+        {
+          code: "EDGE_SERVICE_ROLE_CONFIGURATION_INVALID",
+          stage: "EDGE_ENVIRONMENT",
+          reason: envCheck.reason,
+        },
+      ],
+      mutation_started: false,
+      execution_created: false,
+      request_created: false,
+      message_created: false,
+      cleanup_proven: true,
+      provider_call_attempted: false,
+      simulator_call_attempted: false,
+      ambiguous_outcome: false,
+      retry_safe: false,
+      retry_reason: "EDGE_CONFIGURATION_INVALID",
+    });
+  }
+
   // ---------- Auth boundary ------------------------------------------------
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.toLowerCase().startsWith("bearer ")) {
