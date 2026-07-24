@@ -252,6 +252,26 @@ export default function ViolationDetails() {
     }
   };
 
+  const confirmVerificationMut = useMutation({
+    mutationFn: () => confirmViolation(id!, currentUserCode, verifyNotes),
+    onSuccess: () => {
+      toast.success('Violation approved and moved to OPEN.');
+      setVerifyOpen(null); setVerifyNotes('');
+      invalidateAll();
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Failed to approve violation'),
+  });
+  const rejectVerificationMut = useMutation({
+    mutationFn: () => rejectViolation(id!, currentUserCode, verifyNotes),
+    onSuccess: () => {
+      toast.success('Violation rejected and cancelled.');
+      setVerifyOpen(null); setVerifyNotes('');
+      invalidateAll();
+    },
+    onError: (e: any) => toast.error(e?.message ?? 'Failed to reject violation'),
+  });
+
+
   const handleResolutionConfirm = async (data: { resolutionType: string; notes: string; resolutionNotes: string }) => {
     if (resolutionMode === 'resolve') {
       const result = await violationLifecycleService.resolve(
