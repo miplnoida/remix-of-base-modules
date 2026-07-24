@@ -443,8 +443,16 @@ export default function ViolationDetails() {
             {availableActions.map((action) => (
               <Button
                 key={action.label}
+                type="button"
                 variant={action.variant}
                 size="sm"
+                title={
+                  action.confirmType === 'escalate'
+                    ? 'Escalate this violation to Compliance Head / Legal for senior review, formal notice or referral. Requires a written reason and is logged on the case history.'
+                    : action.confirmType === 'de_escalate'
+                      ? 'Return this violation from ESCALATED back to UNDER_REVIEW.'
+                      : undefined
+                }
                 onClick={() => handleActionClick(action)}
               >
                 {action.icon}
