@@ -177,10 +177,40 @@ export function useWeeklyPlanBuilder() {
 
   const candidatesV3: PlanCandidateV3[] = candidatesQuery.data ?? [];
 
+  // Officer nominations for this week — surfaced at the top of CASE bucket.
+  const nominationsQuery = useQuery({
+    queryKey: ['plan-nominations', userCode, week.weekStart],
+    queryFn: () =>
+      inspectionNominationService.listNominationsForWeek({
+        officerUserCode: userCode!,
+        weekStartDate: week.weekStart,
+      }),
+    enabled: !!userCode,
+    staleTime: 30_000,
+  });
+  const nominations = nominationsQuery.data ?? [];
+
   // Map V3 → legacy PlanCandidate shape (kept for downstream UI compatibility),
   // preserving why_selected / mandatory_class / bucket via reason labels.
   const candidates = useMemo<PlanCandidate[]>(() => {
-    return candidatesV3.map((v): PlanCandidate => {
+    const nominated: PlanCandidate[] = nominations.map((n): PlanCandidate => ({
+      source_type: 'CASE',
+      source_id: `nomination-${n.nomination_id}`,
+      source_ref: n.case_id ?? n.employer_id,
+      employer_id: n.employer_id,
+      employer_name: n.employer_name ?? 'Unknown employer',
+      territory: null,
+      priority: 'HIGH',
+      source_status: 'OFFICER_NOMINATED',
+      financial_exposure: null,
+      due_date: null,
+      assigned_to_user_id: null,
+      source_created_at: n.created_at,
+      description: `★ Officer nomination — ${n.case_number ?? 'Case'}${n.notes ? ` · ${n.notes}` : ''}`,
+      recommendation_score: 999,
+    }));
+
+    const scored = candidatesV3.map((v): PlanCandidate => {
       const reasonLabel =
         CANDIDATE_REASON_LABELS[v.candidate_reason] || v.candidate_reason;
       return {
@@ -200,7 +230,9 @@ export function useWeeklyPlanBuilder() {
         recommendation_score: v.audit_priority_score,
       };
     });
-  }, [candidatesV3]);
+
+    return [...nominated, ...scored];
+  }, [candidatesV3, nominations]);
 
   const groupedCandidates = useMemo<GroupedCandidates>(() => {
     const groups: GroupedCandidates = {
