@@ -11,19 +11,44 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, ClipboardList } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useUserCode } from '@/hooks/useUserCode';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 const MODULE = 'manage_compliance';
 
 const AssignedCases = () => {
   const navigate = useNavigate();
-  const { userCode } = useUserCode();
+  const { user } = useSupabaseAuth();
   const [q, setQ] = useState('');
   const [mineOnly, setMineOnly] = useState(true);
   const ql = useDebounce(q, 300);
 
+  // Resolve every identifier that ce_cases.assigned_officer_id might contain
+  // for the current user: ce_inspectors.id (UUID), inspector_code, and
+  // legacy_inspector_code. The column is mixed-shape across legacy and new
+  // assignment paths, so we must match on all of them.
+  const { data: myOfficerIds = [] } = useQuery({
+    queryKey: ['ce_my_officer_ids', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_inspectors')
+        .select('id, inspector_code, legacy_inspector_code')
+        .eq('profile_id', user!.id);
+      if (error) throw error;
+      const out = new Set<string>();
+      (data || []).forEach((r: any) => {
+        if (r.id) out.add(r.id);
+        if (r.inspector_code) out.add(r.inspector_code);
+        if (r.legacy_inspector_code) out.add(r.legacy_inspector_code);
+      });
+      return Array.from(out);
+    },
+  });
+
+
   const { data = [], isLoading } = useQuery({
-    queryKey: ['ce_cases_assigned', ql, mineOnly, userCode],
+    queryKey: ['ce_cases_assigned', ql, mineOnly, myOfficerIds],
+    enabled: !mineOnly || myOfficerIds.length > 0,
     queryFn: async () => {
       let query = supabase
         .from('ce_cases')
@@ -33,13 +58,15 @@ const AssignedCases = () => {
         .not('status', 'in', '(CLOSED,RESOLVED)')
         .order('opened_date', { ascending: false })
         .limit(300);
-      if (mineOnly && userCode) query = query.eq('assigned_officer_id', userCode);
+      if (mineOnly && myOfficerIds.length > 0) query = query.in('assigned_officer_id', myOfficerIds);
+
       if (ql) query = query.or(`case_number.ilike.%${ql}%,employer_name.ilike.%${ql}%,assigned_officer_name.ilike.%${ql}%`);
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
   });
+
 
   return (
     <PermissionWrapper moduleName={MODULE}>
