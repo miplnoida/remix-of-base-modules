@@ -478,8 +478,8 @@ export default function PreviewApprovalPanel({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
               <div data-testid="approval-created">
-                <strong>Approval created:</strong>{" "}
-                <span className={aCreated.ok ? "" : "text-destructive"}>{aCreated.display}</span>
+                <strong>Approved at:</strong>{" "}
+                <span className={aApprovedAt.ok ? "" : "text-destructive"}>{aApprovedAt.display}</span>
               </div>
               <div data-testid="approval-expires">
                 <strong>Approval expires:</strong>{" "}
