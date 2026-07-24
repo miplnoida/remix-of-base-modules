@@ -119,4 +119,20 @@ export const inspectionNominationService = {
     const rows = (data ?? []) as unknown as PendingNomination[];
     return rows[0] ?? null;
   },
+
+  /** List nominations for a specific officer + week (used by Weekly Plan builder to inject candidates). */
+  async listNominationsForWeek(params: {
+    officerUserCode: string;
+    weekStartDate: string;
+  }): Promise<PendingNomination[]> {
+    const { data, error } = await supabase
+      .from('ce_v_pending_case_nominations' as any)
+      .select('*')
+      .eq('officer_user_code', params.officerUserCode)
+      .eq('week_start_date', params.weekStartDate)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []) as unknown as PendingNomination[];
+  },
 };
