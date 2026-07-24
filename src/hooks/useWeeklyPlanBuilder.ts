@@ -163,15 +163,19 @@ export function useWeeklyPlanBuilder() {
   // NOTE: Zone filter intentionally disabled for now (per request).
   // We do NOT pass inspectorId/zoneId so the RPC returns candidates across
   // all zones. Re-enable by passing { inspectorId } when zone scoping is wanted.
+  // Do NOT gate on inspectorId: candidates are fetched with zone/inspector
+  // filters disabled, so users without a ce_inspectors row (admins, reviewers)
+  // must still see the KPI cards populated. Gating here caused Total Workload /
+  // High Risk / Overdue / Coverage to render as 0/0/0/100% for those users.
   const candidatesQuery = useQuery({
-    queryKey: ['plan-candidates-v3', 'no-zone-filter', inspectorId],
+    queryKey: ['plan-candidates-v3', 'no-zone-filter'],
     queryFn: () =>
       planCandidateService.getScoredCandidatesV3({
         zoneId: null,
         inspectorId: null,
         limit: 500,
       }),
-    enabled: !!inspectorId,
+    enabled: !!userId,
     staleTime: 60_000,
   });
 
