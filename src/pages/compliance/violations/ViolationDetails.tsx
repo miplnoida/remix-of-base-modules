@@ -115,12 +115,21 @@ export default function ViolationDetails() {
   // (re)assigning violations. Officers/Inspectors are intentionally blocked.
   const canReopenCancelled = complianceRole === 'head';
   const canManageAssignments = complianceRole === 'head';
+  // Verification actions (Approve / Reject) are available to Compliance Head
+  // and Senior officers when a violation is sitting in UNDER_REVIEW with no
+  // verification decision recorded yet — matching the Verification Queue rules.
+  const canVerifyViolations = complianceRole === 'head' || complianceRole === 'senior';
+
+  // Verification decision dialog state
+  const [verifyOpen, setVerifyOpen] = useState<null | 'confirm' | 'reject'>(null);
+  const [verifyNotes, setVerifyNotes] = useState('');
 
   const { data: violationData, isLoading: loadingCase } = useQuery({
     queryKey: ['ce_violation', id],
     queryFn: () => fetchViolationById(id!),
     enabled: !!id,
   });
+
 
   const { data: otherViolations = [] } = useQuery({
     queryKey: ['ce_violations_employer', violationData?.employer_id, id],
