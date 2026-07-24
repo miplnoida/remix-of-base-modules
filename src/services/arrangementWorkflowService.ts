@@ -40,12 +40,40 @@ export async function approveArrangement(arrangementId: string, userCode: string
   if (error) throw error;
 }
 
-export async function rejectArrangement(arrangementId: string, userCode: string) {
+export async function rejectArrangement(arrangementId: string, userCode: string, reason?: string) {
   assertArrangementEnabled();
   const { error } = await supabase
     .from('ce_payment_arrangements')
-    .update({ status: 'DRAFT', updated_by: userCode, updated_at: new Date().toISOString() } as any)
-    .eq('id', arrangementId).eq('status', 'PENDING_APPROVAL');
+    .update({
+      status: 'CANCELLED',
+      breach_reason: reason || null,
+      updated_by: userCode,
+      updated_at: new Date().toISOString(),
+    } as any)
+    .eq('id', arrangementId)
+    .in('status', ['DRAFT', 'PENDING_APPROVAL']);
+  if (error) throw error;
+}
+
+/**
+ * Direct activation from DRAFT — used when the reviewer has authority to
+ * skip the two-step submit/approve workflow (e.g. supervisor-created plans).
+ * Sets ACTIVE + records approver metadata in one step.
+ */
+export async function activateArrangement(arrangementId: string, userCode: string) {
+  assertArrangementEnabled();
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from('ce_payment_arrangements')
+    .update({
+      status: 'ACTIVE',
+      approved_by: userCode,
+      approved_at: now,
+      updated_by: userCode,
+      updated_at: now,
+    } as any)
+    .eq('id', arrangementId)
+    .in('status', ['DRAFT', 'PENDING_APPROVAL']);
   if (error) throw error;
 }
 
