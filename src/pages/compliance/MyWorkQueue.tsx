@@ -90,20 +90,20 @@ function fetchAssignedViolations(userId: string | null, userCode: string | null)
 function fetchVerificationViolations(userId: string | null, userCode: string | null) {
   return safe(async () => {
     const ids = assigneeIds(userId, userCode);
-    const orClause = ids.length
-      ? `assigned_to_user_id.in.(${ids.join(',')}),assigned_to_user_id.is.null`
-      : `assigned_to_user_id.is.null`;
-    const { data, error } = await sb
+    // "Awaiting verification" = status UNDER_REVIEW with no verification
+    // decision yet (CONFIRMED / REJECTED / SENT_BACK removes it from the
+    // queue). Officer scope: rows assigned to the user OR unassigned pool.
+    let query = sb
       .from('ce_violations')
-      .select('id, violation_number, employer_name, status, priority, due_date, assigned_to_user_id')
-      .in('status', [
-        'pending_verification',
-        'PENDING_VERIFICATION',
-        'verification_pending',
-        'awaiting_verification',
-        'UNDER_REVIEW',
-      ])
-      .or(orClause)
+      .select('id, violation_number, employer_name, status, priority, due_date, assigned_to_user_id, verification_decision')
+      .eq('status', 'UNDER_REVIEW')
+      .is('verification_decision', null);
+    if (ids.length) {
+      query = query.or(`assigned_to_user_id.in.(${ids.join(',')}),assigned_to_user_id.is.null`);
+    } else {
+      query = query.is('assigned_to_user_id', null);
+    }
+    const { data, error } = await query
       .order('due_date', { ascending: true, nullsFirst: false })
       .limit(200);
     if (error) return [] as WorkItem[];
@@ -118,6 +118,7 @@ function fetchVerificationViolations(userId: string | null, userCode: string | n
     }));
   }, [] as WorkItem[]);
 }
+
 
 function fetchAssignedCases(userId: string | null, userCode: string | null) {
   return safe(async () => {
