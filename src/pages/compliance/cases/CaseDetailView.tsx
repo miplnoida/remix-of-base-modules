@@ -392,6 +392,40 @@ export default function CaseDetailView() {
                 Request Waiver
               </Button>
             )}
+            {/* Add to Inspection Planning — assigned officer or Compliance Head */}
+            {(() => {
+              const isAssignedOfficer =
+                !!(c as any).assigned_officer_id &&
+                myOfficerIds.includes((c as any).assigned_officer_id);
+              const canNominate = isAssignedOfficer || canManageAssignments;
+              const caseClosed = ['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status);
+              if (!canNominate || caseClosed || !c.employer_id) return null;
+              if (existingNomination) {
+                return (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => withdrawNominationMutation.mutate()}
+                    disabled={withdrawNominationMutation.isPending}
+                    title={`Queued for week starting ${existingNomination.week_start_date}. Click to remove.`}
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />Remove from Planning
+                  </Button>
+                );
+              }
+              return (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPlanningDialogOpen(true)}
+                  title="Queue this case for an inspection in your weekly plan"
+                >
+                  <CalendarClock className="h-4 w-4 mr-1" />Add to Inspection Planning
+                </Button>
+              );
+            })()}
             <CaseRequestActions
               caseId={c.id}
               caseStatus={c.status}
