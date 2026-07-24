@@ -47,8 +47,8 @@ const AssignedCases = () => {
 
 
   const { data = [], isLoading } = useQuery({
-    queryKey: ['ce_cases_assigned', ql, mineOnly, myInspectorId],
-    enabled: !mineOnly || !!myInspectorId,
+    queryKey: ['ce_cases_assigned', ql, mineOnly, myOfficerIds],
+    enabled: !mineOnly || myOfficerIds.length > 0,
     queryFn: async () => {
       let query = supabase
         .from('ce_cases')
@@ -58,7 +58,8 @@ const AssignedCases = () => {
         .not('status', 'in', '(CLOSED,RESOLVED)')
         .order('opened_date', { ascending: false })
         .limit(300);
-      if (mineOnly && myInspectorId) query = query.eq('assigned_officer_id', myInspectorId);
+      if (mineOnly && myOfficerIds.length > 0) query = query.in('assigned_officer_id', myOfficerIds);
+
       if (ql) query = query.or(`case_number.ilike.%${ql}%,employer_name.ilike.%${ql}%,assigned_officer_name.ilike.%${ql}%`);
       const { data, error } = await query;
       if (error) throw error;
