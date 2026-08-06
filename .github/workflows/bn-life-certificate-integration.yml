@@ -33,12 +33,21 @@ on:
     branches:
       - main
       - development
+      - "bn/**"
     paths:
       - "supabase/migrations/**"
       - "supabase/tests/bn/**"
+      - "supabase/verify/bn_life_certificate_**"
+      - "supabase/functions/bn-life-certificate-**/**"
+      - "supabase/functions/bn-communication-adapter/**"
       - "src/pages/bn/servicing/**"
       - "src/services/bn/lifeCertificate**"
+      - "src/services/bn/bnCommunicationAdapterService.ts"
+      - "src/components/bn/life-certificates/**"
       - "src/__tests__/bn/servicing/**"
+      - "scripts/bn/**"
+      - "scripts/ci/**"
+      - "supabase/baseline/**"
       - ".github/workflows/bn-life-certificate-integration.yml"
   workflow_dispatch:
 
@@ -46,6 +55,7 @@ jobs:
   life-certificate-db:
     name: Seeded Life Certificate database harness
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:15
@@ -89,30 +99,78 @@ jobs:
           scripts/ci/bootstrap-supabase-test-db.sh
 
       - name: Verify Life Certificate effective grants
-        run: psql -v ON_ERROR_STOP=1 -f supabase/verify/bn_life_certificate_effective_grants.sql
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f supabase/verify/bn_life_certificate_effective_grants.sql 2>&1 \
+            | tee /tmp/bn-lc-grants.log
+          test "$(grep -c 'BN_LC_GRANTS_RESULT: PASS' /tmp/bn-lc-grants.log)" -eq 1 \
+            || { echo "FAIL: grant verifier did not report exactly one PASS marker"; exit 1; }
 
       - name: Run seeded Life Certificate harness
         run: |
           set -euo pipefail
           psql -v ON_ERROR_STOP=1 -f supabase/tests/bn/life_certificate_integration.sql 2>&1 \
             | tee /tmp/bn-lc-harness.log
-          if grep -qi 'SKIP' /tmp/bn-lc-harness.log; then
-            echo "FAIL: harness skipped a scenario"; exit 1
+          if grep -Eq 'BN_LC_HARNESS_RESULT:[[:space:]]*SKIP' /tmp/bn-lc-harness.log; then
+            echo "FAIL: harness reported SKIP"
+            exit 1
           fi
-          grep -q 'BN_LC_HARNESS_RESULT: PASS' /tmp/bn-lc-harness.log \
-            || { echo "FAIL: harness did not report PASS"; exit 1; }
+          test "$(grep -c 'BN_LC_HARNESS_RESULT: PASS' /tmp/bn-lc-harness.log)" -eq 1 \
+            || { echo "FAIL: harness did not report exactly one PASS marker"; exit 1; }
 
-      - name: Upload harness evidence
+      - name: Assert the module is still dark-launched
+        run: |
+          set -euo pipefail
+          state="$(psql -At -v ON_ERROR_STOP=1 \
+            -c "SELECT actions_enabled FROM public.app_modules WHERE name = 'bn_life_certificate';")"
+          [ "$state" = "f" ] || { echo "FAIL: Life Certificate activated in CI (actions_enabled=$state)"; exit 1; }
+
+      - name: Assert no Life Certificate fixture residue after rollback
+        run: |
+          set -euo pipefail
+          residue="$(psql -At -v ON_ERROR_STOP=1 <<'SQL'
+          SELECT
+            (SELECT count(*) FROM auth.users
+              WHERE id IN ('aaaaaaaa-0000-4000-8000-000000000001'::uuid,
+                           'aaaaaaaa-0000-4000-8000-000000000002'::uuid))
+          + (SELECT count(*) FROM public.bn_claim
+              WHERE claim_number IN ('LC-CLM-0001','LC-CLM-0002'))
+          + (SELECT count(*) FROM public.bn_award
+              WHERE award_number IN ('LC-AWD-0001','LC-AWD-0002','LC-AWD-0003'))
+          + (SELECT count(*) FROM public.bn_life_certificate
+              WHERE id = 'dddddddd-0000-4000-8000-000000000001'::uuid)
+          + (SELECT count(*) FROM public.bn_life_certificate_communication_intent
+              WHERE id IN ('eeeeeeee-0000-4000-8000-000000000001'::uuid,
+                           'eeeeeeee-0000-4000-8000-000000000002'::uuid,
+                           'eeeeeeee-0000-4000-8000-000000000003'::uuid,
+                           'eeeeeeee-0000-4000-8000-000000000004'::uuid,
+                           'eeeeeeee-0000-4000-8000-000000000005'::uuid))
+          + (SELECT count(*) FROM public.communication_request
+              WHERE idempotency_key LIKE 'bn-comm:BN_LIFE_CERTIFICATE:eeeeeeee-0000-4000-8000-%')
+          + (SELECT count(*) FROM public.bn_communication_dispatch
+              WHERE source_intent_id IN ('eeeeeeee-0000-4000-8000-000000000001'::uuid,
+                                         'eeeeeeee-0000-4000-8000-000000000002'::uuid,
+                                         'eeeeeeee-0000-4000-8000-000000000003'::uuid,
+                                         'eeeeeeee-0000-4000-8000-000000000004'::uuid,
+                                         'eeeeeeee-0000-4000-8000-000000000005'::uuid));
+          SQL
+          )"
+          [ "$residue" = "0" ] || { echo "FAIL: Life Certificate fixture residue detected ($residue rows)"; exit 1; }
+
+      - name: Upload certification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bn-life-certificate-harness-log
-          path: /tmp/bn-lc-harness.log
+          name: bn-life-certificate-certification-logs
+          path: |
+            /tmp/bn-lc-grants.log
+            /tmp/bn-lc-harness.log
           if-no-files-found: warn
 
   life-certificate-ui:
-    name: Life Certificate route and service tests
+    name: Life Certificate route, service and type tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -122,3 +180,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Run Benefits servicing suite
         run: bunx vitest run src/__tests__/bn/servicing/
+      - name: Typecheck
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: bunx tsc --noEmit -p tsconfig.app.json

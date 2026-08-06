@@ -44,8 +44,6 @@ SELECT proname, pg_get_function_arguments(oid)
 DO $verify$
 DECLARE r record; v_bad text[] := '{}';
 BEGIN
-  -- 6a. No browser role may touch any Life Certificate or BN communication
-  --     dispatch table directly, in any way.
   FOR r IN
     SELECT c.relname, role_name, priv
       FROM pg_class c
@@ -59,8 +57,6 @@ BEGIN
     v_bad := v_bad || format('TABLE %s: %s has %s', r.relname, r.role_name, r.priv);
   END LOOP;
 
-  -- 6b. Private helpers and scheduler / adapter surfaces must be unreachable
-  --     from anon and authenticated, including via PUBLIC EXECUTE defaults.
   FOR r IN
     SELECT p.proname, pg_get_function_identity_arguments(p.oid) AS args, role_name
       FROM pg_proc p
@@ -84,9 +80,23 @@ BEGIN
 END $verify$;
 
 -- 7. Every Life Certificate mutation command must carry the record-scope guard.
-SELECT p.proname
-  FROM pg_proc p
-  JOIN pg_namespace n ON n.oid = p.pronamespace
- WHERE n.nspname = 'public'
-   AND p.proname ~ '^bn_life_certificate_(verify|reject|request_resubmission|waive|defer|escalate_to_suspension|propose_reinstatement|receive)_v1$'
-   AND position('_bn_lc_require_record' in pg_get_functiondef(p.oid)) = 0;
+DO $scope$
+DECLARE v_bad text;
+BEGIN
+  SELECT string_agg(p.proname, ', ' ORDER BY p.proname)
+    INTO v_bad
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public'
+     AND p.proname ~ '^bn_life_certificate_(verify|reject|request_resubmission|waive|defer|escalate_to_suspension|propose_reinstatement|receive)_v1$'
+     AND position('_bn_lc_require_record' in pg_get_functiondef(p.oid)) = 0;
+
+  IF v_bad IS NOT NULL THEN
+    RAISE EXCEPTION 'LIFE CERTIFICATE COMMANDS WITHOUT RECORD-SCOPE GUARD: %', v_bad;
+  END IF;
+END $scope$;
+
+DO $result$
+BEGIN
+  RAISE NOTICE 'BN_LC_GRANTS_RESULT: PASS';
+END $result$;
