@@ -15,9 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
 import { catalogueLegalSnapshot } from '@/lib/bn/catalogueLegalSnapshot';
 import { catalogueRuleDefinition, unmappableCatalogueRules, unmappableRuleMessage } from '@/services/bn/eligibility/catalogueRuleMapping';
-
 import { isRuleCurrentlyEffective, type RuleCatalogueItem } from '@/services/bn/ruleCatalogueService';
-
+import { BnBusyButton } from '@/components/bn/shared';
 
 interface Props {
   open: boolean;
