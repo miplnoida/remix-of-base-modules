@@ -281,3 +281,55 @@ Typecheck `npx tsgo --noEmit -p tsconfig.app.json` clean; build OK.
 
 Gate status: still **IN PROGRESS** — evidence convergence, Template Library, stage-grouped workspace,
 Continue Audit, RBAC/SoD completion, and the full deterministic/usability/scalability/regression suite remain open.
+
+## Phase 4 — Template Library (rebaseline, implementation, authenticated TEST evidence)
+
+### 4.1 Template family rebaseline and treatment
+
+| # | Family | Canonical store | Canonical editor | Lifecycle before | Library treatment |
+|---|--------|-----------------|------------------|------------------|-------------------|
+| 1 | Audit programmes / procedures | `ia_audit_programs`, `ia_audit_procedures` | Programme editors + `EngagementProgrammePanel` | status/version/approval/freeze, no clone/version/default/harvest RPCs | **EXTEND** — full governed lifecycle added; register + detail + Where Used |
+| 2 | RCM tests | `ia_rcm_tests` | `AuditProgrammeRcmTab` | linked to procedures | **KEEP** — referenced through programmes, not a separate library entry |
+| 3 | Preparation checklists | `ia_checklist_templates` / `_items` | `AuditPreparationTab` config | active flag only | **KEEP** — listed and searchable, edited in its own editor |
+| 4 | Audit plan templates | `ia_audit_plan_templates` / profiles | `AuditPlanTemplateEditor` (governance hook) | status/version/clone/default already governed | **KEEP** — listed, deep-linked to specialist editor |
+| 5 | Document/report settings | `ia_document_template_settings` / `_sections` | `AuditReportTemplateEditor`, `TemplateSectionsPanel` | config blob | **KEEP** — listed, deep-linked |
+| 6 | Section library | `ia_document_section_library` | `SectionLibraryViewer` | active flag | **KEEP** — listed, deep-linked |
+| 7 | Management response | `ia_document_template_settings` (`mgmt_response`) | `ManagementResponseTemplateEditor` | config blob | **KEEP** — no separate engine |
+| 8 | Communications | Omni-Comms notification templates | Omni-Comms admin | canonical | **LINK ONLY** — Library shows a single link, never a copy |
+| 9 | Legacy `ia_document_templates` | legacy table | `TemplatesManagement` (deprecated) | superseded | **LEGACY READ-ONLY** — not surfaced in the Library |
+| 10 | Working paper templates | none found | none | n/a | **DOCUMENTED GAP** — not invented; working papers remain instance-based |
+
+No generic template table, no universal form builder, no Compliance families, no second communications engine.
+
+### 4.2 What was built
+
+- Additive migration on `ia_audit_programs`: `is_default`, `cloned_from_id`, `source_engagement_id`, `category`; freeze guard extended to allow only the governed `is_default` flag on frozen versions.
+- Governed RPCs (all permission-checked server-side, all audit-logged): `ia_create_programme_version`, `ia_clone_programme`, `ia_approve_programme` (auto-supersedes the prior approved version), `ia_retire_programme`, `ia_set_default_programme`, `ia_delete_programme_draft`, `ia_programme_usage` (Where Used), `ia_create_programme_from_engagement` (methodology only).
+- Capability helper `ia_can_manage_templates(action)`; new permission module `audit_template_library` with view/create/edit/clone/create_version/approve/retire/set_default/delete actions, falling back to `audit_configuration:configure`.
+- Front door: `src/pages/audit/TemplateLibrary.tsx` + `src/hooks/useIATemplateLibrary.ts`, route `/audit/template-library` (admin entitlement + `FEATURE_AUDIT_SYSTEM_CONFIG`), registered in `auditRouteConfig.ts`. One search box, family tabs with counts, history toggle, detail drawer with procedures, Where Used, and lifecycle actions; every family deep-links to its existing specialist editor.
+
+### 4.3 Authenticated TEST evidence (Phase 4)
+
+| Test | Result |
+|------|--------|
+| T1 Where Used RPC | PASS — returns bound audits with version/status |
+| T2 New version from approved master | PASS — new Draft V+1 with procedures copied |
+| T3 Prior version untouched | PASS — remains Approved with its own version |
+| T4 Second concurrent draft | PASS — rejected `IA_DRAFT_VERSION_EXISTS` |
+| T5 Draft editable | PASS |
+| T6 Approve new version | PASS — prior approved version auto-`Superseded` |
+| T7 Edit approved version | PASS — rejected `IA_PROGRAMME_FROZEN` |
+| T8 Set recommended default | PASS — single default per audit area |
+| T9/T10 Clone | PASS — independent Draft V1, `cloned_from_id` recorded, source unchanged |
+| T11 Create from existing audit | PASS — 2 procedures harvested; only methodology fields (title, test type, planned sample size, N/A rationale rule) — no samples, evidence, exceptions, findings, responses or results |
+| T12 Delete | PASS — unused draft deleted; approved version rejected `IA_NOT_DRAFT` |
+| T13 Retire | PASS — `Retired`, inactive, default cleared, history retained |
+| T14 Historical binding | PASS — the existing engagement programme still points at its original source programme and version |
+
+Typecheck: PASS. Supabase linter: unchanged baseline pattern (new functions are `SECURITY DEFINER` with `search_path` set and explicit permission checks).
+
+### 4.4 Open items carried forward
+
+- Working paper reusable templates: genuine gap, not implemented.
+- Checklist and section families still lack versioning; deliberately unchanged in Phase 4.
+- Overall gate status: **IN PROGRESS** — Phases 5–7 (workspace, My Work / Continue Audit, RBAC/SoD, full final suite) outstanding. No overall PASS issued. No Production deployment or destructive TEST reset performed.

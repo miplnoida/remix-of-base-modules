@@ -411,12 +411,14 @@ const RiskMatrix = lazy(() => import('@/pages/audit/RiskMatrix'));
 const AuditEngagements = lazy(() => import('@/pages/audit/AuditEngagements'));
 const EngagementDetail = lazy(() => import('@/pages/audit/EngagementDetail'));
 const AuditActionCentre = lazy(() => import('@/pages/audit/AuditActionCentre'));
+const IAMyAuditWork = lazy(() => import('@/pages/audit/MyAuditWork'));
 const AuditEscalationRoles = lazy(() => import('@/pages/audit/EscalationRoles'));
 const PlanApproval = lazy(() => import('@/pages/audit/PlanApproval'));
 const AuditConfig = lazy(() => import('@/pages/audit/AuditConfig'));
 const AuditAccessMatrix = lazy(() => import('@/pages/audit/AuditAccessMatrix'));
 const RiskSettings = lazy(() => import('@/pages/audit/RiskSettings'));
 const DocumentTemplateSettings = lazy(() => import('@/pages/audit/DocumentTemplateSettings'));
+const IATemplateLibrary = lazy(() => import('@/pages/audit/TemplateLibrary'));
 const ComplianceReportTemplates = lazy(() => import('@/pages/compliance/admin/ComplianceReportTemplates'));
 const AuditQueries = lazy(() => import('@/pages/audit/AuditQueries'));
 
@@ -1818,6 +1820,7 @@ export const AppRoutes = () => {
       <Route path="/audit/audit-plans/:id" element={<Suspense fallback={<div>Loading...</div>}><AuditPlanDetail /></Suspense>} />
       <Route path="/audit/audits" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate>} />
       <Route path="/audit/audits/:id" element={<EngagementDetail />} />
+      <Route path="/audit/my-work" element={<Suspense fallback={<div />}><IAMyAuditWork /></Suspense>} />
       <Route path="/audit/action-centre" element={<Suspense fallback={<div />}><AuditActionCentre /></Suspense>} />
       <Route path="/audit/escalation-roles" element={<Suspense fallback={<div />}><AuditEscalationRoles /></Suspense>} />
       <Route path="/audit/action-center" element={<Navigate to="/audit/action-centre" replace />} />
@@ -1829,6 +1832,7 @@ export const AppRoutes = () => {
       <Route path="/audit/config" element={<AuditEntitlementGate anyOf={AUDIT_ADMIN_ENTITLEMENTS}><AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><AuditConfig /></AuditFeatureGate></AuditEntitlementGate>} />
       <Route path="/audit/access-matrix" element={<AuditEntitlementGate anyOf={AUDIT_ADMIN_ENTITLEMENTS}><Suspense fallback={<div />}><AuditAccessMatrix /></Suspense></AuditEntitlementGate>} />
       <Route path="/audit/risk-settings" element={<Suspense fallback={<div />}><RiskSettings /></Suspense>} />
+      <Route path="/audit/template-library" element={<AuditEntitlementGate anyOf={AUDIT_ADMIN_ENTITLEMENTS}><AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><Suspense fallback={<div />}><IATemplateLibrary /></Suspense></AuditFeatureGate></AuditEntitlementGate>} />
       <Route path="/audit/document-templates" element={<AuditEntitlementGate anyOf={AUDIT_ADMIN_ENTITLEMENTS}><AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><Suspense fallback={<div />}><DocumentTemplateSettings /></Suspense></AuditFeatureGate></AuditEntitlementGate>} />
       <Route path="/audit/queries" element={<Suspense fallback={<div />}><AuditQueries /></Suspense>} />
       <Route path="/audit/auditors" element={<AuditEntitlementGate anyOf={AUDIT_ADMIN_ENTITLEMENTS}><AuditFeatureGate featureFlag="FEATURE_AUDIT_AUDITOR_PROFILES"><Suspense fallback={<div />}><AuditorProfiles /></Suspense></AuditFeatureGate></AuditEntitlementGate>} />
