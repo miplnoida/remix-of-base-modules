@@ -286,99 +286,38 @@ export default function EngagementDetail() {
       >
         {/* Grouped Tab Structure */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
-          <TabsList className="flex-wrap bg-transparent h-auto gap-0 p-0">
-            {/* === Overview Group === */}
-            <TabsTrigger value="overview" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-              <Eye className="h-3.5 w-3.5 mr-1.5" />Overview
-            </TabsTrigger>
-            {canSeeAuditorWorkspace && (
-              <TabsTrigger value="preparation" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                Preparation
-              </TabsTrigger>
-            )}
-
-            {canSeeAuditorWorkspace && (
-              <>
-                <TabSep />
-
-                {/* === Fieldwork Group (audit team only) === */}
-                <TabsTrigger value="programme" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                  <Network className="h-3.5 w-3.5 mr-1.5" />Programme / RCM
-                </TabsTrigger>
-                <TabsTrigger value="activities" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                  <ClipboardCheck className="h-3.5 w-3.5 mr-1.5" />Activities
-                  <TabBadge count={auditActivities.length} />
-                </TabsTrigger>
-                <TabsTrigger value="control-tests" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                  <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Control Tests
-                  <TabBadge count={auditControlTests.length} />
-                </TabsTrigger>
-                <TabsTrigger value="evidence" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                  <Paperclip className="h-3.5 w-3.5 mr-1.5" />Evidence
-                  <TabBadge count={auditEvidence.length} />
-                </TabsTrigger>
-
-                <TabsTrigger value="working-papers" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                  <FolderOpen className="h-3.5 w-3.5 mr-1.5" />Working Papers
-                  <TabBadge count={auditWorkingPapers.length} />
-                </TabsTrigger>
-              </>
-            )}
-
-            <TabSep />
-
-            {/* === Findings & Response Group === */}
-            <TabsTrigger value="findings" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-              <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />Findings
-              <TabBadge count={auditFindings.length} variant={openFindings.length > 0 ? 'warning' : 'default'} />
-            </TabsTrigger>
-            <TabsTrigger value="responses" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />Responses
-              <TabBadge count={pendingResponsesCount} variant="warning" />
-            </TabsTrigger>
-            <TabsTrigger value="actions" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-              <CheckCircle className="h-3.5 w-3.5 mr-1.5" />Actions
-              <TabBadge count={overdueActionsCount} variant="danger" />
-            </TabsTrigger>
-            {canSeeAuditorWorkspace && (
-              <TabsTrigger value="follow-ups" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                <Search className="h-3.5 w-3.5 mr-1.5" />Follow-ups
-                <TabBadge count={auditFollowUps.length} />
-              </TabsTrigger>
-            )}
-
-            <TabSep />
-
-            {/* === Output Group === */}
-            {canSeeAuditorWorkspace && (
-              <TabsTrigger value="quality-review" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                <BadgeCheck className="h-3.5 w-3.5 mr-1.5" />Quality Review
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="timeline" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-              <Clock className="h-3.5 w-3.5 mr-1.5" />Timeline
-            </TabsTrigger>
-
-            {canSeeAuditorWorkspace && (
-              <TabsTrigger value="closure" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-                <Shield className="h-3.5 w-3.5 mr-1.5" />Closure
-              </TabsTrigger>
-            )}
-
-
-
-            {/* === Report Center CTA === */}
+          {/* IA Phase 5 — stage-grouped navigation over the SAME ?tab= vocabulary.
+              All 14 sections remain reachable; only prominence changes. */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <EngagementSectionNav
+                activeTab={activeTab}
+                allowedTabs={canSeeAuditorWorkspace ? ENGAGEMENT_WORKSPACE_TABS : MANAGEMENT_TABS}
+                executionStatus={execStatus}
+                counts={{
+                  activities: { count: auditActivities.length },
+                  'control-tests': { count: auditControlTests.length },
+                  evidence: { count: auditEvidence.length },
+                  'working-papers': { count: auditWorkingPapers.length },
+                  findings: { count: auditFindings.length, tone: openFindings.length > 0 ? 'warning' : 'default' },
+                  responses: { count: pendingResponsesCount, tone: 'warning' },
+                  actions: { count: overdueActionsCount, tone: 'danger' },
+                  'follow-ups': { count: auditFollowUps.length },
+                }}
+                onSelect={setActiveTab}
+              />
+            </div>
             <Button
               variant="outline"
               size="sm"
-              className="ml-3 gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/10"
+              className="gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/10 shrink-0"
               onClick={() => navigate(`/audit/audit-reports?engagementId=${id}`)}
             >
               <BarChart3 className="h-3.5 w-3.5" />
               Open Report Center
               <ArrowRight className="h-3 w-3" />
             </Button>
-          </TabsList>
+          </div>
 
           <TabsContent value="overview">
             <AuditOverviewTab
