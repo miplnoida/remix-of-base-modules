@@ -76054,11 +76054,14 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           audit_area: string | null
+          category: string | null
+          cloned_from_id: string | null
           created_at: string | null
           created_by: string | null
           expected_evidence_json: Json | null
           id: string
           is_active: boolean | null
+          is_default: boolean
           linked_controls_json: Json | null
           linked_risks_json: Json | null
           methodology: string | null
@@ -76070,6 +76073,7 @@ export type Database = {
           published_at: string | null
           retired_at: string | null
           scope: string | null
+          source_engagement_id: string | null
           status: string | null
           updated_at: string | null
           updated_by: string | null
@@ -76080,11 +76084,14 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           audit_area?: string | null
+          category?: string | null
+          cloned_from_id?: string | null
           created_at?: string | null
           created_by?: string | null
           expected_evidence_json?: Json | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean
           linked_controls_json?: Json | null
           linked_risks_json?: Json | null
           methodology?: string | null
@@ -76096,6 +76103,7 @@ export type Database = {
           published_at?: string | null
           retired_at?: string | null
           scope?: string | null
+          source_engagement_id?: string | null
           status?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -76106,11 +76114,14 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           audit_area?: string | null
+          category?: string | null
+          cloned_from_id?: string | null
           created_at?: string | null
           created_by?: string | null
           expected_evidence_json?: Json | null
           id?: string
           is_active?: boolean | null
+          is_default?: boolean
           linked_controls_json?: Json | null
           linked_risks_json?: Json | null
           methodology?: string | null
@@ -76122,6 +76133,7 @@ export type Database = {
           published_at?: string | null
           retired_at?: string | null
           scope?: string | null
+          source_engagement_id?: string | null
           status?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -133457,6 +133469,7 @@ export type Database = {
         Args: { p_engagement_programme_id: string }
         Returns: Json
       }
+      ia_approve_programme: { Args: { p_program_id: string }; Returns: Json }
       ia_assign_activity: {
         Args: {
           p_activity_id: string
@@ -133518,6 +133531,7 @@ export type Database = {
       }
       ia_can_issue_report: { Args: { p_report_id: string }; Returns: Json }
       ia_can_manage_reporting_config: { Args: never; Returns: boolean }
+      ia_can_manage_templates: { Args: { _action?: string }; Returns: boolean }
       ia_can_read_all: { Args: never; Returns: boolean }
       ia_can_start_engagement: {
         Args: { p_engagement_id: string }
@@ -133547,6 +133561,15 @@ export type Database = {
         Returns: Json
       }
       ia_check_overdue_actions: { Args: never; Returns: Json }
+      ia_clone_programme: {
+        Args: {
+          p_audit_area?: string
+          p_new_code: string
+          p_new_name: string
+          p_program_id: string
+        }
+        Returns: Json
+      }
       ia_close_action: {
         Args: {
           p_action_id: string
@@ -133711,6 +133734,10 @@ export type Database = {
         Args: { p_created_by?: string; p_plan_id: string }
         Returns: Json
       }
+      ia_copy_programme_procedures: {
+        Args: { p_from: string; p_to: string }
+        Returns: number
+      }
       ia_create_action_from_recommendation: {
         Args: {
           p_recommendation_id: string
@@ -133728,6 +133755,19 @@ export type Database = {
           p_scope?: string
           p_title: string
         }
+        Returns: Json
+      }
+      ia_create_programme_from_engagement: {
+        Args: {
+          p_audit_area?: string
+          p_engagement_id: string
+          p_new_code: string
+          p_new_name: string
+        }
+        Returns: Json
+      }
+      ia_create_programme_version: {
+        Args: { p_change_summary?: string; p_program_id: string }
         Returns: Json
       }
       ia_create_report_version: {
@@ -133749,6 +133789,10 @@ export type Database = {
           p_minutes_reference?: string
           p_plan_id: string
         }
+        Returns: Json
+      }
+      ia_delete_programme_draft: {
+        Args: { p_program_id: string }
         Returns: Json
       }
       ia_detect_material_plan_changes: {
@@ -134129,6 +134173,8 @@ export type Database = {
         Args: { p_engagement_id: string; p_same_function_only?: boolean }
         Returns: Json
       }
+      ia_programme_root: { Args: { p_program_id: string }; Returns: string }
+      ia_programme_usage: { Args: { p_program_id: string }; Returns: Json }
       ia_progress_corrective_action: {
         Args: {
           p_action_id: string
@@ -134141,10 +134187,12 @@ export type Database = {
       }
       ia_q_action_centre_counts: { Args: { p_filters?: Json }; Returns: Json }
       ia_q_closure_blockers: { Args: { p_filters?: Json }; Returns: Json }
+      ia_q_continue_audit: { Args: never; Returns: Json }
       ia_q_followup_queue: { Args: { p_filters?: Json }; Returns: Json }
       ia_q_hia_attention: { Args: never; Returns: Json }
       ia_q_management_actions: { Args: never; Returns: Json }
       ia_q_my_audit_work: { Args: never; Returns: Json }
+      ia_q_my_audits: { Args: never; Returns: Json }
       ia_q_plan_closure_readiness: {
         Args: { p_plan_id: string }
         Returns: Json
@@ -134349,6 +134397,10 @@ export type Database = {
         }
         Returns: Json
       }
+      ia_retire_programme: {
+        Args: { p_program_id: string; p_reason?: string }
+        Returns: Json
+      }
       ia_review_activity: {
         Args: { p_activity_id: string; p_notes?: string; p_outcome: string }
         Returns: Json
@@ -134378,6 +134430,10 @@ export type Database = {
           intended_roles: string[]
           module_name: string
         }[]
+      }
+      ia_set_default_programme: {
+        Args: { p_program_id: string }
+        Returns: Json
       }
       ia_start_annual_plan_approval_workflow: {
         Args: { p_plan_id: string; p_submitted_by?: string }
