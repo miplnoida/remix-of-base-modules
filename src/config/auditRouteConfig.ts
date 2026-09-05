@@ -101,6 +101,7 @@ export const auditRouteConfig: AuditRouteEntry[] = [
   // ===== Configuration =====
   { moduleKey: 'system-config', label: 'Audit Configuration', path: '/audit/config', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'configuration', component: 'AuditConfig' },
   { moduleKey: 'risk-settings', label: 'Risk Configuration', path: '/audit/risk-settings', permission: 'configure_audit_system', enabled: true, category: 'configuration', component: 'RiskSettings' },
+  { moduleKey: 'my-work', label: 'My Work', path: '/audit/my-work', permission: 'view_audit_assignments', enabled: true, category: 'operations', component: 'MyAuditWork' },
   { moduleKey: 'template-library', label: 'Template Library', path: '/audit/template-library', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'configuration', component: 'TemplateLibrary' },
   { moduleKey: 'document-templates', label: 'Document & Output Settings', path: '/audit/document-templates', permission: 'configure_audit_system', enabled: AUDIT_FEATURE_FLAGS.FEATURE_AUDIT_SYSTEM_CONFIG, category: 'configuration', component: 'DocumentTemplateSettings' },
 

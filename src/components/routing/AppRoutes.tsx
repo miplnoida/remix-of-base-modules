@@ -411,6 +411,7 @@ const RiskMatrix = lazy(() => import('@/pages/audit/RiskMatrix'));
 const AuditEngagements = lazy(() => import('@/pages/audit/AuditEngagements'));
 const EngagementDetail = lazy(() => import('@/pages/audit/EngagementDetail'));
 const AuditActionCentre = lazy(() => import('@/pages/audit/AuditActionCentre'));
+const IAMyAuditWork = lazy(() => import('@/pages/audit/MyAuditWork'));
 const AuditEscalationRoles = lazy(() => import('@/pages/audit/EscalationRoles'));
 const PlanApproval = lazy(() => import('@/pages/audit/PlanApproval'));
 const AuditConfig = lazy(() => import('@/pages/audit/AuditConfig'));
@@ -1819,6 +1820,7 @@ export const AppRoutes = () => {
       <Route path="/audit/audit-plans/:id" element={<Suspense fallback={<div>Loading...</div>}><AuditPlanDetail /></Suspense>} />
       <Route path="/audit/audits" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate>} />
       <Route path="/audit/audits/:id" element={<EngagementDetail />} />
+      <Route path="/audit/my-work" element={<Suspense fallback={<div />}><IAMyAuditWork /></Suspense>} />
       <Route path="/audit/action-centre" element={<Suspense fallback={<div />}><AuditActionCentre /></Suspense>} />
       <Route path="/audit/escalation-roles" element={<Suspense fallback={<div />}><AuditEscalationRoles /></Suspense>} />
       <Route path="/audit/action-center" element={<Navigate to="/audit/action-centre" replace />} />

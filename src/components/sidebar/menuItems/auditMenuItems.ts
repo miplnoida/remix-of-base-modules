@@ -32,6 +32,13 @@ const auditMenuItemsRaw = [
         isGroupLabel: true,
       },
       {
+        title: "My Work",
+        url: "/audit/my-work",
+        icon: ClipboardCheck,
+        requiresPermission: "view_audit_assignments",
+        description: "Your daily audit work and Continue Audit"
+      },
+      {
         title: "Dashboard",
         url: "/audit/dashboard",
         icon: LayoutDashboard,
