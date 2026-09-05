@@ -12,11 +12,18 @@ import { Progress } from '@/components/ui/progress';
 import { calculateRiskLevel as deriveRiskLevel } from '@/lib/audit/riskEngine';
 import { useRiskRealtimeSync } from '@/hooks/useRiskRealtimeSync';
 import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
+import { useInternalAuditPersona } from '@/hooks/audit/useInternalAuditPersona';
+import { useIaContinueAudit, useIaMyWorkBuckets } from '@/hooks/audit/useIAMyWork';
 
 export default function AuditDashboard() {
   // Subscribe to realtime risk config/register changes for auto-refresh
   useRiskRealtimeSync();
   const navigate = useNavigate();
+  const { isAuditTeam, isLoading: personaLoading } = useInternalAuditPersona();
+  const myWorkEnabled = !personaLoading && isAuditTeam;
+  const { data: resumeItems = [] } = useIaContinueAudit(myWorkEnabled);
+  const { buckets } = useIaMyWorkBuckets(myWorkEnabled);
+  const resumeTop = resumeItems[0];
   const { data: departments = [], isLoading: departmentsLoading } = useIADepartments();
   const { data: functions = [] } = useIADepartmentFunctions('all');
   const { data: plans = [] } = useIAAnnualPlans();
@@ -135,6 +142,34 @@ export default function AuditDashboard() {
       breadcrumbs={[{ label: 'Internal Audit' }, { label: 'Dashboard' }]}
       isLoading={departmentsLoading}
     >
+      {/* IA Phase 5 — the auditor's own work comes before portfolio metrics. */}
+      {myWorkEnabled && (
+        <Card className="mb-4 border-primary/30 bg-primary/5" data-testid="dashboard-my-work-strip">
+          <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <PlayCircle className="h-4 w-4 text-primary" /> My Work
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {buckets.needsMyAction.length} item(s) need your action
+                {buckets.needsReview.length > 0 ? ` · ${buckets.needsReview.length} awaiting your review` : ''}
+                {resumeTop ? ` · Next: ${resumeTop.work_label} on ${resumeTop.engagement_name}` : ''}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {resumeTop && (
+                <Button size="sm" onClick={() => navigate(resumeTop.link)}>
+                  Continue Audit
+                </Button>
+              )}
+              <Button size="sm" variant="outline" onClick={() => navigate('/audit/my-work')}>
+                Open My Work
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {kpis.map((item) => (
           <Card key={item.label}>
