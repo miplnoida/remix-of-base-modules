@@ -6,7 +6,7 @@ import {
   Paperclip, FolderOpen, Search, ArrowRight, Network, ShieldCheck, BadgeCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { ENGAGEMENT_WORKSPACE_TABS, ENGAGEMENT_MANAGEMENT_TABS, useUrlTab } from '@/lib/audit/workspaceTabs';
 import { Separator } from '@/components/ui/separator';
 import { StatusBadge } from '@/components/common';
@@ -17,6 +17,7 @@ import { formatDateForDisplay } from '@/lib/format-config';
 import { useToast } from '@/hooks/use-toast';
 import { useTransitionExecutionStatus, type ExecutionStatus } from '@/hooks/useEngagementExecution';
 import { AuditWorkspaceShell } from '@/components/audit/workspace/AuditWorkspaceShell';
+import { EngagementSectionNav } from '@/components/audit/workspace/EngagementSectionNav';
 import { AuditEmptyState } from '@/components/audit/workspace/AuditEmptyState';
 import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 import { useInternalAuditPersona } from '@/hooks/audit/useInternalAuditPersona';
@@ -39,22 +40,6 @@ import {
   AuditQualityReviewTab,
 } from '@/components/audit/execution';
 
-
-// ===== Tab Badge =====
-function TabBadge({ count, variant = 'default' }: { count: number; variant?: 'default' | 'warning' | 'danger' | 'success' }) {
-  if (count === 0) return null;
-  const colors = {
-    default: 'bg-muted text-muted-foreground',
-    warning: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    danger: 'bg-destructive/10 text-destructive',
-    success: 'bg-primary/10 text-primary',
-  };
-  return (
-    <span className={`ml-1.5 h-5 min-w-[20px] rounded-full px-1.5 text-[10px] font-bold leading-5 inline-flex items-center justify-center ${colors[variant]}`}>
-      {count}
-    </span>
-  );
-}
 
 // ===== Smart Alerts =====
 function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions }: {
@@ -127,11 +112,6 @@ function SmartAlertsBanner({ audit, auditFindings, auditResponses, auditActions 
       ))}
     </div>
   );
-}
-
-// ===== Tab Separator =====
-function TabSep() {
-  return <div className="h-4 w-px bg-border/60 mx-1 shrink-0 self-center" />;
 }
 
 // ===== Main Component =====
