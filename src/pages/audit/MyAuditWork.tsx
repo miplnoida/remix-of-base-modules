@@ -115,12 +115,12 @@ export default function MyAuditWork() {
   const activeAudits = myAudits.filter((a) => !a.is_closed);
 
   if (personaLoading) {
-    return <PageShell title="My Work" description="Loading your Internal Audit work…"><Skeleton className="h-40 w-full" /></PageShell>;
+    return <PageShell title="My Work" subtitle="Loading your Internal Audit work…"><Skeleton className="h-40 w-full" /></PageShell>;
   }
 
   if (isManagementOnly) {
     return (
-      <PageShell title="My Work" description="Internal Audit items that need your attention">
+      <PageShell title="My Work" subtitle="Internal Audit items that need your attention">
         <Card>
           <CardContent className="p-6 text-sm text-muted-foreground">
             You do not have Internal Audit fieldwork assignments. Items requiring a management
@@ -134,7 +134,7 @@ export default function MyAuditWork() {
   return (
     <PageShell
       title="My Work"
-      description="What needs your action today, and where to pick up"
+      subtitle="What needs your action today, and where to pick up"
     >
       <div className="space-y-5">
         {/* Continue Audit */}
