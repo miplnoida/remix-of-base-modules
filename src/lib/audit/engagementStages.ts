@@ -86,11 +86,8 @@ export function groupForTab(
   if (tab === 'programme') {
     return currentGroup === 'perform' ? 'perform' : 'plan';
   }
-  const match = ENGAGEMENT_STAGE_GROUPS.find(
-    (g) => g.key !== 'perform' || g.tabs.includes(tab),
-  );
   const owner = ENGAGEMENT_STAGE_GROUPS.find((g) => g.tabs.includes(tab));
-  return (owner ?? match ?? ENGAGEMENT_STAGE_GROUPS[0]).key;
+  return owner?.key ?? 'overview';
 }
 
 /** Lifecycle stage → the group that should be emphasised (prominence only). */
